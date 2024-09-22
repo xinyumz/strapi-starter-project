@@ -804,6 +804,8 @@ export interface ApiArticleArticle extends Schema.CollectionType {
     Date: Attribute.Date;
     Cover: Attribute.Media<'images'> & Attribute.Required;
     Base: Attribute.Text & Attribute.Required;
+    Translation: Attribute.String &
+      Attribute.CustomField<'plugin::translator.translator'>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

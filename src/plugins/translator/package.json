@@ -1,11 +1,12 @@
 {
   "name": "translator",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "This is the description of the plugin.",
   "strapi": {
     "name": "translator",
-    "description": "Description of translator plugin",
-    "kind": "plugin"
+    "description": "A plugin for translating content",
+    "kind": "plugin",
+    "displayName": "Translator"
   },
   "dependencies": {
     "@strapi/design-system": "^1.6.3",

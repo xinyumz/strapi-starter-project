@@ -1,9 +1,12 @@
+//server/routes/index.ts
+
 export default [
   {
-    method: 'GET',
-    path: '/',
-    handler: 'myController.index',
+    method: 'POST',
+    path: '/translate',
+    handler: 'translation-controller.translate',
     config: {
+      auth: false,
       policies: [],
     },
   },

@@ -11,7 +11,7 @@ import { AnErrorOccurred } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
 import HomePage from '../HomePage';
 
-const App = () => {
+const App: React.FC = () => {
   return (
     <div>
       <Switch>

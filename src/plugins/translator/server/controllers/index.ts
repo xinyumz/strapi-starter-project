@@ -1,5 +1,5 @@
-import myController from './my-controller';
+import translationController from './translation-controller';
 
 export default {
-  myController,
+  'translation-controller': translationController,
 };

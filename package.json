@@ -11,6 +11,7 @@
     "deploy": "strapi deploy"
   },
   "dependencies": {
+    "@google-cloud/translate": "^8.5.0",
     "@strapi/plugin-cloud": "4.25.0",
     "@strapi/plugin-i18n": "4.25.0",
     "@strapi/plugin-seo": "^1.9.9",

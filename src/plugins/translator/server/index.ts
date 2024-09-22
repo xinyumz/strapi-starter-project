@@ -1,3 +1,5 @@
+//server/index.ts
+
 import register from './register';
 import bootstrap from './bootstrap';
 import destroy from './destroy';
@@ -21,3 +23,6 @@ export default {
   policies,
   middlewares,
 };
+
+console.log('Loading translator plugin server');
+console.log('Content types:', JSON.stringify(contentTypes, null, 2));

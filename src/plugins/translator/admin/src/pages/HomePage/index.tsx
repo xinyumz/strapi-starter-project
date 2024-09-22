@@ -1,18 +1,20 @@
 /*
  *
  * HomePage
+ * /admin/src/pages/HomePage/index.tsx
  *
  */
 
-import React from 'react';
-import pluginId from '../../pluginId';
 
-const HomePage = () => {
+import React from 'react';
+import { Box, Typography } from '@strapi/design-system';
+
+const HomePage: React.FC = () => {
   return (
-    <div>
-      <h1>{pluginId}&apos;s HomePage</h1>
-      <p>Happy coding</p>
-    </div>
+    <Box padding={8} background="neutral100">
+      <Typography variant="alpha">Translator Plugin</Typography>
+      <Typography>Welcome to the Translator plugin!</Typography>
+    </Box>
   );
 };
 
