@@ -35,6 +35,18 @@
     "Translation": {
       "type": "customField",
       "customField": "plugin::translator.translator"
+    },
+    "taxon": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::taxon.taxon",
+      "inversedBy": "articles"
+    },
+    "category": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::category.category",
+      "inversedBy": "articles"
     }
   }
 }

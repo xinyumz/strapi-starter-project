@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "taxons",
+  "info": {
+    "singularName": "taxon",
+    "pluralName": "taxons",
+    "displayName": "Taxon",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Name": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "categories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::category.category",
+      "mappedBy": "taxon"
+    },
+    "articles": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::article.article",
+      "mappedBy": "taxon"
+    }
+  }
+}
