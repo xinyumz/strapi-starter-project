@@ -17,17 +17,16 @@
       "required": true,
       "unique": true
     },
-    "articles": {
+    "parent": {
       "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::article.article",
-      "mappedBy": "category"
+      "relation": "oneToOne",
+      "target": "api::category.category"
     },
-    "taxon": {
+    "article": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "api::taxon.taxon",
-      "inversedBy": "categories"
+      "target": "api::article.article",
+      "inversedBy": "Categories"
     }
   }
 }

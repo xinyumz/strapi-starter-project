@@ -36,17 +36,20 @@
       "type": "customField",
       "customField": "plugin::translator.translator"
     },
-    "taxon": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::taxon.taxon",
-      "inversedBy": "articles"
+    "SelectCategory": {
+      "type": "customField",
+      "options": {
+        "maxDepth": 2,
+        "target": "Categories",
+        "targetAttribute": "Name"
+      },
+      "customField": "plugin::categorizer.categorizer"
     },
-    "category": {
+    "Categories": {
       "type": "relation",
-      "relation": "manyToOne",
+      "relation": "oneToMany",
       "target": "api::category.category",
-      "inversedBy": "articles"
+      "mappedBy": "article"
     }
   }
 }
