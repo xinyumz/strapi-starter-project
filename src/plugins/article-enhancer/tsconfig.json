@@ -1,0 +1,22 @@
+{
+  "extends": "@strapi/typescript-utils/tsconfigs/admin",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "allowJs": true,
+    "baseUrl": ".",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "admin/",
+    "server/",
+    "strapi-admin.js",
+    "strapi-server.js",
+    "package.json"
+  ],
+  "exclude": [
+    "node_modules/",
+    "dist/",
+    "**/*.test.ts"
+  ]
+}

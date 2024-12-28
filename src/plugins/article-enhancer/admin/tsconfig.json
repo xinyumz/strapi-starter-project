@@ -1,0 +1,31 @@
+{
+  "extends": "@strapi/typescript-utils/tsconfigs/admin",
+  "compilerOptions": {
+    "outDir": "../dist/admin",
+    "rootDir": ".",
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@strapi/design-system/*": [
+        "../../../node_modules/@strapi/design-system/*"
+      ],
+      "@strapi/helper-plugin": [
+        "../../../node_modules/@strapi/helper-plugin"
+      ],
+      "@strapi/icons": [
+        "../../../node_modules/@strapi/icons"
+      ]
+    },
+    "resolveJsonModule": true,
+  },
+  "include": [
+    ".",
+    "../package.json"
+  ],
+  "exclude": [
+    "node_modules/",
+    "build/",
+    "dist/",
+    "**/*.test.ts"
+  ]
+}
