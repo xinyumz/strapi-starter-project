@@ -9,13 +9,13 @@
     "displayName": "Article Enhancer"
   },
   "dependencies": {
-    "@strapi/design-system": "^1.6.3",
-    "@strapi/helper-plugin": "^4.6.0",
-    "@strapi/icons": "^1.6.3",
+    "@strapi/design-system": "^1.13.1",
+    "@strapi/helper-plugin": "^4.25.0",
+    "@strapi/icons": "^1.13.1",
     "prop-types": "^15.7.2"
   },
   "devDependencies": {
-    "@strapi/typescript-utils": "^4.6.0",
+    "@strapi/typescript-utils": "^4.25.0",
     "@types/koa": "^2.15.0",
     "@types/react": "^17.0.53",
     "@types/react-dom": "^18.0.28",

@@ -820,6 +820,10 @@ export interface ApiArticleArticle extends Schema.CollectionType {
       'oneToMany',
       'api::category.category'
     >;
+    HSK: Attribute.String &
+      Attribute.CustomField<'plugin::article-enhancer.hsk-calculator'>;
+    Grammar: Attribute.String &
+      Attribute.CustomField<'plugin::article-enhancer.grammar-rules'>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

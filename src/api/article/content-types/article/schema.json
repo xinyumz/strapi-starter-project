@@ -50,6 +50,14 @@
       "relation": "oneToMany",
       "target": "api::category.category",
       "mappedBy": "article"
+    },
+    "HSK": {
+      "type": "customField",
+      "customField": "plugin::article-enhancer.hsk-calculator"
+    },
+    "Grammar": {
+      "type": "customField",
+      "customField": "plugin::article-enhancer.grammar-rules"
     }
   }
 }

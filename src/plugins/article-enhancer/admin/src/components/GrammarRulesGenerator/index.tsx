@@ -15,6 +15,7 @@ import {
     Flex
 } from '@strapi/design-system';
 import { Trash } from '@strapi/icons';
+import { useIntl } from 'react-intl';
 import pluginId from '../../pluginId';
 
 interface GrammarRule {
@@ -25,14 +26,9 @@ interface GrammarRule {
 interface GrammarRulesGeneratorProps {
     name: string;
     onChange: (data: { target: { name: string; value: any; } }) => void;
-    value?: {
-        sentences: GrammarRule[];
-        translations: { [key: number]: string };
-    };
-    intlLabel: {
-        id: string;
-        defaultMessage: string;
-    };
+    value?: any;
+    intlLabel: { id: string; defaultMessage: string };
+    required: boolean;
 }
 
 type EngineChoice = 'stanford' | 'jieba' | 'both';
@@ -42,7 +38,9 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
     onChange,
     value,
     intlLabel,
+    required,
 }) => {
+    const { formatMessage } = useIntl();
     const [isLoading, setIsLoading] = useState(false);
     const [isTranslating, setIsTranslating] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -106,7 +104,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    sentences: value.sentences.map(s => s.sentence)
+                    sentences: value.sentences.map((s: GrammarRule) => s.sentence)
                 }),
             });
 
@@ -197,6 +195,10 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
         <Box padding={2}>
             <Stack spacing={4}>
                 <Box>
+                    <Typography variant="delta">{formatMessage(intlLabel)}</Typography>
+                </Box>
+
+                <Box>
                     <Typography variant="delta">Grammar Engine Selection</Typography>
                     <Stack spacing={2}>
                         <Radio
@@ -257,7 +259,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                     </Alert>
                 )}
 
-                {value?.sentences && value.sentences.map((item, index) => (
+                {value?.sentences && value.sentences.map((item: GrammarRule, index: number) => (
                     <Accordion
                         key={index}
                         expanded={expandedAccordion === index}

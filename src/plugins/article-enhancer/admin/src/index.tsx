@@ -1,22 +1,17 @@
 import { prefixPluginTranslations } from '@strapi/helper-plugin';
-
 import pluginPkg from '../../package.json';
 import pluginId from './pluginId';
 import Initializer from './components/Initializer';
 import PluginIcon from './components/PluginIcon';
-import HSKCalculator from './components/HSKCalculator';
-import GrammarRulesGenerator from './components/GrammarRulesGenerator';
 
 const name = pluginPkg.strapi.name;
 
 export default {
   register(app: any) {
-    // Register HSK Calculator custom field
     app.customFields.register({
       name: 'hsk-calculator',
       pluginId: 'article-enhancer',
-      type: 'json',
-      icon: PluginIcon,
+      type: 'string',
       intlLabel: {
         id: `${pluginId}.hsk-calculator.label`,
         defaultMessage: 'HSK Calculator',
@@ -26,27 +21,38 @@ export default {
         defaultMessage: 'Calculate HSK levels for Chinese text and track results',
       },
       components: {
-        Input: HSKCalculator
+        Input: async () => import('./components/HSKCalculator'),
       },
       options: {
-        // Any configuration options for the field
-        advanced: {
-          label: 'Options',
-          defaultValue: {
-            calculatedLevel: null,
-            selectedLevel: null,
-            distribution: []
-          }
-        }
-      }
+        advanced: [
+          {
+            sectionTitle: {
+              id: 'global.settings',
+              defaultMessage: 'Settings',
+            },
+            items: [
+              {
+                name: 'required',
+                type: 'checkbox',
+                intlLabel: {
+                  id: 'form.attribute.item.requiredField',
+                  defaultMessage: 'Required field',
+                },
+                description: {
+                  id: 'form.attribute.item.requiredField.description',
+                  defaultMessage: "You won't be able to create an entry if this field is empty",
+                },
+              },
+            ],
+          },
+        ],
+      },
     });
 
-    // Register Grammar Rules Generator custom field
     app.customFields.register({
       name: 'grammar-rules',
       pluginId: 'article-enhancer',
-      type: 'json',
-      icon: PluginIcon,
+      type: 'string',
       intlLabel: {
         id: `${pluginId}.grammar-rules.label`,
         defaultMessage: 'Grammar Rules',
@@ -56,50 +62,40 @@ export default {
         defaultMessage: 'Generate and manage grammar rules for Chinese text',
       },
       components: {
-        Input: GrammarRulesGenerator
+        Input: async () => import('./components/GrammarRulesGenerator'),
       },
       options: {
-        advanced: {
-          label: 'Options',
-          defaultValue: {
-            sentences: []
-          }
-        }
-      }
-    });
-
-    // Keep the existing menu link registration
-    app.addMenuLink({
-      to: `/plugins/${pluginId}`,
-      icon: PluginIcon,
-      intlLabel: {
-        id: `${pluginId}.plugin.name`,
-        defaultMessage: name,
+        advanced: [
+          {
+            sectionTitle: {
+              id: 'global.settings',
+              defaultMessage: 'Settings',
+            },
+            items: [
+              {
+                name: 'required',
+                type: 'checkbox',
+                intlLabel: {
+                  id: 'form.attribute.item.requiredField',
+                  defaultMessage: 'Required field',
+                },
+                description: {
+                  id: 'form.attribute.item.requiredField.description',
+                  defaultMessage: "You won't be able to create an entry if this field is empty",
+                },
+              },
+            ],
+          },
+        ],
       },
-      Component: async () => {
-        const component = await import('./pages/App');
-        return component;
-      },
-      permissions: [],
     });
-
-    const plugin = {
-      id: pluginId,
-      initializer: Initializer,
-      isReady: false,
-      name,
-    };
-
-    app.registerPlugin(plugin);
   },
 
-  bootstrap(app: any) { },
+  bootstrap() { },
 
-  async registerTrads(app: any) {
-    const { locales } = app;
-
+  async registerTrads({ locales }: { locales: string[] }) {
     const importedTrads = await Promise.all(
-      (locales as any[]).map((locale) => {
+      locales.map((locale) => {
         return import(`./translations/${locale}.json`)
           .then(({ default: data }) => {
             return {

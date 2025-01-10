@@ -779,7 +779,7 @@
   resolved "https://registry.yarnpkg.com/@radix-ui/rect/-/rect-1.1.0.tgz#f817d1d3265ac5415dadc67edab30ae196696438"
   integrity sha512-A9+lCBZoaMJlVKcRBz2YByCG+Cp2t6nAnMnNba+XiWxnj6r4JUFqfsgwocMBZU9LPtdxC6wB56ySYpc7LQIoJg==
 
-"@strapi/design-system@^1.6.3":
+"@strapi/design-system@^1.13.1":
   version "1.19.0"
   resolved "https://registry.yarnpkg.com/@strapi/design-system/-/design-system-1.19.0.tgz#1b0ca923c22f167baa6d35663e7f47c971df474c"
   integrity sha512-kEQNaRztIcr6I5Zh6mxtE/Nmkk1mylCS5s56ySKDdqOjWZw2BCbS72/J9k6r1RF1TLIDSXJN9r5dHR0ZKtWvBQ==
@@ -798,7 +798,7 @@
     prop-types "^15.8.1"
     react-remove-scroll "^2.5.9"
 
-"@strapi/helper-plugin@^4.6.0":
+"@strapi/helper-plugin@^4.25.0":
   version "4.25.12"
   resolved "https://registry.yarnpkg.com/@strapi/helper-plugin/-/helper-plugin-4.25.12.tgz#50db8649d589b6140f2ed995f81720b5be424bd9"
   integrity sha512-W4Jl+r0XaLZI1yfIEq/SIjrCiOojSG+x/+A92hK4wgwYlNVd5Iw7oQB8VVj935JQbpFzwQhMGCPrth1NaL7sWg==
@@ -814,15 +814,15 @@
     react-query "3.39.3"
     react-select "5.7.0"
 
-"@strapi/icons@^1.6.3":
+"@strapi/icons@^1.13.1":
   version "1.19.0"
   resolved "https://registry.yarnpkg.com/@strapi/icons/-/icons-1.19.0.tgz#efa6b553a7de437171512e3549859faa141a145f"
   integrity sha512-jcS7n3Ps+73fYGadxdaD6owazoDJKN1fHSG9dp8RX4RqkP6BfoHOX5j3aodVLmDX57Ksg6gy5JXf9xEml7nMpQ==
 
-"@strapi/typescript-utils@^4.6.0":
-  version "4.25.18"
-  resolved "https://registry.yarnpkg.com/@strapi/typescript-utils/-/typescript-utils-4.25.18.tgz#f794ae8da816ba325ffd718f28c80c6c6dc37897"
-  integrity sha512-EHcAHn3ME0ZzDwSWridPG3NqCIsNHr9KjK2G7FCS+IlDehRRw+QG9bKEpev8IWHhGDr9jgz+WtrIMm1T6zGbgA==
+"@strapi/typescript-utils@^4.25.0":
+  version "4.25.19"
+  resolved "https://registry.yarnpkg.com/@strapi/typescript-utils/-/typescript-utils-4.25.19.tgz#832e2e09c9af3b27066f8e4492093a54f0849d0f"
+  integrity sha512-N7tVEYlCEARgxeCbYrIOrD9/TGm3/0AZbod7ujCAOE4z2ZzjwVqZJDTDmxqjTPd6gtXxvB8iI74g6nMAY29uEg==
   dependencies:
     chalk "4.1.2"
     cli-table3 "0.6.5"

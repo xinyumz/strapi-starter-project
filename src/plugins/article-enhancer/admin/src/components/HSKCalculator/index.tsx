@@ -11,20 +11,15 @@ import {
     GridItem,
     Flex
 } from '@strapi/design-system';
+import { useIntl } from 'react-intl';
 import pluginId from '../../pluginId';
 
 interface HSKCalculatorProps {
     name: string;
     onChange: (data: { target: { name: string; value: any; } }) => void;
-    value?: {
-        calculatedLevel: number;
-        selectedLevel: number;
-        distribution: number[];
-    };
-    intlLabel: {
-        id: string;
-        defaultMessage: string;
-    };
+    value?: any;
+    intlLabel: { id: string; defaultMessage: string };
+    required: boolean;
 }
 
 const HSKCalculator: React.FC<HSKCalculatorProps> = ({
@@ -32,7 +27,9 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
     onChange,
     value,
     intlLabel,
+    required,
 }) => {
+    const { formatMessage } = useIntl();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -103,17 +100,13 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
         <Box padding={4} background="neutral100" hasRadius>
             <Stack spacing={4}>
                 <Box>
-                    <Typography variant="delta">HSK Level Calculator</Typography>
-                    <Typography variant="pi" textColor="neutral600">
-                        Calculate the HSK level based on the Chinese text
-                    </Typography>
+                    <Typography variant="delta">{formatMessage(intlLabel)}</Typography>
                 </Box>
 
                 <Button
                     onClick={handleCalculate}
                     loading={isLoading}
                     disabled={isLoading}
-                    startIcon={<span>📊</span>}
                 >
                     Calculate HSK Level
                 </Button>
@@ -130,7 +123,7 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
                             <Box background="neutral0" padding={4} hasRadius shadow="filterShadow">
                                 <Typography variant="delta" paddingBottom={2}>HSK Level Distribution</Typography>
                                 <Stack spacing={2}>
-                                    {value.distribution.map((percentage, index) => (
+                                    {value.distribution.map((percentage: number, index: number) => (
                                         <Box key={index}>
                                             <Flex justifyContent="space-between" paddingBottom={1}>
                                                 <Typography variant="pi">HSK {index + 1}</Typography>
@@ -170,7 +163,7 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
                                         <Box paddingTop={2}>
                                             <Select
                                                 label="Select Final HSK Level"
-                                                value={value.selectedLevel.toString()}
+                                                value={value.selectedLevel?.toString()}
                                                 onChange={handleLevelChange}
                                             >
                                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
