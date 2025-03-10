@@ -1,3 +1,4 @@
+// Updated GrammarRulesGenerator Component
 import React, { useState } from 'react';
 import {
     Button,
@@ -16,6 +17,7 @@ import {
 } from '@strapi/design-system';
 import { Trash } from '@strapi/icons';
 import { useIntl } from 'react-intl';
+import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
 
 interface GrammarRule {
@@ -46,24 +48,26 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [expandedAccordion, setExpandedAccordion] = useState<number | null>(null);
     const [engineChoice, setEngineChoice] = useState<EngineChoice>('both');
+    const { modifiedData } = useCMEditViewDataManager();
 
     const handleGenerate = async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const inputElement = document.querySelector('[name="content.Translation"]') as HTMLInputElement | HTMLTextAreaElement | null;
+            // Access the Translation field data using the Strapi data manager
+            const translationText = modifiedData.Translation;
 
-            if (!inputElement?.value) {
+            if (!translationText) {
                 throw new Error('Translation text not found');
             }
 
-            const response = await fetch(`/api/${pluginId}/grammar/generate`, {
+            const response = await fetch(`/${pluginId}/grammar/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    text: inputElement.value,
+                    text: translationText,
                     engineChoice
                 }),
             });
@@ -98,7 +102,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
         setIsTranslating(true);
         setError(null);
         try {
-            const response = await fetch(`/api/${pluginId}/process-sentences`, {
+            const response = await fetch(`/${pluginId}/process-sentences`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -156,7 +160,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                 throw new Error('No sentences data available');
             }
 
-            const response = await fetch(`/api/${pluginId}/grammar/rule`, {
+            const response = await fetch(`/${pluginId}/grammar/rule`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',

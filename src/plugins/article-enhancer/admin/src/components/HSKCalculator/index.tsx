@@ -1,3 +1,4 @@
+// Updated HSKCalculator Component
 import React, { useState } from 'react';
 import {
     Button,
@@ -12,6 +13,7 @@ import {
     Flex
 } from '@strapi/design-system';
 import { useIntl } from 'react-intl';
+import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
 
 interface HSKCalculatorProps {
@@ -32,24 +34,26 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
     const { formatMessage } = useIntl();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { modifiedData } = useCMEditViewDataManager();
 
     const handleCalculate = async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const inputElement = document.querySelector('[name="content.Translation"]') as HTMLInputElement | HTMLTextAreaElement | null;
+            // Access the Translation field data using the Strapi data manager
+            const translationText = modifiedData.Translation;
 
-            if (!inputElement?.value) {
+            if (!translationText) {
                 throw new Error('Translation text not found');
             }
 
-            const response = await fetch(`/api/${pluginId}/hsk/calculate`, {
+            const response = await fetch(`/${pluginId}/hsk/calculate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    text: inputElement.value
+                    text: translationText
                 }),
             });
 
