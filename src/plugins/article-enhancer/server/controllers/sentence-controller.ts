@@ -1,4 +1,4 @@
-// server/controllers/sentence-controller.ts
+// Updated server/controllers/sentence-controller.ts
 import { Strapi } from '@strapi/strapi';
 import { Context } from 'koa';
 import { errors } from '@strapi/utils';
@@ -55,14 +55,30 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.badRequest('At least one sentence is required');
             }
 
-            const translations = await strapi
-                .plugin('article-enhancer')
-                .service('sentenceService')
-                .translateSentences(sentences);
+            try {
+                // Log what we're trying to translate for debugging
+                console.log('Translating sentences:', sentences);
 
-            ctx.body = {
-                data: translations
-            };
+                // Call the service to translate the sentences
+                const translations = await strapi
+                    .plugin('article-enhancer')
+                    .service('sentenceService')
+                    .translateSentences(sentences);
+
+                // Format the response appropriately
+                ctx.body = {
+                    data: {
+                        translations,
+                        success: true
+                    }
+                };
+            } catch (serviceError: unknown) {
+                console.error('Translation service error:', serviceError);
+                const errorMessage = serviceError instanceof Error
+                    ? serviceError.message
+                    : 'Unknown translation service error';
+                throw new Error(`Translation service error: ${errorMessage}`);
+            }
         } catch (error: unknown) {
             if (error instanceof ApplicationError) {
                 ctx.throw(400, error.message);

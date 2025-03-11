@@ -102,23 +102,58 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
         setIsTranslating(true);
         setError(null);
         try {
+            // Prepare sentences array with explicit error handling
+            const sentences = [];
+            for (const sentenceObj of value.sentences) {
+                if (sentenceObj && typeof sentenceObj.sentence === 'string') {
+                    sentences.push(sentenceObj.sentence);
+                }
+            }
+
+            if (sentences.length === 0) {
+                throw new Error('No valid sentences found for translation');
+            }
+
+            console.log('Sending sentences for translation:', sentences);
+
             const response = await fetch(`/${pluginId}/process-sentences`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    sentences: value.sentences.map((s: GrammarRule) => s.sentence)
+                    sentences
                 }),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to translate sentences');
+                const errorData = await response.text();
+                console.error('Translation API error:', errorData);
+                throw new Error(`Failed to translate sentences: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
+            console.log('Translation response:', data);
+
+            // Add defensive checks for data structure
+            if (!data || !data.data) {
+                console.error('Unexpected response format:', data);
+                throw new Error('Invalid response format from translation service');
+            }
+
+            // Handle different possible response formats
+            let translations = [];
+            if (data.data.translations && Array.isArray(data.data.translations)) {
+                translations = data.data.translations;
+            } else if (Array.isArray(data.data)) {
+                translations = data.data;
+            } else {
+                console.error('Cannot find translations array in response:', data);
+                throw new Error('Translation data not found in response');
+            }
+
             const newTranslations = Object.fromEntries(
-                data.data.translations.map((translation: string, index: number) => [index, translation])
+                translations.map((translation: string, index: number) => [index, translation])
             );
 
             onChange({
@@ -131,6 +166,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                 },
             });
         } catch (err) {
+            console.error('Translation error:', err);
             setError(err instanceof Error ? err.message : 'Failed to translate sentences');
         } finally {
             setIsTranslating(false);

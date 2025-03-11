@@ -1,4 +1,4 @@
-// server/services/sentence-service.ts
+// Updated server/services/sentence-service.ts
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
 
@@ -17,24 +17,52 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
 
         try {
+            console.log("Attempting to translate sentences:", sentences);
+
+            // Check if translator plugin and translation service exist
+            if (!strapi.plugin('translator')) {
+                throw new Error('Translator plugin not found');
+            }
+
             const translationService = strapi.plugin('translator').service('translationService');
 
-            const translations = await Promise.all(
-                sentences.map(async (sentence) => {
-                    if (typeof sentence !== 'string') {
-                        throw new ApplicationError('Each sentence must be a string');
-                    }
-                    return translationService.translate(sentence, 'en');
-                })
-            );
+            if (!translationService) {
+                throw new Error('Translation service not found in translator plugin');
+            }
 
+            if (!translationService.translate) {
+                throw new Error('Translate method not found in translation service');
+            }
+
+            console.log("Translation service found, proceeding with translations");
+
+            // Translate each sentence individually and handle errors
+            const translations = [];
+            for (const sentence of sentences) {
+                if (typeof sentence !== 'string') {
+                    console.warn('Skipping non-string sentence:', sentence);
+                    translations.push('');
+                    continue;
+                }
+
+                try {
+                    const translation = await translationService.translate(sentence, 'en');
+                    translations.push(translation);
+                } catch (translationError: unknown) {
+                    console.error(`Error translating sentence "${sentence}":`, translationError);
+                    translations.push(`[Translation error for: ${sentence}]`);
+                }
+            }
+
+            console.log("All translations completed:", translations);
             return translations;
-        } catch (error) {
+        } catch (error: unknown) {
+            console.error('Sentence translation error:', error);
             if (error instanceof ApplicationError) {
                 throw error;
             }
-            console.error('Sentence translation error:', error);
-            throw new ApplicationError('Failed to translate sentences');
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            throw new ApplicationError(`Failed to translate sentences: ${errorMessage}`);
         }
     },
 
@@ -64,12 +92,13 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 english: translations[index],
                 grammarRules: grammarRules[index]?.rules || []
             }));
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof ApplicationError) {
                 throw error;
             }
             console.error('Article processing error:', error);
-            throw new ApplicationError('Failed to process article');
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            throw new ApplicationError(`Failed to process article: ${errorMessage}`);
         }
     }
 });
