@@ -58,6 +58,16 @@
     "Grammar": {
       "type": "customField",
       "customField": "plugin::article-enhancer.grammar-rules"
+    },
+    "AccessTier": {
+      "type": "enumeration",
+      "enum": [
+        "Free",
+        "Login",
+        "Premium"
+      ],
+      "required": true,
+      "default": "Free"
     }
   }
 }

@@ -1,4 +1,4 @@
-// Updated HSKCalculator Component with string value handling
+//HSKCalculator Component
 import React, { useState } from 'react';
 import {
     Button,
@@ -19,18 +19,14 @@ import { useFormIntegration } from '../../utils/formUtils';
 
 interface HSKCalculatorProps {
     name: string;
-    onChange: (data: { target: { name: string; value: any; } }) => void;
     value?: any;
     intlLabel: { id: string; defaultMessage: string };
-    required: boolean;
 }
 
 const HSKCalculator: React.FC<HSKCalculatorProps> = ({
     name,
-    onChange,
     value,
     intlLabel,
-    required,
 }) => {
     const { formatMessage } = useIntl();
     const [isLoading, setIsLoading] = useState(false);
@@ -49,13 +45,12 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
         try {
             // Access the Translation field data using the Strapi data manager
             const translationText = modifiedData.Translation;
-            console.log('Found Translation text:', translationText ? 'Yes (length: ' + translationText.length + ')' : 'No');
 
             if (!translationText) {
                 throw new Error('Translation text not found');
             }
 
-            console.log('Sending request to calculate HSK level');
+            console.log('Calculating HSK level...');
             const response = await fetch(`/${pluginId}/hsk/calculate`, {
                 method: 'POST',
                 headers: {
@@ -66,7 +61,6 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
                 }),
             });
 
-            console.log('HSK calculation API response status:', response.status);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('HSK calculation API error:', errorText);
@@ -74,7 +68,6 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
             }
 
             const result = await response.json();
-            console.log('HSK calculation API result:', result);
 
             const { skillLevel, skillDistribution } = result.data;
 
@@ -86,14 +79,12 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
 
             // Update Strapi's form data properly - stringify the JSON
             updateFormData(name, JSON.stringify(newValue));
-
-            console.log('HSK onChange called successfully');
+            console.log('HSK level calculation completed successfully');
         } catch (err) {
             console.error('HSK calculation error:', err);
             setError(err instanceof Error ? err.message : 'Failed to calculate HSK level');
         } finally {
             setIsLoading(false);
-            console.log('HSK calculation completed');
         }
     };
 
@@ -106,8 +97,6 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
 
         // Update Strapi's form data properly - stringify the JSON
         updateFormData(name, JSON.stringify(newValue));
-
-        console.log('HSK level change onChange called successfully');
     };
 
     const getColorForPercentage = (percentage: number): string => {
@@ -116,14 +105,6 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
         if (percentage > 25) return '#60a5fa';
         return '#93c5fd';
     };
-
-    // Log render phase
-    console.log('HSKCalculator rendering with:', {
-        hasCalculatedLevel: safeValue.calculatedLevel !== null,
-        calculatedLevel: safeValue.calculatedLevel,
-        selectedLevel: safeValue.selectedLevel,
-        hasDistribution: Array.isArray(safeValue.distribution) && safeValue.distribution.length > 0
-    });
 
     return (
         <Box padding={4} background="neutral100" hasRadius>
