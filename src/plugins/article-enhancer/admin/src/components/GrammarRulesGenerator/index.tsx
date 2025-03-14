@@ -1,4 +1,4 @@
-// Updated GrammarRulesGenerator Component
+// Updated GrammarRulesGenerator Component with string value handling
 import React, { useState } from 'react';
 import {
     Button,
@@ -19,6 +19,7 @@ import { Trash } from '@strapi/icons';
 import { useIntl } from 'react-intl';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
+import { useFormIntegration } from '../../utils/formUtils';
 
 interface GrammarRule {
     sentence: string;
@@ -50,17 +51,27 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
     const [engineChoice, setEngineChoice] = useState<EngineChoice>('both');
     const { modifiedData } = useCMEditViewDataManager();
 
+    const { updateFormData } = useFormIntegration();
+
+    // Initialize with safe default values, parsing the string if needed
+    const safeValue = typeof value === 'string' && value ?
+        JSON.parse(value) :
+        (value || { sentences: [], translations: {} });
+
     const handleGenerate = async () => {
+        console.log('Starting grammar rules generation with engine:', engineChoice);
         setIsLoading(true);
         setError(null);
         try {
             // Access the Translation field data using the Strapi data manager
             const translationText = modifiedData.Translation;
+            console.log('Found Translation text:', translationText ? 'Yes (length: ' + translationText.length + ')' : 'No');
 
             if (!translationText) {
                 throw new Error('Translation text not found');
             }
 
+            console.log('Sending request to generate grammar rules');
             const response = await fetch(`/${pluginId}/grammar/generate`, {
                 method: 'POST',
                 headers: {
@@ -72,29 +83,36 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                 }),
             });
 
+            console.log('Grammar rules API response status:', response.status);
             if (!response.ok) {
-                throw new Error('Failed to generate grammar rules');
+                const errorText = await response.text();
+                console.error('Grammar rules API error:', errorText);
+                throw new Error(`Failed to generate grammar rules: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
-            onChange({
-                target: {
-                    name,
-                    value: {
-                        sentences: data.data.sentences,
-                        translations: {}
-                    },
-                },
-            });
+            console.log('Grammar rules API result:', data);
+
+            // Create a clean structure for the new value
+            const newValue = {
+                sentences: Array.isArray(data.data.sentences) ? data.data.sentences : [],
+                translations: {},
+            };
+
+            // Update Strapi's form data properly - stringify the JSON
+            updateFormData(name, JSON.stringify(newValue));
         } catch (err) {
+            console.error('Grammar rules generation error:', err);
             setError(err instanceof Error ? err.message : 'Failed to process text');
         } finally {
             setIsLoading(false);
+            console.log('Grammar rules generation completed');
         }
     };
 
     const handleBulkTranslate = async () => {
-        if (!value?.sentences || value.sentences.length === 0) {
+        if (!safeValue.sentences || safeValue.sentences.length === 0) {
+            console.warn('No sentences available for translation');
             setError('No sentences available for translation');
             return;
         }
@@ -104,13 +122,16 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
         try {
             // Prepare sentences array with explicit error handling
             const sentences = [];
-            for (const sentenceObj of value.sentences) {
+            for (const sentenceObj of safeValue.sentences) {
                 if (sentenceObj && typeof sentenceObj.sentence === 'string') {
                     sentences.push(sentenceObj.sentence);
+                } else {
+                    console.warn('Invalid sentence object found:', sentenceObj);
                 }
             }
 
             if (sentences.length === 0) {
+                console.warn('No valid sentences extracted for translation');
                 throw new Error('No valid sentences found for translation');
             }
 
@@ -126,6 +147,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                 }),
             });
 
+            console.log('Translation API response status:', response.status);
             if (!response.ok) {
                 const errorData = await response.text();
                 console.error('Translation API error:', errorData);
@@ -133,7 +155,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
             }
 
             const data = await response.json();
-            console.log('Translation response:', data);
+            console.log('Translation API result:', data);
 
             // Add defensive checks for data structure
             if (!data || !data.data) {
@@ -156,43 +178,41 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                 translations.map((translation: string, index: number) => [index, translation])
             );
 
-            onChange({
-                target: {
-                    name,
-                    value: {
-                        ...value,
-                        translations: newTranslations
-                    },
-                },
-            });
+            console.log('Prepared new translations:', newTranslations);
+
+            // Update Strapi's form data properly - stringify the JSON
+            updateFormData(name, JSON.stringify({
+                ...safeValue,
+                translations: newTranslations
+            }));
         } catch (err) {
             console.error('Translation error:', err);
             setError(err instanceof Error ? err.message : 'Failed to translate sentences');
         } finally {
             setIsTranslating(false);
+            console.log('Bulk translation completed');
         }
     };
 
     const handleTranslationChange = (index: number, newTranslation: string) => {
         const updatedTranslations = {
-            ...(value?.translations || {}),
+            ...(safeValue.translations || {}),
             [index]: newTranslation
         };
 
-        onChange({
-            target: {
-                name,
-                value: {
-                    ...value,
-                    translations: updatedTranslations
-                },
-            },
-        });
+        console.log('Updated translations object:', updatedTranslations);
+
+        // Update Strapi's form data properly - stringify the JSON
+        updateFormData(name, JSON.stringify({
+            ...safeValue,
+            translations: updatedTranslations
+        }));
     };
 
     const handleDeleteRule = async (sentenceIndex: number, ruleIndex: number) => {
         try {
-            if (!value?.sentences) {
+            if (!safeValue.sentences) {
+                console.warn('No sentences data available for deleting rule');
                 throw new Error('No sentences data available');
             }
 
@@ -204,25 +224,27 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                 body: JSON.stringify({
                     sentenceIndex,
                     ruleIndex,
-                    rules: value.sentences
+                    rules: safeValue.sentences
                 }),
             });
 
+            console.log('Delete rule API response status:', response.status);
             if (!response.ok) {
-                throw new Error('Failed to delete rule');
+                const errorText = await response.text();
+                console.error('Delete rule API error:', errorText);
+                throw new Error(`Failed to delete rule: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
-            onChange({
-                target: {
-                    name,
-                    value: {
-                        ...value,
-                        sentences: data.data
-                    },
-                },
-            });
+            console.log('Delete rule API result:', data);
+
+            // Update Strapi's form data properly - stringify the JSON
+            updateFormData(name, JSON.stringify({
+                ...safeValue,
+                sentences: data.data
+            }));
         } catch (err) {
+            console.error('Rule deletion error:', err);
             setError(err instanceof Error ? err.message : 'Failed to delete rule');
         }
     };
@@ -230,6 +252,13 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
     const toggleAccordion = (index: number) => {
         setExpandedAccordion(expandedAccordion === index ? null : index);
     };
+
+    // Log render phase
+    console.log('GrammarRulesGenerator rendering with:', {
+        hasSentences: safeValue.sentences && safeValue.sentences.length > 0,
+        sentenceCount: safeValue.sentences ? safeValue.sentences.length : 0,
+        hasTranslations: safeValue.translations && Object.keys(safeValue.translations).length > 0
+    });
 
     return (
         <Box padding={2}>
@@ -281,7 +310,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                         Generate Grammar Rules
                     </Button>
 
-                    {value?.sentences && value.sentences.length > 0 && (
+                    {safeValue.sentences && safeValue.sentences.length > 0 && (
                         <Button
                             onClick={handleBulkTranslate}
                             loading={isTranslating}
@@ -299,7 +328,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                     </Alert>
                 )}
 
-                {value?.sentences && value.sentences.map((item: GrammarRule, index: number) => (
+                {safeValue.sentences && safeValue.sentences.map((item: GrammarRule, index: number) => (
                     <Accordion
                         key={index}
                         expanded={expandedAccordion === index}
@@ -315,7 +344,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                         />
                         <AccordionContent>
                             <Box padding={3}>
-                                {item.rules.length > 0 ? (
+                                {item.rules && item.rules.length > 0 ? (
                                     <Stack spacing={2}>
                                         {item.rules.map((rule, ruleIndex) => (
                                             <Card key={ruleIndex} padding={3}>
@@ -340,7 +369,7 @@ const GrammarRulesGenerator: React.FC<GrammarRulesGeneratorProps> = ({
                                     <TextInput
                                         label="Translation"
                                         name={`translation-${index}`}
-                                        value={value.translations?.[index] || ''}
+                                        value={safeValue.translations?.[index] || ''}
                                         onChange={(e: { target: { value: string } }) => handleTranslationChange(index, e.target.value)}
                                         hint="Edit translation if needed"
                                     />

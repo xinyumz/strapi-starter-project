@@ -1,4 +1,4 @@
-// Updated HSKCalculator Component
+// Updated HSKCalculator Component with string value handling
 import React, { useState } from 'react';
 import {
     Button,
@@ -15,6 +15,7 @@ import {
 import { useIntl } from 'react-intl';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
+import { useFormIntegration } from '../../utils/formUtils';
 
 interface HSKCalculatorProps {
     name: string;
@@ -35,6 +36,12 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { modifiedData } = useCMEditViewDataManager();
+    const { updateFormData } = useFormIntegration();
+
+    // Initialize with safe default values, parsing the string if needed
+    const safeValue = typeof value === 'string' && value ?
+        JSON.parse(value) :
+        (value || { calculatedLevel: null, selectedLevel: null, distribution: [] });
 
     const handleCalculate = async () => {
         setIsLoading(true);
@@ -42,11 +49,13 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
         try {
             // Access the Translation field data using the Strapi data manager
             const translationText = modifiedData.Translation;
+            console.log('Found Translation text:', translationText ? 'Yes (length: ' + translationText.length + ')' : 'No');
 
             if (!translationText) {
                 throw new Error('Translation text not found');
             }
 
+            console.log('Sending request to calculate HSK level');
             const response = await fetch(`/${pluginId}/hsk/calculate`, {
                 method: 'POST',
                 headers: {
@@ -57,40 +66,48 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
                 }),
             });
 
+            console.log('HSK calculation API response status:', response.status);
             if (!response.ok) {
-                throw new Error('Failed to calculate HSK level');
+                const errorText = await response.text();
+                console.error('HSK calculation API error:', errorText);
+                throw new Error(`Failed to calculate HSK level: ${response.status} ${response.statusText}`);
             }
 
             const result = await response.json();
+            console.log('HSK calculation API result:', result);
+
             const { skillLevel, skillDistribution } = result.data;
 
-            onChange({
-                target: {
-                    name,
-                    value: {
-                        calculatedLevel: skillLevel,
-                        selectedLevel: skillLevel,
-                        distribution: skillDistribution,
-                    },
-                },
-            });
+            const newValue = {
+                calculatedLevel: skillLevel,
+                selectedLevel: skillLevel,
+                distribution: skillDistribution,
+            };
+
+            // Update Strapi's form data properly - stringify the JSON
+            updateFormData(name, JSON.stringify(newValue));
+
+            console.log('HSK onChange called successfully');
         } catch (err) {
+            console.error('HSK calculation error:', err);
             setError(err instanceof Error ? err.message : 'Failed to calculate HSK level');
         } finally {
             setIsLoading(false);
+            console.log('HSK calculation completed');
         }
     };
 
     const handleLevelChange = (level: string) => {
-        onChange({
-            target: {
-                name,
-                value: {
-                    ...value,
-                    selectedLevel: parseInt(level, 10),
-                },
-            },
-        });
+        // Update with proper structure
+        const newValue = {
+            ...safeValue,
+            selectedLevel: parseInt(level, 10),
+        };
+
+        // Update Strapi's form data properly - stringify the JSON
+        updateFormData(name, JSON.stringify(newValue));
+
+        console.log('HSK level change onChange called successfully');
     };
 
     const getColorForPercentage = (percentage: number): string => {
@@ -99,6 +116,14 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
         if (percentage > 25) return '#60a5fa';
         return '#93c5fd';
     };
+
+    // Log render phase
+    console.log('HSKCalculator rendering with:', {
+        hasCalculatedLevel: safeValue.calculatedLevel !== null,
+        calculatedLevel: safeValue.calculatedLevel,
+        selectedLevel: safeValue.selectedLevel,
+        hasDistribution: Array.isArray(safeValue.distribution) && safeValue.distribution.length > 0
+    });
 
     return (
         <Box padding={4} background="neutral100" hasRadius>
@@ -121,13 +146,13 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
                     </Alert>
                 )}
 
-                {value?.distribution && (
+                {safeValue.distribution && safeValue.distribution.length > 0 && (
                     <Grid gap={4}>
                         <GridItem col={6}>
                             <Box background="neutral0" padding={4} hasRadius shadow="filterShadow">
                                 <Typography variant="delta" paddingBottom={2}>HSK Level Distribution</Typography>
                                 <Stack spacing={2}>
-                                    {value.distribution.map((percentage: number, index: number) => (
+                                    {safeValue.distribution.map((percentage: number, index: number) => (
                                         <Box key={index}>
                                             <Flex justifyContent="space-between" paddingBottom={1}>
                                                 <Typography variant="pi">HSK {index + 1}</Typography>
@@ -158,7 +183,7 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
                                     <Box>
                                         <Typography variant="delta">Calculated HSK Level</Typography>
                                         <Typography variant="alpha" textColor="primary600" paddingTop={2}>
-                                            HSK {value.calculatedLevel}
+                                            HSK {safeValue.calculatedLevel}
                                         </Typography>
                                     </Box>
 
@@ -167,7 +192,7 @@ const HSKCalculator: React.FC<HSKCalculatorProps> = ({
                                         <Box paddingTop={2}>
                                             <Select
                                                 label="Select Final HSK Level"
-                                                value={value.selectedLevel?.toString()}
+                                                value={safeValue.selectedLevel?.toString() || "1"}
                                                 onChange={handleLevelChange}
                                             >
                                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
