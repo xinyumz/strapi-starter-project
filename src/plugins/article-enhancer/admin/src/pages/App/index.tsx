@@ -6,18 +6,18 @@
  */
 
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { AnErrorOccurred } from '@strapi/helper-plugin';
+import { Switch, Route } from 'react-router-dom';
+import { NotFound } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
-import HomePage from '../HomePage';
+import GrammarPage from '../GrammarPage';
 
-const App: React.FC = () => {
+const App = () => {
   return (
     <div>
-      <Routes>
-        <Route path={`/plugins/${pluginId}`} element={<HomePage />} />
-        <Route path="*" element={<AnErrorOccurred />} />
-      </Routes>
+      <Switch>
+        <Route path={`/plugins/${pluginId}/grammar`} component={GrammarPage} exact />
+        <Route component={NotFound} />
+      </Switch>
     </div>
   );
 };

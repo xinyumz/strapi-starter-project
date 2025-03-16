@@ -1,3 +1,4 @@
+// Updated index.tsx with multi-page approach
 import { prefixPluginTranslations } from '@strapi/helper-plugin';
 import pluginPkg from '../../package.json';
 import pluginId from './pluginId';
@@ -8,6 +9,7 @@ const name = pluginPkg.strapi.name;
 
 export default {
   register(app: any) {
+    // Register custom field for HSK Calculator
     app.customFields.register({
       name: 'hsk-calculator',
       pluginId: 'article-enhancer',
@@ -49,10 +51,12 @@ export default {
       },
     });
 
+    // Register custom field for Grammar Rules
+    // Using static component that links to a plugin page
     app.customFields.register({
       name: 'grammar-rules',
       pluginId: 'article-enhancer',
-      type: 'string',
+      type: 'json',
       intlLabel: {
         id: `${pluginId}.grammar-rules.label`,
         defaultMessage: 'Grammar Rules',
@@ -62,7 +66,7 @@ export default {
         defaultMessage: 'Generate and manage grammar rules for Chinese text',
       },
       components: {
-        Input: async () => import('./components/GrammarRulesGenerator'),
+        Input: async () => import('./components/StaticGrammarComponent'),
       },
       options: {
         advanced: [
@@ -89,9 +93,55 @@ export default {
         ],
       },
     });
+
+    // Register the plugin page for grammar rules
+    app.addMenuLink({
+      to: `/plugins/${pluginId}`,
+      icon: PluginIcon,
+      intlLabel: {
+        id: `${pluginId}.plugin.name`,
+        defaultMessage: 'Article Enhancer',
+      },
+      Component: async () => {
+        const component = await import('./pages/App');
+        return component;
+      },
+      permissions: [
+        // Uncomment to require permissions
+        // {
+        //   action: 'plugin::article-enhancer.access',
+        //   subject: null,
+        // },
+      ],
+    });
+
+    // Register the routes for the plugin pages
+    app.createSettingSection(
+      {
+        id: pluginId,
+        intlLabel: {
+          id: `${pluginId}.plugin.name`,
+          defaultMessage: 'Article Enhancer',
+        },
+      },
+      [
+        {
+          intlLabel: {
+            id: `${pluginId}.grammar.title`,
+            defaultMessage: 'Grammar Rules',
+          },
+          id: 'grammar',
+          to: `/plugins/${pluginId}/grammar`,
+          Component: async () => {
+            const component = await import('./pages/GrammarPage');
+            return component;
+          },
+        }
+      ]
+    );
   },
 
-  bootstrap() { },
+  bootstrap(app: any) { },
 
   async registerTrads({ locales }: { locales: string[] }) {
     const importedTrads = await Promise.all(

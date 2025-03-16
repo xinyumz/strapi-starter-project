@@ -5,27 +5,39 @@ import { errors } from '@strapi/utils';
 
 const { ApplicationError } = errors;
 
+interface GrammarRule {
+    sentence: string;
+    rules: string[];
+    translation?: string;
+}
+
 interface ExtendedContext extends Context {
     body: any;
     request: Context['request'] & {
         body: {
+            data?: {
+                text?: string;
+                engineChoice?: 'stanford' | 'jieba' | 'both';
+                sentences?: Array<GrammarRule>;
+            };
             text?: string;
             engineChoice?: 'stanford' | 'jieba' | 'both';
-            sentences?: string[];
-            sentenceIndex?: number;
-            ruleIndex?: number;
-            rules?: Array<{
-                sentence: string;
-                rules: string[];
-            }>;
+            sentences?: Array<GrammarRule>;
         };
+    };
+    params: {
+        id?: string;
+        ruleId?: string;
     };
 }
 
 export default ({ strapi }: { strapi: Strapi }) => ({
+    // Generate grammar rules
     async generateRules(ctx: ExtendedContext) {
         try {
-            const { text, engineChoice = 'both' } = ctx.request.body;
+            // Handle both structured and flat request formats
+            const data = ctx.request.body.data || ctx.request.body;
+            const { text, engineChoice = 'both' } = data;
 
             if (!text) {
                 return ctx.badRequest('Text content is required');
@@ -45,62 +57,135 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             };
         } catch (error: unknown) {
             if (error instanceof Error) {
+                strapi.log.error(`Grammar rules generation failed: ${error.message}`);
                 ctx.throw(500, `Grammar rules generation failed: ${error.message}`);
             } else {
+                strapi.log.error('Grammar rules generation failed with unknown error');
                 ctx.throw(500, 'Grammar rules generation failed');
             }
         }
     },
 
-    async translateSentences(ctx: ExtendedContext) {
+    // Get grammar data for an article
+    async getArticleGrammar(ctx: ExtendedContext) {
         try {
-            const { sentences } = ctx.request.body;
+            const articleId = ctx.params.id;
 
-            if (!Array.isArray(sentences)) {
-                return ctx.badRequest('Sentences must be an array');
+            if (!articleId) {
+                return ctx.badRequest('Article ID is required');
             }
 
-            const translatorService = strapi.plugin('translator').service('translator');
-            const translations = await translatorService.translate(sentences);
+            // Make sure it's a valid number
+            const parsedId = parseInt(articleId, 10);
+
+            if (isNaN(parsedId)) {
+                strapi.log.error(`Invalid article ID: ${articleId}`);
+                return ctx.badRequest(`Invalid article ID: ${articleId}`);
+            }
+
+            const grammarService = strapi.plugin('article-enhancer').service('grammarService');
+            const result = await grammarService.getArticleGrammar(parsedId);
+
+            if (!result.success) {
+                strapi.log.error(`Failed to get grammar data: ${result.error}`);
+                return ctx.throw(500, result.error || 'Failed to get grammar data');
+            }
 
             ctx.body = {
-                data: {
-                    translations
-                }
+                data: result
             };
         } catch (error: unknown) {
             if (error instanceof Error) {
-                ctx.throw(500, `Translation failed: ${error.message}`);
+                strapi.log.error(`Failed to get grammar data: ${error.message}`);
+                ctx.throw(500, `Failed to get grammar data: ${error.message}`);
             } else {
-                ctx.throw(500, 'Translation failed');
+                strapi.log.error('Failed to get grammar data with unknown error');
+                ctx.throw(500, 'Failed to get grammar data');
             }
         }
     },
 
-    async deleteRule(ctx: ExtendedContext) {
+    // Save grammar data for an article
+    async saveArticleGrammar(ctx: ExtendedContext) {
         try {
-            const { sentenceIndex, ruleIndex, rules } = ctx.request.body;
+            const articleId = ctx.params.id;
 
-            if (
-                typeof sentenceIndex !== 'number' ||
-                typeof ruleIndex !== 'number' ||
-                !Array.isArray(rules)
-            ) {
-                return ctx.badRequest('Invalid request body');
+            // Handle both structured and flat request formats
+            const data = ctx.request.body.data || ctx.request.body;
+            const { sentences } = data;
+
+            if (!articleId) {
+                return ctx.badRequest('Article ID is required');
             }
 
-            const updatedRules = await strapi
-                .plugin('article-enhancer')
-                .service('grammarService')
-                .deleteRule(sentenceIndex, ruleIndex, rules);
+            // Make sure it's a valid number
+            const parsedId = parseInt(articleId, 10);
+
+            if (isNaN(parsedId)) {
+                strapi.log.error(`Invalid article ID: ${articleId}`);
+                return ctx.badRequest(`Invalid article ID: ${articleId}`);
+            }
+
+            if (!sentences || !Array.isArray(sentences)) {
+                return ctx.badRequest('Valid sentences array is required');
+            }
+
+            const grammarService = strapi.plugin('article-enhancer').service('grammarService');
+            const result = await grammarService.saveArticleGrammar(parsedId, sentences);
+
+            if (!result.success) {
+                strapi.log.error(`Failed to save grammar data: ${result.error}`);
+                return ctx.throw(500, result.error || 'Failed to save grammar data');
+            }
 
             ctx.body = {
-                data: updatedRules
+                data: { success: true }
             };
         } catch (error: unknown) {
             if (error instanceof Error) {
+                strapi.log.error(`Failed to save grammar data: ${error.message}`);
+                ctx.throw(500, `Failed to save grammar data: ${error.message}`);
+            } else {
+                strapi.log.error('Failed to save grammar data with unknown error');
+                ctx.throw(500, 'Failed to save grammar data');
+            }
+        }
+    },
+
+    // Delete a specific grammar rule
+    async deleteRule(ctx: ExtendedContext) {
+        try {
+            const ruleId = ctx.params.ruleId;
+
+            if (!ruleId) {
+                return ctx.badRequest('Rule ID is required');
+            }
+
+            // Make sure it's a valid number
+            const parsedId = parseInt(ruleId, 10);
+
+            if (isNaN(parsedId)) {
+                strapi.log.error(`Invalid rule ID: ${ruleId}`);
+                return ctx.badRequest(`Invalid rule ID: ${ruleId}`);
+            }
+
+            const grammarService = strapi.plugin('article-enhancer').service('grammarService');
+            const result = await grammarService.deleteRule(parsedId);
+
+            if (!result.success) {
+                strapi.log.error(`Grammar rule deletion failed: ${result.error}`);
+                return ctx.throw(500, result.error || 'Failed to delete rule');
+            }
+
+            ctx.body = {
+                data: { success: true }
+            };
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                strapi.log.error(`Grammar rule deletion failed: ${error.message}`);
                 ctx.throw(500, `Grammar rule deletion failed: ${error.message}`);
             } else {
+                strapi.log.error('Grammar rule deletion failed with unknown error');
                 ctx.throw(500, 'Grammar rule deletion failed');
             }
         }

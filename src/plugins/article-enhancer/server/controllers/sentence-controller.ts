@@ -1,4 +1,4 @@
-// Updated server/controllers/sentence-controller.ts
+// server/controllers/sentence-controller.ts
 import { Strapi } from '@strapi/strapi';
 import { Context } from 'koa';
 import { errors } from '@strapi/utils';
@@ -16,6 +16,7 @@ interface ExtendedContext extends Context {
 }
 
 export default ({ strapi }: { strapi: Strapi }) => ({
+    // Process full article content
     async processArticle(ctx: ExtendedContext) {
         try {
             const { content } = ctx.request.body;
@@ -43,6 +44,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
+    // Translate a list of sentences
     async translateSentences(ctx: ExtendedContext) {
         try {
             const { sentences } = ctx.request.body;
@@ -67,10 +69,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                 // Format the response appropriately
                 ctx.body = {
-                    data: {
-                        translations,
-                        success: true
-                    }
+                    data: translations
                 };
             } catch (serviceError: unknown) {
                 console.error('Translation service error:', serviceError);

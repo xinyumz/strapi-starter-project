@@ -1,4 +1,6 @@
+// server/routes/index.ts
 export default [
+    // HSK Calculator routes
     {
         method: 'POST',
         path: '/hsk/calculate',
@@ -9,6 +11,8 @@ export default [
             description: 'Calculate HSK level for Chinese text'
         }
     },
+
+    // Grammar rules routes
     {
         method: 'POST',
         path: '/grammar/generate',
@@ -20,8 +24,28 @@ export default [
         }
     },
     {
+        method: 'GET',
+        path: '/grammar/article/:id',
+        handler: 'grammarController.getArticleGrammar',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Get grammar data for an article'
+        }
+    },
+    {
+        method: 'POST',
+        path: '/grammar/article/:id',
+        handler: 'grammarController.saveArticleGrammar',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Save grammar data for an article'
+        }
+    },
+    {
         method: 'DELETE',
-        path: '/grammar/rule',
+        path: '/grammar/rule/:ruleId',
         handler: 'grammarController.deleteRule',
         config: {
             policies: [],
@@ -29,6 +53,8 @@ export default [
             description: 'Delete a specific grammar rule'
         }
     },
+
+    // Sentence processing routes
     {
         method: 'POST',
         path: '/process-sentences',
