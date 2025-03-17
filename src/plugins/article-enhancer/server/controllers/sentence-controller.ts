@@ -9,6 +9,10 @@ interface ExtendedContext extends Context {
     body: any;
     request: Context['request'] & {
         body: {
+            data?: {
+                content?: string;
+                sentences?: string[];
+            };
             content?: string;
             sentences?: string[];
         };
@@ -19,7 +23,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     // Process full article content
     async processArticle(ctx: ExtendedContext) {
         try {
-            const { content } = ctx.request.body;
+            // Handle both structured and flat request formats
+            const data = ctx.request.body.data || ctx.request.body;
+            const { content } = data;
 
             if (!content) {
                 return ctx.badRequest('Article content is required');
@@ -47,7 +53,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     // Translate a list of sentences
     async translateSentences(ctx: ExtendedContext) {
         try {
-            const { sentences } = ctx.request.body;
+            // Handle both structured and flat request formats
+            const data = ctx.request.body.data || ctx.request.body;
+            const { sentences } = data;
 
             if (!Array.isArray(sentences)) {
                 return ctx.badRequest('Sentences must be provided as an array');
