@@ -118,28 +118,30 @@ export default {
     // Register the routes for the plugin pages
     app.createSettingSection(
       {
-        id: pluginId,
+        id: `${pluginId}-chinese-tools`, // Use a more specific ID
         intlLabel: {
           id: `${pluginId}.plugin.name`,
-          defaultMessage: 'Article Enhancer',
+          defaultMessage: 'Chinese Language Tools',
         },
       },
       [
         {
           intlLabel: {
-            id: `${pluginId}.grammar.title`,
-            defaultMessage: 'Grammar Rules',
+            id: `${pluginId}.chinese-tools.title`,
+            defaultMessage: 'Chinese Language Tools',
           },
-          id: 'grammar',
-          to: `/plugins/${pluginId}/grammar`,
+          id: 'chinese-processor',
+          to: `/plugins/${pluginId}/chinese-processor`,
           Component: async () => {
-            const component = await import('./pages/GrammarPage');
+            const component = await import('./pages/ChineseArticleProcessor');
             return component;
           },
         }
       ]
     );
   },
+
+
 
   bootstrap(app: any) { },
 

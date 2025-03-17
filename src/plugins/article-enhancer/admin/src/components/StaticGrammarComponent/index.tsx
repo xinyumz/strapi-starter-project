@@ -34,38 +34,37 @@ const StaticGrammarComponent = (props: any) => {
         }
 
         // Use window.location to navigate to a new page with the results
-        // This avoids React state changes that might cause errors
         const queryParams = new URLSearchParams({
             articleId: articleId,
             engine: 'both'
         }).toString();
 
         // Open in a new tab/window
-        window.open(`/admin/plugins/${pluginId}/grammar?${queryParams}`, '_blank');
+        window.open(`/admin/plugins/${pluginId}/chinese-processor?${queryParams}`, '_blank');
     };
 
     return (
         <Box padding={4} background="neutral100" hasRadius>
             <Typography variant="delta">
-                Grammar Rules
+                Chinese Language Tools
             </Typography>
             <Divider />
 
             <Box paddingTop={4}>
                 <Typography>
-                    This component allows you to generate and manage grammar rules for Chinese text.
+                    This component allows you to analyze Chinese text with HSK calculation and grammar rule generation.
                 </Typography>
             </Box>
 
             <Box paddingTop={4}>
                 <Button onClick={handleGenerate}>
-                    Generate Grammar Rules
+                    Process Article
                 </Button>
             </Box>
 
             <Box paddingTop={4}>
                 <Typography variant="omega">
-                    Note: Grammar rules will open in a new window
+                    Note: Will open a new window
                 </Typography>
             </Box>
         </Box>
