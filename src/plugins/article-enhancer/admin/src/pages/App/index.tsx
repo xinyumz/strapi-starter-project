@@ -16,7 +16,6 @@ const App = () => {
   return (
     <div>
       <Switch>
-        <Route path={`/plugins/${pluginId}/grammar`} component={GrammarPage} exact />
         <Route path={`/plugins/${pluginId}/chinese-processor`} component={ChineseArticleProcessor} exact />
         <Route component={NotFound} />
       </Switch>

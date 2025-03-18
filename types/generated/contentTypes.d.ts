@@ -820,12 +820,10 @@ export interface ApiArticleArticle extends Schema.CollectionType {
       'oneToMany',
       'api::category.category'
     >;
-    HSK: Attribute.String &
-      Attribute.CustomField<'plugin::article-enhancer.hsk-calculator'>;
-    Grammar: Attribute.String &
-      Attribute.CustomField<'plugin::article-enhancer.grammar-rules'>;
     AccessTier: Attribute.Enumeration<['Free', 'Login', 'Premium']> &
       Attribute.DefaultTo<'Free'>;
+    ChineseProcessor: Attribute.JSON &
+      Attribute.CustomField<'plugin::article-enhancer.chinese-language-tools'>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

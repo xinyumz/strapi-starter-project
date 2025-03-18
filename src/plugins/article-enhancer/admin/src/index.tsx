@@ -1,72 +1,32 @@
-// Updated index.tsx with multi-page approach
+// Updated index.tsx with explicit imports
 import { prefixPluginTranslations } from '@strapi/helper-plugin';
 import pluginPkg from '../../package.json';
 import pluginId from './pluginId';
 import Initializer from './components/Initializer';
 import PluginIcon from './components/PluginIcon';
+// Import ChineseArticleData directly to ensure it exists
+import ChineseArticleData from './components/ChineseArticleData';
 
 const name = pluginPkg.strapi.name;
 
 export default {
   register(app: any) {
-    // Register custom field for HSK Calculator
+    // Register chinese-language-tools custom field
     app.customFields.register({
-      name: 'hsk-calculator',
-      pluginId: 'article-enhancer',
-      type: 'string',
-      intlLabel: {
-        id: `${pluginId}.hsk-calculator.label`,
-        defaultMessage: 'HSK Calculator',
-      },
-      intlDescription: {
-        id: `${pluginId}.hsk-calculator.description`,
-        defaultMessage: 'Calculate HSK levels for Chinese text and track results',
-      },
-      components: {
-        Input: async () => import('./components/HSKCalculator'),
-      },
-      options: {
-        advanced: [
-          {
-            sectionTitle: {
-              id: 'global.settings',
-              defaultMessage: 'Settings',
-            },
-            items: [
-              {
-                name: 'required',
-                type: 'checkbox',
-                intlLabel: {
-                  id: 'form.attribute.item.requiredField',
-                  defaultMessage: 'Required field',
-                },
-                description: {
-                  id: 'form.attribute.item.requiredField.description',
-                  defaultMessage: "You won't be able to create an entry if this field is empty",
-                },
-              },
-            ],
-          },
-        ],
-      },
-    });
-
-    // Register custom field for Grammar Rules
-    // Using static component that links to a plugin page
-    app.customFields.register({
-      name: 'grammar-rules',
+      name: 'chinese-language-tools',
       pluginId: 'article-enhancer',
       type: 'json',
       intlLabel: {
-        id: `${pluginId}.grammar-rules.label`,
-        defaultMessage: 'Grammar Rules',
+        id: `${pluginId}.chinese-tools.label`,
+        defaultMessage: 'Chinese Language Tools',
       },
       intlDescription: {
-        id: `${pluginId}.grammar-rules.description`,
-        defaultMessage: 'Generate and manage grammar rules for Chinese text',
+        id: `${pluginId}.chinese-tools.description`,
+        defaultMessage: 'Process Chinese text with HSK calculation and grammar analysis',
       },
       components: {
-        Input: async () => import('./components/StaticGrammarComponent'),
+        // Use a direct reference to the component
+        Input: async () => ({ default: ChineseArticleData }),
       },
       options: {
         advanced: [
@@ -94,7 +54,7 @@ export default {
       },
     });
 
-    // Register the plugin page for grammar rules
+    // Register the plugin page for the menu
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
@@ -106,19 +66,13 @@ export default {
         const component = await import('./pages/App');
         return component;
       },
-      permissions: [
-        // Uncomment to require permissions
-        // {
-        //   action: 'plugin::article-enhancer.access',
-        //   subject: null,
-        // },
-      ],
+      permissions: [],
     });
 
     // Register the routes for the plugin pages
     app.createSettingSection(
       {
-        id: `${pluginId}-chinese-tools`, // Use a more specific ID
+        id: `${pluginId}-chinese-tools`,
         intlLabel: {
           id: `${pluginId}.plugin.name`,
           defaultMessage: 'Chinese Language Tools',
@@ -140,8 +94,6 @@ export default {
       ]
     );
   },
-
-
 
   bootstrap(app: any) { },
 

@@ -150,18 +150,20 @@ const ChineseArticleProcessor = () => {
         setIsLoading(true);
         try {
             console.log(`Loading saved grammar data for article ID: ${articleId}`);
-            // Use the plugin's endpoint (no auth issues here)
             const response = await get(`/${pluginId}/grammar/article/${articleId}`);
 
             if (response.data && response.data.data && response.data.data.sentences) {
                 console.log(`Loaded ${response.data.data.sentences.length} sentences`);
-                const loadedSentences = response.data.data.sentences;
+
+                // Normalize data to ensure proper structure
+                const loadedSentences = response.data.data.sentences.map((sentence: any) => ({
+                    sentence: sentence.sentence || '',
+                    rules: Array.isArray(sentence.rules) ? sentence.rules : [],
+                    translation: sentence.translation || ''
+                }));
+
                 setSentences(loadedSentences);
-
-                // Store a deep copy of the original data for change detection
                 setOriginalSentences(JSON.parse(JSON.stringify(loadedSentences)));
-
-                // Reset changes flag
                 setHasTranslationChanges(false);
             } else {
                 console.log('No grammar data found');
@@ -200,20 +202,23 @@ const ChineseArticleProcessor = () => {
             const articleData = await response.json();
             console.log('Article data from API:', articleData);
 
-            // Look for HSK field in the response structure
-            const hskData = articleData.data?.attributes?.HSK;
-            console.log('HSK field found in API response:', hskData);
+            // Look for ChineseProcessor field in the response structure
+            const processorData = articleData.data?.attributes?.ChineseProcessor;
+            console.log('ChineseProcessor field found in API response:', processorData);
 
-            if (hskData && hskData !== "") {
-                let hskValue;
+            if (processorData && processorData !== "") {
+                let processorValue;
 
                 try {
                     // Parse if it's a string
-                    if (typeof hskData === 'string') {
-                        hskValue = JSON.parse(hskData);
+                    if (typeof processorData === 'string') {
+                        processorValue = JSON.parse(processorData);
                     } else {
-                        hskValue = hskData;
+                        processorValue = processorData;
                     }
+
+                    // Extract HSK data from processor data
+                    const hskValue = processorValue?.hsk;
 
                     // Validate structure
                     if (hskValue &&
@@ -229,10 +234,10 @@ const ChineseArticleProcessor = () => {
                         console.log('HSK data has invalid structure:', hskValue);
                     }
                 } catch (parseError) {
-                    console.error('Error parsing HSK data:', parseError);
+                    console.error('Error parsing ChineseProcessor data:', parseError);
                 }
             } else {
-                console.log('No HSK field found in response or field is empty');
+                console.log('No ChineseProcessor field found in response or field is empty');
             }
 
             // Default if no valid data found
@@ -370,8 +375,12 @@ const ChineseArticleProcessor = () => {
         try {
             console.log('Saving HSK data to article:', hskData);
 
-            // Format HSK data as string for storage
-            const hskString = JSON.stringify(hskData);
+            // Format HSK data for ChineseProcessor field
+            const processorData = {
+                hsk: hskData,
+                // We could include grammar data here as well if needed
+                grammar: {}
+            };
 
             // Use direct API endpoint to update the article
             const response = await fetch(`/api/articles/${articleId}`, {
@@ -381,8 +390,8 @@ const ChineseArticleProcessor = () => {
                 },
                 body: JSON.stringify({
                     data: {
-                        // Use the correct field name (HSK not HSK_Level)
-                        HSK: hskString
+                        // Use the new field name
+                        ChineseProcessor: processorData
                     }
                 }),
             });
@@ -657,8 +666,6 @@ const ChineseArticleProcessor = () => {
 
     // Toggle selection of a rule
     const toggleRuleSelection = (sentenceIndex: number, ruleIndex: number) => {
-        const selectionKey = JSON.stringify({ sentenceIndex, ruleIndex });
-
         // Check if this rule is already selected
         const isSelected = selectedRules.some(
             rule => rule.sentenceIndex === sentenceIndex && rule.ruleIndex === ruleIndex
@@ -1023,7 +1030,7 @@ const ChineseArticleProcessor = () => {
                                                         name={`translation-${index}`}
                                                         label={`Translation for sentence ${index + 1}`}
                                                         value={item?.translation || ''}
-                                                        onChange={(e: any) => handleTranslationChange(index, e.target.value)}
+                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTranslationChange(index, e.target.value)}
                                                         placeholder="No translation available. Click 'Translate All' to generate translations."
                                                     />
                                                 </Box>

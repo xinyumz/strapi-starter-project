@@ -51,14 +51,6 @@
       "target": "api::category.category",
       "mappedBy": "article"
     },
-    "HSK": {
-      "type": "customField",
-      "customField": "plugin::article-enhancer.hsk-calculator"
-    },
-    "Grammar": {
-      "type": "customField",
-      "customField": "plugin::article-enhancer.grammar-rules"
-    },
     "AccessTier": {
       "type": "enumeration",
       "enum": [
@@ -68,6 +60,10 @@
       ],
       "required": false,
       "default": "Free"
+    },
+    "ChineseProcessor": {
+      "type": "customField",
+      "customField": "plugin::article-enhancer.chinese-language-tools"
     }
   }
 }
