@@ -1,0 +1,464 @@
+// src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/hooks/useGrammarManagement.ts
+import { useState, useCallback } from 'react';
+import { useFetchClient } from '@strapi/helper-plugin';
+import { GrammarRule, GrammarEngineChoice } from '../../../utils/types';
+import { 
+  ERROR_MESSAGES, 
+  STATUS_MESSAGES, 
+  GRAMMAR_ENGINE_OPTIONS 
+} from '../../../utils/constants';
+import { normalizeSentences } from '../../../utils/apiHelpers';
+import { useLoadingState, useStateWithHistory } from '../../../hooks';
+import useSelectionManagement from './useSelectionManagement';
+
+interface UseGrammarManagementProps {
+  articleId: string | null;
+  pluginId: string;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}
+
+/**
+ * Custom hook for managing grammar rules and translations
+ */
+const useGrammarManagement = ({
+  articleId,
+  pluginId,
+  onSuccess,
+  onError
+}: UseGrammarManagementProps) => {
+  // Grammar engine choice
+  const [engineChoice, setEngineChoice] = useState<GrammarEngineChoice>(GRAMMAR_ENGINE_OPTIONS.BOTH);
+  
+  // Loading states
+  const {
+    isLoading: isTranslating,
+    setLoading: startTranslating,
+    setSuccess: finishTranslating,
+    setError: setTranslationError
+  } = useLoadingState();
+
+  const {
+    isLoading: isProcessing,
+    setLoading: startProcessing,
+    setSuccess: finishProcessing,
+    setError: setProcessingError
+  } = useLoadingState();
+
+  // Grammar rules state with history
+  const {
+    current: sentences,
+    updateCurrent: setSentences,
+    saveAsOriginal: saveOriginalSentences,
+    hasChanges: hasTranslationChanges,
+    reset: resetSentences
+  } = useStateWithHistory<GrammarRule[]>([]);
+
+  // Rule selection management
+  const {
+    selectedRules,
+    toggleRuleSelection,
+    isRuleSelected,
+    clearSelections,
+    getSortedSelections,
+    hasSelections
+  } = useSelectionManagement();
+
+  // Modal states
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isBulkDeleteModalVisible, setIsBulkDeleteModalVisible] = useState(false);
+  const [ruleToDelete, setRuleToDelete] = useState<{ sentenceIndex: number, ruleIndex: number } | null>(null);
+
+  // Get Strapi's fetch client
+  const { get, post } = useFetchClient();
+
+  /**
+   * Load saved grammar data for an article
+   */
+  const loadGrammarData = useCallback(async (id: string) => {
+    startProcessing();
+    try {
+      console.log(`Loading saved grammar data for article ID: ${id}`);
+      const response = await get(`/${pluginId}/grammar/article/${id}`);
+
+      if (response.data && response.data.data && response.data.data.sentences) {
+        console.log(`Loaded ${response.data.data.sentences.length} sentences`);
+        
+        // Normalize data to ensure proper structure
+        const loadedSentences = normalizeSentences(response.data.data.sentences);
+        
+        setSentences(loadedSentences);
+        saveOriginalSentences();
+        finishProcessing();
+        return loadedSentences;
+      } else {
+        console.log('No grammar data found');
+        setSentences([]);
+        saveOriginalSentences();
+        finishProcessing();
+        return [];
+      }
+    } catch (err) {
+      console.error('Error loading grammar data:', err);
+      setProcessingError();
+      onError(ERROR_MESSAGES.GRAMMAR_LOAD_FAILED);
+      return [];
+    }
+  }, [pluginId, get, setSentences, saveOriginalSentences, startProcessing, finishProcessing, setProcessingError, onError]);
+
+  /**
+   * Generate grammar rules for an article
+   */
+  const generateGrammarRules = useCallback(async () => {
+    if (!articleId) {
+      onError(ERROR_MESSAGES.ARTICLE_ID_MISSING);
+      return;
+    }
+
+    startProcessing();
+    clearSelections();
+
+    try {
+      console.log('Starting grammar rule generation...');
+      // First, get the translation text from the article
+      const articleResponse = await get(
+        `/content-manager/collection-types/api::article.article/${articleId}`
+      );
+
+      if (!articleResponse.data) {
+        throw new Error(ERROR_MESSAGES.RETRIEVE_ARTICLE_FAILED);
+      }
+
+      const translationText = articleResponse.data.Translation;
+
+      if (!translationText) {
+        throw new Error(ERROR_MESSAGES.TRANSLATION_REQUIRED);
+      }
+
+      // Generate grammar rules
+      console.log(`Generating grammar rules for article ID: ${articleId}`);
+      const genResponse = await post(`/${pluginId}/grammar/generate`, {
+        data: {
+          text: translationText,
+          engineChoice
+        }
+      });
+
+      if (!genResponse.data) {
+        throw new Error(ERROR_MESSAGES.GRAMMAR_GENERATION_FAILED);
+      }
+
+      // Save to database
+      console.log("Saving grammar data...");
+      const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
+        data: {
+          sentences: genResponse.data.data.sentences
+        }
+      });
+
+      if (!saveResponse.data) {
+        throw new Error(ERROR_MESSAGES.GRAMMAR_SAVE_FAILED);
+      }
+
+      const newSentences = normalizeSentences(genResponse.data.data.sentences);
+      setSentences(newSentences);
+      saveOriginalSentences();
+
+      console.log("Grammar rules generated and saved successfully");
+      finishProcessing();
+      onSuccess(STATUS_MESSAGES.GRAMMAR_GENERATED);
+    } catch (err) {
+      console.error("Error in grammar rule generation:", err);
+      setProcessingError();
+      onError(err instanceof Error ? err.message : ERROR_MESSAGES.GRAMMAR_GENERATION_FAILED);
+    }
+  }, [articleId, pluginId, engineChoice, get, post, setSentences, saveOriginalSentences, clearSelections, startProcessing, finishProcessing, setProcessingError, onSuccess, onError]);
+
+  /**
+   * Translate all sentences in bulk
+   */
+  const translateAllSentences = useCallback(async () => {
+    if (!sentences || sentences.length === 0) {
+      onError(ERROR_MESSAGES.NO_SENTENCES);
+      return;
+    }
+
+    startTranslating();
+
+    try {
+      console.log('Starting bulk translation...');
+      // Prepare sentences array
+      const sentenceTexts = sentences.map(s => s.sentence).filter(Boolean);
+
+      if (sentenceTexts.length === 0) {
+        throw new Error(ERROR_MESSAGES.NO_VALID_SENTENCES);
+      }
+
+      // Call the sentences processing endpoint
+      const response = await post(`/${pluginId}/process-sentences`, {
+        data: {
+          sentences: sentenceTexts
+        }
+      });
+
+      if (!response.data || !response.data.data) {
+        throw new Error(ERROR_MESSAGES.TRANSLATION_RESPONSE_INVALID);
+      }
+
+      // Get translations from the response
+      const translations = response.data.data;
+
+      if (!Array.isArray(translations)) {
+        throw new Error(ERROR_MESSAGES.TRANSLATION_RESPONSE_INVALID);
+      }
+
+      // Update sentences with translations
+      const updatedSentences = sentences.map((sentence, index) => ({
+        ...sentence,
+        translation: translations[index] || sentence.translation
+      }));
+
+      // Save to database
+      if (articleId) {
+        console.log("Saving translations...");
+        const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
+          data: {
+            sentences: updatedSentences
+          }
+        });
+
+        if (!saveResponse.data) {
+          throw new Error(ERROR_MESSAGES.TRANSLATION_SAVE_FAILED);
+        }
+      }
+
+      console.log('Translations completed successfully');
+      setSentences(updatedSentences);
+      saveOriginalSentences();
+
+      finishTranslating();
+      onSuccess(STATUS_MESSAGES.SENTENCES_TRANSLATED);
+    } catch (err) {
+      console.error('Translation error:', err);
+      setTranslationError();
+      onError(err instanceof Error ? err.message : ERROR_MESSAGES.TRANSLATION_FAILED);
+    }
+  }, [sentences, articleId, pluginId, post, setSentences, saveOriginalSentences, startTranslating, finishTranslating, setTranslationError, onSuccess, onError]);
+
+  /**
+   * Handle direct translation change for a single sentence
+   */
+  const handleTranslationChange = useCallback((index: number, newTranslation: string) => {
+    const updatedSentences = [...sentences];
+    if (updatedSentences[index]) {
+      updatedSentences[index].translation = newTranslation;
+      setSentences(updatedSentences);
+    }
+  }, [sentences, setSentences]);
+
+  /**
+   * Save all translation changes
+   */
+  const saveAllTranslations = useCallback(async () => {
+    if (!articleId || !hasTranslationChanges) return;
+
+    startProcessing();
+
+    try {
+      console.log("Saving all translation changes...");
+      const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
+        data: {
+          sentences: sentences
+        }
+      });
+
+      if (!saveResponse.data) {
+        throw new Error(ERROR_MESSAGES.SAVE_TRANSLATIONS_FAILED);
+      }
+
+      saveOriginalSentences();
+
+      finishProcessing();
+      onSuccess(STATUS_MESSAGES.TRANSLATIONS_SAVED);
+      return true;
+    } catch (err) {
+      console.error("Error saving translations:", err);
+      setProcessingError();
+      onError(err instanceof Error ? err.message : ERROR_MESSAGES.SAVE_TRANSLATIONS_FAILED);
+      return false;
+    }
+  }, [articleId, hasTranslationChanges, sentences, pluginId, post, saveOriginalSentences, startProcessing, finishProcessing, setProcessingError, onSuccess, onError]);
+
+  /**
+   * Show delete confirmation for a single rule
+   */
+  const handleShowDeleteConfirm = useCallback((sentenceIndex: number, ruleIndex: number) => {
+    setRuleToDelete({ sentenceIndex, ruleIndex });
+    setIsDeleteModalVisible(true);
+  }, []);
+
+  /**
+   * Delete a single rule after confirmation
+   */
+  const handleDeleteRuleConfirmed = useCallback(async () => {
+    if (!ruleToDelete) return;
+
+    const { sentenceIndex, ruleIndex } = ruleToDelete;
+    startProcessing();
+
+    try {
+      // Create a copy of the sentences array
+      const updatedSentences = [...sentences];
+
+      // Remove the rule from the specific sentence
+      if (updatedSentences[sentenceIndex] &&
+          updatedSentences[sentenceIndex].rules &&
+          updatedSentences[sentenceIndex].rules.length > ruleIndex) {
+
+        // Remove the rule from the array
+        updatedSentences[sentenceIndex].rules.splice(ruleIndex, 1);
+
+        // Update the sentences state
+        setSentences(updatedSentences);
+
+        // Save the updated data to the server
+        if (articleId) {
+          console.log(`Deleting rule ${ruleIndex} from sentence ${sentenceIndex}...`);
+          const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
+            data: {
+              sentences: updatedSentences
+            }
+          });
+
+          if (!saveResponse.data) {
+            throw new Error(ERROR_MESSAGES.UPDATE_GRAMMAR_FAILED);
+          }
+
+          saveOriginalSentences();
+
+          finishProcessing();
+          onSuccess(STATUS_MESSAGES.RULE_DELETED);
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting rule:", err);
+      setProcessingError();
+      onError(err instanceof Error ? err.message : ERROR_MESSAGES.DELETE_RULE_FAILED);
+    } finally {
+      setIsDeleteModalVisible(false);
+      setRuleToDelete(null);
+    }
+  }, [ruleToDelete, sentences, articleId, pluginId, post, setSentences, saveOriginalSentences, startProcessing, finishProcessing, setProcessingError, onSuccess, onError]);
+
+  /**
+   * Show confirmation for bulk deletion
+   */
+  const handleShowBulkDeleteConfirm = useCallback(() => {
+    if (selectedRules.length === 0) {
+      onError(ERROR_MESSAGES.NO_RULES_SELECTED);
+      return;
+    }
+
+    setIsBulkDeleteModalVisible(true);
+  }, [selectedRules, onError]);
+
+  /**
+   * Bulk delete selected rules after confirmation
+   */
+  const handleBulkDeleteConfirmed = useCallback(async () => {
+    if (selectedRules.length === 0 || !articleId) return;
+
+    startProcessing();
+
+    try {
+      console.log(`Bulk deleting ${selectedRules.length} rules...`);
+
+      // Create a copy of the sentences array
+      const updatedSentences = JSON.parse(JSON.stringify(sentences));
+
+      // Sort selected rules in reverse order (by sentence and rule index)
+      // This ensures we delete from the end first to avoid index shifting problems
+      const sortedRules = getSortedSelections();
+
+      // Remove each rule in reverse order
+      for (const { sentenceIndex, ruleIndex } of sortedRules) {
+        if (updatedSentences[sentenceIndex] &&
+            updatedSentences[sentenceIndex].rules &&
+            updatedSentences[sentenceIndex].rules.length > ruleIndex) {
+
+          updatedSentences[sentenceIndex].rules.splice(ruleIndex, 1);
+        }
+      }
+
+      // Save the updated data to the server
+      const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
+        data: {
+          sentences: updatedSentences
+        }
+      });
+
+      if (!saveResponse.data) {
+        throw new Error(ERROR_MESSAGES.UPDATE_GRAMMAR_FAILED);
+      }
+
+      // Update the sentences state
+      setSentences(updatedSentences);
+      saveOriginalSentences();
+
+      // Clear selection
+      clearSelections();
+
+      finishProcessing();
+      onSuccess(STATUS_MESSAGES.BULK_DELETE_SUCCESS(sortedRules.length));
+    } catch (err) {
+      console.error("Error bulk deleting rules:", err);
+      setProcessingError();
+      onError(err instanceof Error ? err.message : ERROR_MESSAGES.BULK_DELETE_FAILED);
+    } finally {
+      setIsBulkDeleteModalVisible(false);
+    }
+  }, [selectedRules, articleId, sentences, getSortedSelections, pluginId, post, setSentences, saveOriginalSentences, clearSelections, startProcessing, finishProcessing, setProcessingError, onSuccess, onError]);
+
+  /**
+   * Handle engine choice change
+   */
+  const handleEngineChange = useCallback((engine: GrammarEngineChoice) => {
+    setEngineChoice(engine);
+  }, []);
+
+  return {
+    // State
+    sentences,
+    engineChoice,
+    hasTranslationChanges,
+    isProcessing,
+    isTranslating,
+    selectedRules,
+    isDeleteModalVisible,
+    isBulkDeleteModalVisible,
+    ruleToDelete,
+    
+    // Grammar/translation actions
+    loadGrammarData,
+    generateGrammarRules,
+    handleEngineChange,
+    translateAllSentences,
+    handleTranslationChange,
+    saveAllTranslations,
+    
+    // Selection/deletion actions
+    toggleRuleSelection,
+    isRuleSelected,
+    handleShowDeleteConfirm,
+    handleDeleteRuleConfirmed,
+    handleShowBulkDeleteConfirm,
+    handleBulkDeleteConfirmed,
+    setIsDeleteModalVisible,
+    setIsBulkDeleteModalVisible,
+    
+    // Utility properties
+    hasSentences: sentences.length > 0
+  };
+};
+
+export default useGrammarManagement;
