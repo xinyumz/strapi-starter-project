@@ -143,40 +143,47 @@ const useGrammarManagement = ({
     console.log(`Updating selections after deleting sentence ${sentenceIndex}, rule ${ruleIndex}`);
 
     setSelectedRules(prev => {
+      // Deep clone the previous selections to avoid reference issues
+      const allSelections = JSON.parse(JSON.stringify(prev));
+
       // Track which selections we're modifying for debugging
+      const removed: SelectedRule[] = [];
       const updated: SelectedRule[] = [];
       const preserved: SelectedRule[] = [];
-      const removed: SelectedRule[] = [];
+      const updatedSelections: SelectedRule[] = [];
 
-      // Create an updated selection list
-      const updatedSelections = prev.map(selection => {
-        // If this selection points to the exact rule being deleted, mark for removal
+      // Process each selection
+      for (let i = 0; i < allSelections.length; i++) {
+        const selection = allSelections[i];
+
+        // If this selection points to the exact rule being deleted, remove it
         if (selection.sentenceIndex === sentenceIndex && selection.ruleIndex === ruleIndex) {
           removed.push({ ...selection });
-          // We'll filter these out later
-          return selection;
+          // Skip adding it to updatedSelections (effectively removing it)
+          continue;
         }
 
-        // For selections in the same sentence as the deleted rule
+        // If selection is in the same sentence as the deleted rule
         if (selection.sentenceIndex === sentenceIndex) {
           if (selection.ruleIndex > ruleIndex) {
             // If the selection is after the deleted rule, adjust its index down by 1
             const updatedSelection = {
-              ...selection,
+              sentenceIndex: selection.sentenceIndex,
               ruleIndex: selection.ruleIndex - 1
             };
-            updated.push(updatedSelection);
-            return updatedSelection;
+            updated.push({ ...updatedSelection });
+            updatedSelections.push(updatedSelection);
+          } else {
+            // If the selection is before the deleted rule, preserve it as is
+            preserved.push({ ...selection });
+            updatedSelections.push(selection);
           }
+        } else {
+          // For selections in other sentences, preserve as is
+          preserved.push({ ...selection });
+          updatedSelections.push(selection);
         }
-
-        // For selections in other sentences or before the deleted rule, preserve as is
-        preserved.push({ ...selection });
-        return selection;
-      }).filter(selection => {
-        // Remove any selections that pointed to the exact deleted rule
-        return !(selection.sentenceIndex === sentenceIndex && selection.ruleIndex === ruleIndex);
-      });
+      }
 
       console.log('Selections removed:', removed);
       console.log('Selections updated:', updated);
