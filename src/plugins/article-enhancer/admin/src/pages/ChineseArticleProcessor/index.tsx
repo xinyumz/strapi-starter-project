@@ -4,7 +4,11 @@ import {
     HeaderLayout,
     ContentLayout,
     Layout,
+    Box,
     Button,
+    ToggleCheckbox,
+    Flex,
+    Typography
 } from '@strapi/design-system';
 import { ArrowLeft } from '@strapi/icons';
 import { useFetchClient } from '@strapi/helper-plugin';
@@ -32,6 +36,9 @@ const ChineseArticleProcessor = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('Operation completed successfully');
+
+    // Simplified mode toggle
+    const [simplified, setSimplified] = useState(true); // Default to simplified mode
 
     // Main loading state
     const {
@@ -78,8 +85,9 @@ const ChineseArticleProcessor = () => {
         isProcessing,
         isTranslating,
         isDeleteModalVisible,
-
-        selectedRules, // Get the selectedRules array
+        isBulkDeleteModalVisible,
+        ruleToDelete,
+        selectedRules,
         loadGrammarData,
         generateGrammarRules,
         handleEngineChange,
@@ -88,8 +96,10 @@ const ChineseArticleProcessor = () => {
         saveAllTranslations,
         handleShowDeleteConfirm,
         handleDeleteRuleConfirmed,
+        handleShowBulkDeleteConfirm,
         handleBulkDeleteConfirmed,
         setIsDeleteModalVisible,
+        setIsBulkDeleteModalVisible,
         toggleRuleSelection,
         isRuleSelected,
         selectedRulesCount
@@ -145,11 +155,10 @@ const ChineseArticleProcessor = () => {
         setSuccess(false);
     };
 
-    // Debug logging for selectedRules
-    useEffect(() => {
-        console.log('Main component: selectedRules updated:', selectedRules);
-        console.log('Main component: selectedRulesCount:', selectedRulesCount);
-    }, [selectedRules, selectedRulesCount]);
+    // Toggle simplified mode
+    const handleToggleSimplified = () => {
+        setSimplified(prev => !prev);
+    };
 
     return (
         <Layout>
@@ -164,6 +173,18 @@ const ChineseArticleProcessor = () => {
                     >
                         Back
                     </Button>
+                }
+                primaryAction={
+                    <Flex alignItems="center" gap={3}>
+                        <Typography variant="pi">Compact View</Typography>
+                        <ToggleCheckbox
+                            onLabel="ON"
+                            offLabel="OFF"
+                            checked={simplified}
+                            onChange={handleToggleSimplified}
+                            aria-label="Toggle simplified view"
+                        />
+                    </Flex>
                 }
             />
 
@@ -199,7 +220,7 @@ const ChineseArticleProcessor = () => {
                             isTranslating={isTranslating}
                             hasTranslationChanges={hasTranslationChanges}
                             selectedRulesCount={selectedRulesCount}
-                            selectedRules={selectedRules} // Pass the actual selected rules array
+                            selectedRules={selectedRules}
                             onEngineChange={handleEngineChange}
                             onGenerateClick={generateGrammarRules}
                             onTranslateClick={translateAllSentences}
@@ -207,8 +228,9 @@ const ChineseArticleProcessor = () => {
                             onToggleRuleSelection={toggleRuleSelection}
                             onDeleteRuleClick={handleShowDeleteConfirm}
                             onSaveTranslations={saveAllTranslations}
-                            onDeleteSelected={handleBulkDeleteConfirmed} // Skip the confirmation and call the handler directly
+                            onDeleteSelected={handleBulkDeleteConfirmed}
                             isRuleSelected={isRuleSelected}
+                            simplified={simplified} // Pass simplified flag
                         />
                     </>
                 )}
@@ -225,18 +247,6 @@ const ChineseArticleProcessor = () => {
                 onConfirm={handleDeleteRuleConfirmed}
                 onCancel={() => setIsDeleteModalVisible(false)}
             />
-
-            {/* We're not using this anymore - moved to BulkActions component */}
-            {/* <ConfirmationDialog
-        isVisible={isBulkDeleteModalVisible}
-        title="Confirm Bulk Deletion"
-        message={`Are you sure you want to delete ${selectedRulesCount} selected grammar rules? This action cannot be undone.`}
-        confirmText={`Yes, delete ${selectedRulesCount} rules`}
-        cancelText="Cancel"
-        confirmButtonVariant="danger"
-        onConfirm={handleBulkDeleteConfirmed}
-        onCancel={() => setIsBulkDeleteModalVisible(false)}
-      /> */}
         </Layout>
     );
 };

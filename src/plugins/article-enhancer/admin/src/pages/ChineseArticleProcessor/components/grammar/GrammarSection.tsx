@@ -1,6 +1,6 @@
 // src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/grammar/GrammarSection.tsx
 import React from 'react';
-import { Box, Typography, Alert } from '@strapi/design-system';
+import { Box, Typography, Alert, Grid, GridItem } from '@strapi/design-system';
 import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../../utils/types';
 import GrammarToolbar from './GrammarToolbar';
 import SentenceItem from './SentenceItem';
@@ -13,7 +13,7 @@ interface GrammarSectionProps {
   isTranslating: boolean;
   hasTranslationChanges: boolean;
   selectedRulesCount: number;
-  selectedRules: SelectedRule[]; // Pass the actual selected rules array
+  selectedRules: SelectedRule[];
   onEngineChange: (engine: GrammarEngineChoice) => void;
   onGenerateClick: () => Promise<void>;
   onTranslateClick: () => Promise<void>;
@@ -23,10 +23,12 @@ interface GrammarSectionProps {
   onSaveTranslations: () => Promise<void>;
   onDeleteSelected: () => void;
   isRuleSelected: (sentenceIndex: number, ruleIndex: number) => boolean;
+  simplified?: boolean; // Control simplified view
 }
 
 /**
  * Component for the grammar analysis and translation section
+ * Supports both standard and two-column compact view with improved spacing
  */
 const GrammarSection: React.FC<GrammarSectionProps> = ({
   sentences,
@@ -44,19 +46,53 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
   onDeleteRuleClick,
   onSaveTranslations,
   onDeleteSelected,
-  isRuleSelected
+  isRuleSelected,
+  simplified = false
 }) => {
   const hasSentences = sentences.length > 0;
+
+  // Function to render sentence items
+  const renderSentenceItem = (item: GrammarRule, index: number) => (
+    <SentenceItem
+      key={`sentence-${index}`}
+      sentenceData={item}
+      index={index}
+      onTranslationChange={onTranslationChange}
+      onToggleRuleSelection={onToggleRuleSelection}
+      onDeleteRuleClick={onDeleteRuleClick}
+      isRuleSelected={isRuleSelected}
+      simplified={simplified}
+    />
+  );
+
+  // Function to render sentences in one or two columns
+  const renderSentences = () => {
+    if (!simplified) {
+      // Standard view - one sentence per row
+      return sentences.map((item, index) => renderSentenceItem(item, index));
+    } else {
+      // Compact view - two sentences per row using Grid
+      return (
+        <Grid gap={4}> {/* Increased gap for more spacing between sentences */}
+          {sentences.map((item, index) => (
+            <GridItem key={`grid-sentence-${index}`} col={6}>
+              {renderSentenceItem(item, index)}
+            </GridItem>
+          ))}
+        </Grid>
+      );
+    }
+  };
 
   return (
     <Box
       background="neutral0"
-      padding={8}
+      padding={simplified ? 6 : 8} // Reduced padding in simplified mode
       shadow="tableShadow"
       hasRadius
     >
       <GrammarToolbar
-        title="Sentence Analysis & Translation"
+        title={simplified ? "Sentences" : "Sentence Analysis & Translation"}
         hasSentences={hasSentences}
         isLoading={isLoading}
         isTranslating={isTranslating}
@@ -67,40 +103,45 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
       />
 
       {hasTranslationChanges && (
-        <Alert variant="info" closeLabel="Close alert" marginTop={4} marginBottom={4}>
-          You have unsaved translation changes. Remember to save your changes.
+        <Alert
+          variant="info"
+          closeLabel="Close alert"
+          marginTop={simplified ? 2 : 4}
+          marginBottom={simplified ? 3 : 4}
+        >
+          {simplified ?
+            "You have unsaved translation changes." :
+            "You have unsaved translation changes. Remember to save your changes."}
         </Alert>
       )}
 
       {!hasSentences ? (
         <Box paddingTop={4} paddingBottom={4}>
-          <Typography>No grammar rules found. Click "Generate Grammar Rules" to analyze the Chinese text.</Typography>
+          <Typography>
+            {simplified ?
+              "Click 'Generate Grammar Rules' to analyze text." :
+              "No grammar rules found. Click 'Generate Grammar Rules' to analyze the Chinese text."}
+          </Typography>
         </Box>
       ) : (
         <>
-          <Box paddingTop={4} paddingBottom={4}>
-            <Typography variant="epsilon">
-              Sentences ({sentences.length})
-              {selectedRulesCount > 0 && ` • ${selectedRulesCount} rules selected`}
-            </Typography>
-          </Box>
+          {/* Only show selected count when there are selections */}
+          {selectedRulesCount > 0 && (
+            <Box paddingTop={simplified ? 2 : 4} paddingBottom={simplified ? 2 : 4}>
+              <Typography variant="pi">
+                {selectedRulesCount} rules selected
+              </Typography>
+            </Box>
+          )}
 
-          {sentences.map((item, index) => (
-            <SentenceItem
-              key={`sentence-${index}`}
-              sentenceData={item}
-              index={index}
-              onTranslationChange={onTranslationChange}
-              onToggleRuleSelection={onToggleRuleSelection}
-              onDeleteRuleClick={onDeleteRuleClick}
-              isRuleSelected={isRuleSelected}
-            />
-          ))}
+          <Box marginTop={simplified ? 3 : 4}> {/* Slight increase in top margin */}
+            {renderSentences()}
+          </Box>
 
           <BulkActions
             hasTranslationChanges={hasTranslationChanges}
             selectedRulesCount={selectedRulesCount}
-            selectedRules={selectedRules} // Pass the actual selected rules array
+            selectedRules={selectedRules}
             isLoading={isLoading}
             isTranslating={isTranslating}
             onSaveTranslations={onSaveTranslations}

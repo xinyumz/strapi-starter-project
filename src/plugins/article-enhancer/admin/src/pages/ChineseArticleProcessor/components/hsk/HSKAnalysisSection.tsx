@@ -26,7 +26,7 @@ interface HSKAnalysisSectionProps {
 
 /**
  * Component for HSK analysis section
- * Contains HSK distribution chart and level selector
+ * Simplified with more compact layout
  */
 const HSKAnalysisSection: React.FC<HSKAnalysisSectionProps> = ({
   hskData,
@@ -40,13 +40,13 @@ const HSKAnalysisSection: React.FC<HSKAnalysisSectionProps> = ({
   return (
     <Box
       background="neutral0"
-      padding={8}
+      padding={6} // Reduced padding
       shadow="tableShadow"
       hasRadius
-      marginBottom={6}
+      marginBottom={4} // Reduced margin
     >
-      <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
-        <Typography variant="delta">HSK Level Analysis</Typography>
+      <Flex justifyContent="space-between" alignItems="center" marginBottom={3}>
+        <Typography variant="delta">HSK Analysis</Typography>
 
         <Button
           onClick={onCalculate}
@@ -59,17 +59,17 @@ const HSKAnalysisSection: React.FC<HSKAnalysisSectionProps> = ({
       </Flex>
 
       {isCalculatingHSK ? (
-        <Box padding={4} textAlign="center">
+        <Box padding={3} textAlign="center">
           <Loader>Calculating HSK level...</Loader>
         </Box>
       ) : hskData.distribution.length === 0 ? (
-        <Box paddingBottom={4}>
+        <Box paddingBottom={3}>
           <Typography>
-            No HSK analysis found. Click the "Calculate HSK Level" button above to analyze the Chinese text.
+            No HSK analysis found. Click "Calculate HSK Level" to analyze the Chinese text.
           </Typography>
         </Box>
       ) : (
-        <Grid gap={4}>
+        <Grid gap={3}>
           <GridItem col={6}>
             <HSKDistributionChart distribution={hskData.distribution} />
           </GridItem>
