@@ -1,10 +1,9 @@
-// src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/index.tsx
+// Updated ChineseArticleProcessor component
 import React, { useState, useEffect } from 'react';
 import {
     HeaderLayout,
     ContentLayout,
     Layout,
-    Box,
     Button,
     ToggleCheckbox,
     Flex,
@@ -85,8 +84,6 @@ const ChineseArticleProcessor = () => {
         isProcessing,
         isTranslating,
         isDeleteModalVisible,
-        isBulkDeleteModalVisible,
-        ruleToDelete,
         selectedRules,
         loadGrammarData,
         generateGrammarRules,
@@ -96,10 +93,8 @@ const ChineseArticleProcessor = () => {
         saveAllTranslations,
         handleShowDeleteConfirm,
         handleDeleteRuleConfirmed,
-        handleShowBulkDeleteConfirm,
         handleBulkDeleteConfirmed,
         setIsDeleteModalVisible,
-        setIsBulkDeleteModalVisible,
         toggleRuleSelection,
         isRuleSelected,
         selectedRulesCount
@@ -160,6 +155,34 @@ const ChineseArticleProcessor = () => {
         setSimplified(prev => !prev);
     };
 
+    // Navigate back to the article edit page with updated data
+    const handleNavigateBack = async () => {
+        try {
+            // Check if there are unsaved changes and save them before navigating
+            if (hasHskChanges) {
+                await saveHSKLevel();
+            }
+
+            if (hasTranslationChanges) {
+                await saveAllTranslations();
+            }
+
+            // Construct the URL to go back to the article edit page
+            if (articleId) {
+                const articleEditUrl = `/admin/content-manager/collection-types/api::article.article/${articleId}`;
+                // Navigate back to the article edit page
+                window.location.href = articleEditUrl;
+            } else {
+                // Fallback to browser history if no article ID
+                window.history.back();
+            }
+        } catch (error) {
+            console.error('Error when trying to navigate back:', error);
+            // Still navigate back even if there's an error
+            window.history.back();
+        }
+    };
+
     return (
         <Layout>
             <HeaderLayout
@@ -169,7 +192,7 @@ const ChineseArticleProcessor = () => {
                     <Button
                         startIcon={<ArrowLeft />}
                         variant="tertiary"
-                        onClick={() => window.history.back()}
+                        onClick={handleNavigateBack}
                     >
                         Back
                     </Button>

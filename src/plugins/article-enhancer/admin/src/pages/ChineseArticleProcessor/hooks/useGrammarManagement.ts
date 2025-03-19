@@ -1,4 +1,4 @@
-// src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/hooks/useGrammarManagement.ts
+// Updated useGrammarManagement.ts with fixes for saving grammar data
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useFetchClient } from '@strapi/helper-plugin';
 import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../utils/types';
@@ -195,6 +195,82 @@ const useGrammarManagement = ({
   }, []);
 
   /**
+   * NEW: Update the article with grammar data
+   * Ensures that the ChineseProcessor field is updated with grammar data
+   */
+  const updateArticleWithGrammarData = useCallback(async (articleId: string, grammarSentences: GrammarRule[]) => {
+    try {
+      console.log(`Updating article ${articleId} with grammar data`);
+
+      // First fetch the current article data to get the existing ChineseProcessor content
+      const articleResponse = await fetch(`/api/articles/${articleId}?populate=*`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!articleResponse.ok) {
+        throw new Error(`Failed to fetch article data: ${articleResponse.status}`);
+      }
+
+      const articleData = await articleResponse.json();
+      const chineseProcessor = articleData.data?.attributes?.ChineseProcessor;
+
+      // Parse or initialize the processor data
+      let processorData: any = {};
+      if (chineseProcessor && chineseProcessor !== "") {
+        try {
+          if (typeof chineseProcessor === 'string') {
+            processorData = JSON.parse(chineseProcessor);
+          } else {
+            processorData = chineseProcessor;
+          }
+        } catch (error) {
+          console.error('Error parsing existing ChineseProcessor data:', error);
+          // Continue with empty object if parsing fails
+        }
+      }
+
+      // Update the grammar data while preserving other fields like HSK
+      processorData = {
+        ...processorData,
+        grammar: {
+          sentences: grammarSentences
+        }
+      };
+
+      console.log('Updating ChineseProcessor with new data:', processorData);
+
+      // Save back to the article
+      const updateResponse = await fetch(`/api/articles/${articleId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: {
+            ChineseProcessor: processorData
+          }
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error('Error updating article with grammar data:', errorText);
+        throw new Error(`Failed to update article: ${updateResponse.status}`);
+      }
+
+      console.log('Successfully updated article with grammar data');
+      return await updateResponse.json();
+
+    } catch (error) {
+      console.error('Error in updateArticleWithGrammarData:', error);
+      throw error;
+    }
+  }, []);
+
+  /**
    * Load saved grammar data for an article
    */
   const loadGrammarData = useCallback(async (id: string) => {
@@ -290,8 +366,8 @@ const useGrammarManagement = ({
         return sentence;
       });
 
-      // Save to database
-      console.log("Saving grammar data...");
+      // Save to grammar plugin database
+      console.log("Saving grammar data to plugin database...");
       const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
         data: {
           sentences: updatedSentences
@@ -301,6 +377,10 @@ const useGrammarManagement = ({
       if (!saveResponse.data) {
         throw new Error(ERROR_MESSAGES.GRAMMAR_SAVE_FAILED);
       }
+
+      // NEW: Also save to the article's ChineseProcessor field
+      console.log("Saving grammar data to article's ChineseProcessor field...");
+      await updateArticleWithGrammarData(articleId, updatedSentences);
 
       setSentences(updatedSentences);
       saveOriginalSentences();
@@ -313,7 +393,7 @@ const useGrammarManagement = ({
       setProcessingError();
       onError(err instanceof Error ? err.message : ERROR_MESSAGES.GRAMMAR_GENERATION_FAILED);
     }
-  }, [articleId, pluginId, engineChoice, sentences, get, post, setSentences, saveOriginalSentences, clearSelections, startProcessing, finishProcessing, setProcessingError, onSuccess, onError]);
+  }, [articleId, pluginId, engineChoice, sentences, get, post, setSentences, saveOriginalSentences, clearSelections, startProcessing, finishProcessing, setProcessingError, onSuccess, onError, updateArticleWithGrammarData]);
 
   /**
    * Translate all sentences in bulk
@@ -359,9 +439,9 @@ const useGrammarManagement = ({
         translation: translations[index] || sentence.translation
       }));
 
-      // Save to database
+      // Save to plugin database
       if (articleId) {
-        console.log("Saving translations...");
+        console.log("Saving translations to plugin database...");
         const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
           data: {
             sentences: updatedSentences
@@ -371,6 +451,10 @@ const useGrammarManagement = ({
         if (!saveResponse.data) {
           throw new Error(ERROR_MESSAGES.TRANSLATION_SAVE_FAILED);
         }
+
+        // NEW: Also save to the article's ChineseProcessor field
+        console.log("Saving translations to article's ChineseProcessor field...");
+        await updateArticleWithGrammarData(articleId, updatedSentences);
       }
 
       console.log('Translations completed successfully');
@@ -384,7 +468,7 @@ const useGrammarManagement = ({
       setTranslationError();
       onError(err instanceof Error ? err.message : ERROR_MESSAGES.TRANSLATION_FAILED);
     }
-  }, [sentences, articleId, pluginId, post, setSentences, saveOriginalSentences, startTranslating, finishTranslating, setTranslationError, onSuccess, onError]);
+  }, [sentences, articleId, pluginId, post, setSentences, saveOriginalSentences, startTranslating, finishTranslating, setTranslationError, onSuccess, onError, updateArticleWithGrammarData]);
 
   /**
    * Handle direct translation change for a single sentence
@@ -407,6 +491,8 @@ const useGrammarManagement = ({
 
     try {
       console.log("Saving all translation changes...");
+
+      // Save to grammar plugin database
       const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
         data: {
           sentences: sentences
@@ -417,22 +503,24 @@ const useGrammarManagement = ({
         throw new Error(ERROR_MESSAGES.SAVE_TRANSLATIONS_FAILED);
       }
 
+      // NEW: Also save to the article's ChineseProcessor field
+      console.log("Saving translations to article's ChineseProcessor field...");
+      await updateArticleWithGrammarData(articleId, sentences);
+
       saveOriginalSentences();
 
       finishProcessing();
       onSuccess(STATUS_MESSAGES.TRANSLATIONS_SAVED);
 
-      // FIX: Return void instead of boolean
       return;
     } catch (err) {
       console.error("Error saving translations:", err);
       setProcessingError();
       onError(err instanceof Error ? err.message : ERROR_MESSAGES.SAVE_TRANSLATIONS_FAILED);
 
-      // FIX: Return void instead of boolean
       return;
     }
-  }, [articleId, hasTranslationChanges, sentences, pluginId, post, saveOriginalSentences, startProcessing, finishProcessing, setProcessingError, onSuccess, onError]);
+  }, [articleId, hasTranslationChanges, sentences, pluginId, post, saveOriginalSentences, startProcessing, finishProcessing, setProcessingError, onSuccess, onError, updateArticleWithGrammarData]);
 
   /**
    * Show delete confirmation for a single rule
@@ -475,6 +563,7 @@ const useGrammarManagement = ({
         // Save the updated data to the server
         if (articleId) {
           console.log(`Deleting rule ${ruleIndex} from sentence ${sentenceIndex}...`);
+          // Save to grammar plugin database
           const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
             data: {
               sentences: updatedSentences
@@ -484,6 +573,10 @@ const useGrammarManagement = ({
           if (!saveResponse.data) {
             throw new Error(ERROR_MESSAGES.UPDATE_GRAMMAR_FAILED);
           }
+
+          // NEW: Also save to the article's ChineseProcessor field
+          console.log("Updating article's ChineseProcessor field after rule deletion...");
+          await updateArticleWithGrammarData(articleId, updatedSentences);
 
           saveOriginalSentences();
 
@@ -499,7 +592,7 @@ const useGrammarManagement = ({
       setIsDeleteModalVisible(false);
       setRuleToDelete(null);
     }
-  }, [ruleToDelete, sentences, articleId, pluginId, post, setSentences, saveOriginalSentences, updateSelectionsAfterDelete, startProcessing, finishProcessing, setProcessingError, onSuccess, onError]);
+  }, [ruleToDelete, sentences, articleId, pluginId, post, setSentences, saveOriginalSentences, updateSelectionsAfterDelete, startProcessing, finishProcessing, setProcessingError, onSuccess, onError, updateArticleWithGrammarData]);
 
   /**
    * Show confirmation for bulk deletion
@@ -575,7 +668,7 @@ const useGrammarManagement = ({
         ruleCount: s.rules.length
       })));
 
-      // Save the updated data to the server
+      // Save to grammar plugin database
       console.log("Saving updated sentences to server...");
       const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
         data: {
@@ -586,6 +679,10 @@ const useGrammarManagement = ({
       if (!saveResponse.data) {
         throw new Error(ERROR_MESSAGES.UPDATE_GRAMMAR_FAILED);
       }
+
+      // NEW: Also save to the article's ChineseProcessor field
+      console.log("Updating article's ChineseProcessor field after bulk deletion...");
+      await updateArticleWithGrammarData(articleId, updatedSentences);
 
       console.log("Server save successful, updating UI state...");
       // Update the sentences state
@@ -605,7 +702,7 @@ const useGrammarManagement = ({
       console.log("Closing bulk delete modal");
       setIsBulkDeleteModalVisible(false);
     }
-  }, [articleId, sentences, clearSelections, pluginId, post, setSentences, saveOriginalSentences, startProcessing, finishProcessing, setProcessingError, onSuccess, onError]);
+  }, [articleId, sentences, clearSelections, pluginId, post, setSentences, saveOriginalSentences, startProcessing, finishProcessing, setProcessingError, onSuccess, onError, updateArticleWithGrammarData]);
 
   /**
    * Handle engine choice change
