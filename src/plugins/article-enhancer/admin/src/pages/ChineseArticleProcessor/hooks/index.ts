@@ -2,4 +2,3 @@
 
 export { default as useGrammarManagement } from './useGrammarManagement';
 export { default as useHSKManagement } from './useHSKManagement';
-export { default as useSelectionManagement } from './useSelectionManagement';

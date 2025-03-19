@@ -143,34 +143,47 @@ const useGrammarManagement = ({
     console.log(`Updating selections after deleting sentence ${sentenceIndex}, rule ${ruleIndex}`);
 
     setSelectedRules(prev => {
+      // Track which selections we're modifying for debugging
+      const updated: SelectedRule[] = [];
+      const preserved: SelectedRule[] = [];
+      const removed: SelectedRule[] = [];
+
       // Create an updated selection list
       const updatedSelections = prev.map(selection => {
-        // Rule in same sentence, after the deleted rule
-        if (selection.sentenceIndex === sentenceIndex && selection.ruleIndex > ruleIndex) {
-          // Shift selection up by one
-          return { ...selection, ruleIndex: selection.ruleIndex - 1 };
+        // If this selection points to the exact rule being deleted, mark for removal
+        if (selection.sentenceIndex === sentenceIndex && selection.ruleIndex === ruleIndex) {
+          removed.push({ ...selection });
+          // We'll filter these out later
+          return selection;
         }
-        // Leave all other selections unchanged
+
+        // For selections in the same sentence as the deleted rule
+        if (selection.sentenceIndex === sentenceIndex) {
+          if (selection.ruleIndex > ruleIndex) {
+            // If the selection is after the deleted rule, adjust its index down by 1
+            const updatedSelection = {
+              ...selection,
+              ruleIndex: selection.ruleIndex - 1
+            };
+            updated.push(updatedSelection);
+            return updatedSelection;
+          }
+        }
+
+        // For selections in other sentences or before the deleted rule, preserve as is
+        preserved.push({ ...selection });
         return selection;
       }).filter(selection => {
-        // Only remove selection that points to the deleted rule
-        // Keep all other selections even if they're in the same sentence
+        // Remove any selections that pointed to the exact deleted rule
         return !(selection.sentenceIndex === sentenceIndex && selection.ruleIndex === ruleIndex);
       });
 
-      console.log('Updated selections:', updatedSelections);
-      return updatedSelections;
-    });
-  }, []);
+      console.log('Selections removed:', removed);
+      console.log('Selections updated:', updated);
+      console.log('Selections preserved:', preserved);
+      console.log('Updated selections array:', updatedSelections);
 
-  // Sort selected rules for safe deletion (from end to beginning)
-  const getSortedSelections = useCallback(() => {
-    console.log('Getting sorted selections for deletion, current selection:', selectedRulesRef.current);
-    return [...selectedRulesRef.current].sort((a, b) => {
-      if (a.sentenceIndex !== b.sentenceIndex) {
-        return b.sentenceIndex - a.sentenceIndex;
-      }
-      return b.ruleIndex - a.ruleIndex;
+      return updatedSelections;
     });
   }, []);
 

@@ -4,7 +4,6 @@ import {
     HeaderLayout,
     ContentLayout,
     Layout,
-    Box,
     Button,
 } from '@strapi/design-system';
 import { ArrowLeft } from '@strapi/icons';
@@ -79,8 +78,7 @@ const ChineseArticleProcessor = () => {
         isProcessing,
         isTranslating,
         isDeleteModalVisible,
-        isBulkDeleteModalVisible,
-        ruleToDelete,
+
         selectedRules, // Get the selectedRules array
         loadGrammarData,
         generateGrammarRules,
@@ -90,10 +88,8 @@ const ChineseArticleProcessor = () => {
         saveAllTranslations,
         handleShowDeleteConfirm,
         handleDeleteRuleConfirmed,
-        handleShowBulkDeleteConfirm,
         handleBulkDeleteConfirmed,
         setIsDeleteModalVisible,
-        setIsBulkDeleteModalVisible,
         toggleRuleSelection,
         isRuleSelected,
         selectedRulesCount
