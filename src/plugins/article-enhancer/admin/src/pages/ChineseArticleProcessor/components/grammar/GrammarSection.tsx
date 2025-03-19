@@ -1,7 +1,7 @@
 // src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/grammar/GrammarSection.tsx
 import React from 'react';
 import { Box, Typography, Alert } from '@strapi/design-system';
-import { GrammarRule, GrammarEngineChoice } from '../../../../utils/types';
+import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../../utils/types';
 import GrammarToolbar from './GrammarToolbar';
 import SentenceItem from './SentenceItem';
 import BulkActions from './BulkActions';
@@ -13,6 +13,7 @@ interface GrammarSectionProps {
   isTranslating: boolean;
   hasTranslationChanges: boolean;
   selectedRulesCount: number;
+  selectedRules: SelectedRule[]; // Pass the actual selected rules array
   onEngineChange: (engine: GrammarEngineChoice) => void;
   onGenerateClick: () => Promise<void>;
   onTranslateClick: () => Promise<void>;
@@ -34,6 +35,7 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
   isTranslating,
   hasTranslationChanges,
   selectedRulesCount,
+  selectedRules,
   onEngineChange,
   onGenerateClick,
   onTranslateClick,
@@ -98,6 +100,7 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
           <BulkActions
             hasTranslationChanges={hasTranslationChanges}
             selectedRulesCount={selectedRulesCount}
+            selectedRules={selectedRules} // Pass the actual selected rules array
             isLoading={isLoading}
             isTranslating={isTranslating}
             onSaveTranslations={onSaveTranslations}

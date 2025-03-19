@@ -2,10 +2,10 @@
 import { useCallback } from 'react';
 import { useFetchClient } from '@strapi/helper-plugin';
 import { HSKData } from '../../../utils/types';
-import { 
-  DEFAULT_HSK_DATA, 
-  ERROR_MESSAGES, 
-  STATUS_MESSAGES 
+import {
+  DEFAULT_HSK_DATA,
+  ERROR_MESSAGES,
+  STATUS_MESSAGES
 } from '../../../utils/constants';
 import { useLoadingState, useStateWithHistory } from '../../../hooks';
 
@@ -211,10 +211,12 @@ const useHSKManagement = ({
       saveHSKAsOriginal();
 
       onSuccess(STATUS_MESSAGES.HSK_SAVED);
-      return true;
+      // FIX: Return void instead of boolean to match Promise<void> return type
+      return;
     } catch (err) {
       onError(err instanceof Error ? err.message : ERROR_MESSAGES.HSK_SAVE_FAILED);
-      return false;
+      // FIX: Return void instead of boolean to match Promise<void> return type
+      return;
     }
   }, [articleId, hasHskChanges, hskData, saveHSKAsOriginal, onSuccess, onError]);
 
