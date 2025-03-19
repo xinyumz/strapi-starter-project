@@ -1,10 +1,13 @@
 // src/plugins/article-enhancer/admin/src/components/common/ConfirmationDialog.tsx
+
 import React from 'react';
 import {
   Dialog,
   DialogBody,
   DialogFooter,
-  Button
+  Button,
+  Typography,
+  useTheme
 } from '@strapi/design-system';
 
 interface ConfirmationDialogProps {
@@ -13,13 +16,13 @@ interface ConfirmationDialogProps {
   message: string;
   confirmText: string;
   cancelText: string;
-  confirmButtonVariant?: 'danger' | 'danger-light' | 'success' | 'secondary';
+  confirmButtonVariant?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 /**
- * Reusable confirmation dialog component
+ * A reusable confirmation dialog with proper light/dark mode support
  */
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   isVisible,
@@ -27,16 +30,20 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   message,
   confirmText,
   cancelText,
-  confirmButtonVariant = 'danger-light',
+  confirmButtonVariant = 'danger',
   onConfirm,
   onCancel
 }) => {
-  if (!isVisible) return null;
+  // Get the current theme mode to adjust text colors
+  const { themeColorMode } = useTheme();
+  const textColor = themeColorMode === 'light' ? 'neutral100' : 'neutral800';
 
   return (
     <Dialog onClose={onCancel} title={title} isOpen={isVisible}>
       <DialogBody>
-        {message}
+        <Typography textColor={textColor}>
+          {message}
+        </Typography>
       </DialogBody>
       <DialogFooter
         startAction={
