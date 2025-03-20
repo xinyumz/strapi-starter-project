@@ -229,28 +229,38 @@ const ChineseArticleData = (props: any) => {
                         <AccordionContent>
                             <Box paddingLeft={7} paddingRight={7} paddingTop={5} paddingBottom={5} background="neutral100">
                                 {processorData?.grammar?.sentences?.map((sentence, sentenceIndex) => (
-                                    sentence.rules && sentence.rules.length > 0 ? (
-                                        <Box
-                                            key={`sentence-${sentenceIndex}`}
-                                            paddingTop={1}
-                                            paddingBottom={1}
-                                        >
-                                            <Typography fontWeight="bold" variant="epsilon">{sentence.sentence}</Typography>
-                                            <Box><Typography fontStyle="italic" paddingTop={1} >{sentence.translation}</Typography></Box>
-                                            <Box paddingTop={1} paddingBottom={3}>
-                                                {sentence.rules.map((rule, ruleIndex) => (
-                                                    <Box
-                                                        key={`rule-${sentenceIndex}-${ruleIndex}`}
-                                                        paddingLeft={3}
-                                                        paddingTop={1}
-                                                        hasRadius
-                                                    >
-                                                        <Typography>• {rule}</Typography>
-                                                    </Box>
-                                                ))}
-                                            </Box>
+
+                                    <Box
+                                        key={`sentence-${sentenceIndex}`}
+                                        paddingTop={1}
+                                        paddingBottom={sentence.rules && sentence.rules.length > 0 ? 1 : 2}
+                                    >
+                                        <Typography
+                                            fontWeight="bold"
+                                            variant="epsilon"
+                                            textColor={sentence.rules && sentence.rules.length > 0 ? "neutral800" : "primary600"}>
+                                            {sentence.sentence}
+                                        </Typography>
+                                        <Box>
+                                            <Typography
+                                                paddingTop={1}
+                                                textColor={sentence.rules && sentence.rules.length > 0 ? "neutral800" : "primary600"}>
+                                                {sentence.translation}
+                                            </Typography>
                                         </Box>
-                                    ) : null
+                                        <Box paddingTop={1} paddingBottom={3}>
+                                            {sentence.rules.map((rule, ruleIndex) => (
+                                                <Box
+                                                    key={`rule-${sentenceIndex}-${ruleIndex}`}
+                                                    paddingLeft={3}
+                                                    paddingTop={1}
+                                                >
+                                                    <Typography>• {rule}</Typography>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    </Box>
+
                                 ))}
                             </Box>
                         </AccordionContent>

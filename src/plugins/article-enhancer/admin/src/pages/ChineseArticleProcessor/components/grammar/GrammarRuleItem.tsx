@@ -6,6 +6,7 @@ import {
   Flex,
   Checkbox,
   Button,
+  IconButton
 } from '@strapi/design-system';
 import { Trash } from '@strapi/icons';
 
@@ -56,14 +57,21 @@ const GrammarRuleItem: React.FC<GrammarRuleItemProps> = ({
             {rule || 'Empty rule'}
           </Typography>
         </Flex>
-        <Button
-          variant="danger-light"
-          size="S"
-          startIcon={<Trash />}
-          onClick={() => onDelete(sentenceIndex, ruleIndex)}
-        >
-          {!simplified && "Delete"}
-        </Button>
+        {simplified ?
+          <IconButton
+            variant="danger-light"
+            label="Delete"
+            icon={<Trash />}
+            onClick={() => onDelete(sentenceIndex, ruleIndex)} /> :
+          <Button
+            variant="danger-light"
+            size="S"
+            startIcon={<Trash />}
+            onClick={() => onDelete(sentenceIndex, ruleIndex)}
+          >
+            Delete
+          </Button>
+        }
       </Flex>
     </Box>
   );
