@@ -227,21 +227,21 @@ const ChineseArticleData = (props: any) => {
                             togglePosition="right"
                         />
                         <AccordionContent>
-                            <Box paddingLeft={6} paddingRight={6} paddingTop={5} paddingBottom={5} background="neutral100">
+                            <Box paddingLeft={7} paddingRight={7} paddingTop={5} paddingBottom={5} background="neutral100">
                                 {processorData?.grammar?.sentences?.map((sentence, sentenceIndex) => (
                                     sentence.rules && sentence.rules.length > 0 ? (
                                         <Box
                                             key={`sentence-${sentenceIndex}`}
-                                            paddingTop={sentenceIndex > 0 ? 3 : 0}
-                                            paddingBottom={3}
+                                            paddingTop={1}
+                                            paddingBottom={1}
                                         >
                                             <Typography fontWeight="bold" variant="epsilon">{sentence.sentence}</Typography>
-                                            <Typography fontStyle="italic" paddingTop={2}>{sentence.translation}</Typography>
-                                            <Box paddingTop={2}>
+                                            <Box><Typography fontStyle="italic" paddingTop={1} >{sentence.translation}</Typography></Box>
+                                            <Box paddingTop={1} paddingBottom={3}>
                                                 {sentence.rules.map((rule, ruleIndex) => (
                                                     <Box
                                                         key={`rule-${sentenceIndex}-${ruleIndex}`}
-                                                        paddingLeft={4}
+                                                        paddingLeft={3}
                                                         paddingTop={1}
                                                         hasRadius
                                                     >
