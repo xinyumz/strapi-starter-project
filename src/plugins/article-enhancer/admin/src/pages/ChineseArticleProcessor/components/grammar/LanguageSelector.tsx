@@ -1,0 +1,134 @@
+// src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/grammar/LanguageSelector.tsx
+import React, { useState, useEffect } from 'react';
+import {
+    Select,
+    Option,
+    Typography,
+    Flex,
+    Button,
+    Box
+} from '@strapi/design-system';
+import { useFetchClient } from '@strapi/helper-plugin';
+import { Plus } from '@strapi/icons';
+
+interface LanguageSelectorProps {
+    value: string;
+    onChange: (value: string) => void;
+    label?: string;
+    disabled?: boolean;
+    hint?: string;
+    error?: string;
+    addNewLabel?: string;
+    onAddNewLanguage?: () => void;
+    // Optional array of languages to use instead of fetching
+    customLanguages?: { code: string, name: string }[];
+}
+
+interface Language {
+    code: string;
+    name: string;
+}
+
+/**
+ * Component for selecting translation language
+ */
+const LanguageSelector: React.FC<LanguageSelectorProps> = ({
+    value,
+    onChange,
+    label = 'Target Language',
+    disabled = false,
+    hint,
+    error,
+    addNewLabel = 'Add Language',
+    onAddNewLanguage,
+    customLanguages
+}) => {
+    // Default languages to use if API fails or custom languages not provided
+    const defaultLanguages: Language[] = [
+        { code: 'en', name: 'English' },
+        { code: 'fr', name: 'French' },
+        { code: 'es', name: 'Spanish' },
+        { code: 'de', name: 'German' },
+        { code: 'it', name: 'Italian' },
+        { code: 'ja', name: 'Japanese' },
+        { code: 'ko', name: 'Korean' },
+        { code: 'ru', name: 'Russian' },
+        { code: 'pt', name: 'Portuguese' },
+        { code: 'ar', name: 'Arabic' }
+    ];
+
+    // Initialize with either custom languages or defaults
+    const [languages, setLanguages] = useState<Language[]>(
+        customLanguages || defaultLanguages
+    );
+
+    const [isLoading, setIsLoading] = useState(false);
+    const { get } = useFetchClient();
+
+    // Load available languages from translator plugin if custom languages not provided
+    useEffect(() => {
+        // Skip fetching if custom languages are provided
+        if (customLanguages) {
+            return;
+        }
+
+        const fetchLanguages = async () => {
+            try {
+                setIsLoading(true);
+                const response = await get('/translator/languages');
+
+                if (response.data && Array.isArray(response.data.data)) {
+                    setLanguages(response.data.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch languages:', error);
+                // Keep using the default languages
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchLanguages();
+    }, [get, customLanguages]);
+
+    return (
+        <Box>
+            <Flex gap={2}>
+                <Box style={{ flexGrow: 1 }}>
+                    <Select
+                        id="language-selector"
+                        name="language"
+                        label={label}
+                        placeholder="Select a language"
+                        value={value}
+                        onChange={(value: string) => onChange(value)}
+                        disabled={disabled || isLoading}
+                        error={error}
+                        hint={hint}
+                    >
+                        {languages.map((language) => (
+                            <Option key={language.code} value={language.code}>
+                                {language.name}
+                            </Option>
+                        ))}
+                    </Select>
+                </Box>
+
+                {onAddNewLanguage && (
+                    <Box style={{ alignSelf: 'flex-end' }}>
+                        <Button
+                            variant="secondary"
+                            startIcon={<Plus />}
+                            onClick={onAddNewLanguage}
+                            disabled={disabled}
+                        >
+                            {addNewLabel}
+                        </Button>
+                    </Box>
+                )}
+            </Flex>
+        </Box>
+    );
+};
+
+export default LanguageSelector;

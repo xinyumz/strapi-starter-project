@@ -1,10 +1,17 @@
 // src/plugins/article-enhancer/admin/src/utils/types.ts
 
 // Grammar rule interface
+
+export interface Translation {
+  language: string;
+  text: string;
+}
+
 export interface GrammarRule {
   sentence: string;
+  translation: string; // Keep for backward compatibility
+  translations?: Translation[]; // New field for multi-language support
   rules: string[];
-  translation?: string;
 }
 
 // Interface for tracking selected rules

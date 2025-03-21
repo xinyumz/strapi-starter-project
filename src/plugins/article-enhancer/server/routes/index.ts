@@ -11,7 +11,6 @@ export default [
             description: 'Calculate HSK level for Chinese text'
         }
     },
-
     // Grammar rules routes
     {
         method: 'POST',
@@ -43,17 +42,6 @@ export default [
             description: 'Save grammar data for an article'
         }
     },
-    {
-        method: 'DELETE',
-        path: '/grammar/rule/:ruleId',
-        handler: 'grammarController.deleteRule',
-        config: {
-            policies: [],
-            auth: false,
-            description: 'Delete a specific grammar rule'
-        }
-    },
-
     // Sentence processing routes
     {
         method: 'POST',
@@ -73,6 +61,27 @@ export default [
             policies: [],
             auth: false,
             description: 'Process full article content with translations and grammar rules'
+        }
+    },
+    // Routes for multi-language support
+    {
+        method: 'GET',
+        path: '/article/:id/sentences',
+        handler: 'sentenceController.getArticleSentences',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Get sentences with translations for an article'
+        }
+    },
+    {
+        method: 'GET',
+        path: '/languages',
+        handler: 'sentenceController.getSupportedLanguages',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Get supported languages for translation'
         }
     }
 ];

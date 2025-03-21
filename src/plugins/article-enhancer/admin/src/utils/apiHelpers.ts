@@ -1,6 +1,6 @@
 // src/plugins/article-enhancer/admin/src/utils/apiHelpers.ts
 import { useFetchClient } from '@strapi/helper-plugin';
-import { GrammarRule } from './types';
+import { GrammarRule, Translation } from './types';
 
 /**
  * Standardizes response data from grammar endpoints
@@ -8,11 +8,51 @@ import { GrammarRule } from './types';
  * @returns Normalized grammar rules array
  */
 export const normalizeSentences = (sentences: any[]): GrammarRule[] => {
-  return sentences.map(sentence => ({
-    sentence: sentence.sentence || '',
-    rules: Array.isArray(sentence.rules) ? sentence.rules : [],
-    translation: sentence.translation || ''
-  }));
+  return sentences.map(sentence => {
+    // Initialize translations array
+    let translations: Translation[] = [];
+
+    // Handle different translation formats
+
+    // 1. If we have a translations array in the response, use it
+    if (Array.isArray(sentence.translations)) {
+      translations = sentence.translations.filter(
+        (t: any) => t && typeof t === 'object' && t.language && typeof t.text === 'string'
+      );
+    }
+
+    // 2. If we don't have translations but have a legacy translation, add it as English
+    if (!translations.some(t => t.language === 'en') && sentence.translation) {
+      translations.push({
+        language: 'en',
+        text: typeof sentence.translation === 'string' ? sentence.translation : String(sentence.translation)
+      });
+    }
+
+    // 3. Handle grammar rules
+    let rules: string[] = [];
+    if (Array.isArray(sentence.rules)) {
+      rules = sentence.rules;
+    } else if (sentence.grammar_rules) {
+      // If we have grammar_rules from the database
+      try {
+        if (typeof sentence.grammar_rules === 'string') {
+          rules = JSON.parse(sentence.grammar_rules);
+        } else if (Array.isArray(sentence.grammar_rules)) {
+          rules = sentence.grammar_rules;
+        }
+      } catch (e) {
+        console.error('Error parsing grammar rules:', e);
+      }
+    }
+
+    return {
+      sentence: sentence.sentence || sentence.sentence_text || '',
+      rules: rules,
+      translation: sentence.translation || translations.find(t => t.language === 'en')?.text || '',
+      translations: translations
+    };
+  });
 };
 
 /**

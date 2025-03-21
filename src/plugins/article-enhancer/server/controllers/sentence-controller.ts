@@ -12,9 +12,15 @@ interface ExtendedContext extends Context {
             data?: {
                 content?: string;
                 sentences?: string[];
+                targetLanguages?: string[];
+                targetLanguage?: string;
+                articleId?: number;
             };
             content?: string;
             sentences?: string[];
+            targetLanguages?: string[];
+            targetLanguage?: string;
+            articleId?: number;
         };
     };
 }
@@ -25,7 +31,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             // Handle both structured and flat request formats
             const data = ctx.request.body.data || ctx.request.body;
-            const { content } = data;
+            const { content, targetLanguages = ['en'], articleId } = data;
 
             if (!content) {
                 return ctx.badRequest('Article content is required');
@@ -34,7 +40,15 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const processedArticle = await strapi
                 .plugin('article-enhancer')
                 .service('sentenceService')
-                .processArticle(content);
+                .processArticle(content, targetLanguages);
+
+            // If articleId is provided, save the processed article to the database
+            if (articleId) {
+                await strapi
+                    .plugin('article-enhancer')
+                    .service('sentenceService')
+                    .saveProcessedArticle(articleId, processedArticle);
+            }
 
             ctx.body = {
                 data: processedArticle
@@ -55,7 +69,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             // Handle both structured and flat request formats
             const data = ctx.request.body.data || ctx.request.body;
-            const { sentences } = data;
+            const { sentences, targetLanguage = 'en' } = data;
 
             if (!Array.isArray(sentences)) {
                 return ctx.badRequest('Sentences must be provided as an array');
@@ -67,13 +81,13 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             try {
                 // Log what we're trying to translate for debugging
-                console.log('Translating sentences:', sentences);
+                console.log(`Translating sentences to ${targetLanguage}:`, sentences);
 
                 // Call the service to translate the sentences
                 const translations = await strapi
                     .plugin('article-enhancer')
                     .service('sentenceService')
-                    .translateSentences(sentences);
+                    .translateSentences(sentences, targetLanguage);
 
                 // Format the response appropriately
                 ctx.body = {
@@ -93,6 +107,65 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 ctx.throw(500, `Translation failed: ${error.message}`);
             } else {
                 ctx.throw(500, 'Translation failed');
+            }
+        }
+    },
+
+    // Get article sentences with translations
+    async getArticleSentences(ctx: ExtendedContext) {
+        try {
+            const { id } = ctx.params;
+
+            if (!id) {
+                return ctx.badRequest('Article ID is required');
+            }
+
+            const sentences = await strapi
+                .plugin('article-enhancer')
+                .service('sentenceService')
+                .getArticleSentences(Number(id));
+
+            ctx.body = {
+                data: sentences
+            };
+        } catch (error: unknown) {
+            if (error instanceof ApplicationError) {
+                ctx.throw(400, error.message);
+            } else if (error instanceof Error) {
+                ctx.throw(500, `Failed to fetch article sentences: ${error.message}`);
+            } else {
+                ctx.throw(500, 'Failed to fetch article sentences');
+            }
+        }
+    },
+
+    // Get supported languages for translation
+    async getSupportedLanguages(ctx: ExtendedContext) {
+        try {
+            // Check if translator plugin is available
+            if (!strapi.plugin('translator')) {
+                return ctx.notFound('Translator plugin not found');
+            }
+
+            // Call the translation service to get supported languages
+            const translationService = strapi.plugin('translator').service('translationService');
+
+            if (!translationService || !translationService.listLanguages) {
+                return ctx.notFound('Translation service not found or does not support language listing');
+            }
+
+            const languages = await translationService.listLanguages();
+
+            ctx.body = {
+                data: languages
+            };
+        } catch (error: unknown) {
+            if (error instanceof ApplicationError) {
+                ctx.throw(400, error.message);
+            } else if (error instanceof Error) {
+                ctx.throw(500, `Failed to fetch supported languages: ${error.message}`);
+            } else {
+                ctx.throw(500, 'Failed to fetch supported languages');
             }
         }
     }

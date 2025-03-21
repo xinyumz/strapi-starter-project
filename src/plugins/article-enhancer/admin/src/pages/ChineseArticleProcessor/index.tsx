@@ -1,4 +1,4 @@
-// Updated ChineseArticleProcessor component
+// Updated ChineseArticleProcessor component with multi-language support
 import React, { useState, useEffect } from 'react';
 import {
     HeaderLayout,
@@ -15,6 +15,7 @@ import pluginId from '../../pluginId';
 
 // Components from shared directory
 import { LoadingOverlay, AlertMessages, ConfirmationDialog } from '../../components/common';
+// Import removed - LanguageSelector is now used directly in child components
 
 // Feature-specific components
 import { HSKAnalysisSection } from './components/hsk';
@@ -26,7 +27,7 @@ import { useHSKManagement, useGrammarManagement } from './hooks';
 
 /**
  * Main component for processing Chinese articles
- * Handles HSK level calculation and grammar rule generation
+ * Handles HSK level calculation, grammar rule generation, and multi-language translations
  */
 const ChineseArticleProcessor = () => {
     // Common state
@@ -76,10 +77,13 @@ const ChineseArticleProcessor = () => {
         onError: handleError
     });
 
-    // Initialize Grammar management hook
+    // Initialize Grammar management hook with multi-language support
     const {
         sentences,
         engineChoice,
+        activeLanguage,
+        supportedLanguages,
+        hasSupportedLanguages,
         hasTranslationChanges,
         isProcessing,
         isTranslating,
@@ -88,8 +92,13 @@ const ChineseArticleProcessor = () => {
         loadGrammarData,
         generateGrammarRules,
         handleEngineChange,
+        handleLanguageChange,
         translateAllSentences,
         handleTranslationChange,
+        addTranslation,
+        removeTranslation,
+        addBulkTranslation,
+        removeBulkTranslation,
         saveAllTranslations,
         handleShowDeleteConfirm,
         handleDeleteRuleConfirmed,
@@ -235,25 +244,33 @@ const ChineseArticleProcessor = () => {
                             onSaveLevel={saveHSKLevel}
                         />
 
-                        {/* Grammar and Translation Section */}
+                        {/* Grammar and Translation Section - Updated with multi-language support */}
                         <GrammarSection
                             sentences={sentences}
                             engineChoice={engineChoice}
+                            activeLanguage={activeLanguage}
+                            supportedLanguages={supportedLanguages}
+                            hasSupportedLanguages={hasSupportedLanguages}
                             isLoading={isLoading || isProcessing}
                             isTranslating={isTranslating}
                             hasTranslationChanges={hasTranslationChanges}
                             selectedRulesCount={selectedRulesCount}
                             selectedRules={selectedRules}
                             onEngineChange={handleEngineChange}
+                            onLanguageChange={handleLanguageChange}
                             onGenerateClick={generateGrammarRules}
                             onTranslateClick={translateAllSentences}
                             onTranslationChange={handleTranslationChange}
+                            onAddTranslation={addTranslation}
+                            onRemoveTranslation={removeTranslation}
+                            onAddBulkTranslation={addBulkTranslation}
+                            onRemoveBulkTranslation={removeBulkTranslation}
                             onToggleRuleSelection={toggleRuleSelection}
                             onDeleteRuleClick={handleShowDeleteConfirm}
                             onSaveTranslations={saveAllTranslations}
                             onDeleteSelected={handleBulkDeleteConfirmed}
                             isRuleSelected={isRuleSelected}
-                            simplified={simplified} // Pass simplified flag
+                            simplified={simplified}
                         />
                     </>
                 )}

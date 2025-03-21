@@ -1,48 +1,118 @@
 // src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/grammar/SentenceItem.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Textarea,
   Stack,
   Typography,
   Flex,
-  Badge
+  Badge,
+  Tabs,
+  Tab,
+  TabGroup,
+  TabPanel,
+  TabPanels,
+  IconButton,
+  Button
 } from '@strapi/design-system';
-import { GrammarRule } from '../../../../utils/types';
+import { Plus, Trash } from '@strapi/icons';
+import { GrammarRule, Translation } from '../../../../utils/types';
 import GrammarRuleItem from './GrammarRuleItem';
+import LanguageSelector from './LanguageSelector';
 
 interface SentenceItemProps {
   sentenceData: GrammarRule;
   index: number;
-  onTranslationChange: (index: number, newTranslation: string) => void;
+  activeLanguage: string;
+  supportedLanguages: { code: string, name: string }[];
+  onTranslationChange: (sentenceIndex: number, language: string, text: string) => void;
+  onAddTranslation: (sentenceIndex: number, language: string) => void;
+  onRemoveTranslation: (sentenceIndex: number, language: string) => void;
   onToggleRuleSelection: (sentenceIndex: number, ruleIndex: number) => void;
   onDeleteRuleClick: (sentenceIndex: number, ruleIndex: number) => void;
   isRuleSelected: (sentenceIndex: number, ruleIndex: number) => boolean;
-  simplified?: boolean; // Flag to control simplified view
+  simplified?: boolean;
 }
 
 /**
  * Component for displaying individual sentences and their grammar rules
- * Enhanced with sentence numbering, larger Chinese text, and multi-line translations
+ * Enhanced with multi-language translation support
  */
 const SentenceItem: React.FC<SentenceItemProps> = ({
   sentenceData,
   index,
+  activeLanguage,
+  supportedLanguages,
   onTranslationChange,
+  onAddTranslation,
+  onRemoveTranslation,
   onToggleRuleSelection,
   onDeleteRuleClick,
   isRuleSelected,
   simplified = false
 }) => {
   const hasRules = Array.isArray(sentenceData?.rules) && sentenceData.rules.length > 0;
+  const [isAddingTranslation, setIsAddingTranslation] = useState(false);
+  const [newLanguage, setNewLanguage] = useState("");
+
+  // Combine legacy translation with new multi-language translations
+  const getTranslations = (): Translation[] => {
+    const translations: Translation[] = [];
+
+    // Add the legacy translation as English if it exists
+    if (sentenceData.translation) {
+      translations.push({ language: 'en', text: sentenceData.translation });
+    }
+
+    // Add any new format translations
+    if (Array.isArray(sentenceData.translations)) {
+      // Filter out any duplicates that might already be in the legacy field
+      sentenceData.translations.forEach(trans => {
+        if (!translations.some(t => t.language === trans.language)) {
+          translations.push(trans);
+        }
+      });
+    }
+
+    return translations;
+  };
+
+  const translations = getTranslations();
+
+  // Find the selected language translation
+  const getTranslationForLanguage = (language: string): string => {
+    const translation = translations.find(t => t.language === language);
+    return translation ? translation.text : '';
+  };
+
+  // Get the display name for a language code
+  const getLanguageName = (code: string): string => {
+    const language = supportedLanguages.find(lang => lang.code === code);
+    return language ? language.name : code;
+  };
+
+  // Handle adding a new translation
+  const handleAddTranslation = () => {
+    if (newLanguage && !translations.some(t => t.language === newLanguage)) {
+      onAddTranslation(index, newLanguage);
+      setIsAddingTranslation(false);
+      setNewLanguage("");
+    }
+  };
+
+  // Get available languages (that don't already have translations)
+  const getAvailableLanguages = () => {
+    const existingLanguages = new Set(translations.map(t => t.language));
+    return supportedLanguages.filter(lang => !existingLanguages.has(lang.code));
+  };
 
   return (
     <Box
       background="neutral100"
-      padding={simplified ? 3 : 4} // Increased padding slightly
+      padding={simplified ? 3 : 4}
       hasRadius
-      height="100%" // Fill the grid item completely
-      marginBottom={simplified ? 0 : 6} // No extra bottom margin in simplified mode (handled by Grid)
+      height="100%"
+      marginBottom={simplified ? 0 : 6}
     >
       {/* Sentence Number Badge */}
       <Flex justifyContent="flex-start" marginBottom={2}>
@@ -62,39 +132,94 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
           style={{
             wordBreak: 'break-word',
             wordWrap: 'break-word',
-            fontSize: '16px' // Larger font size for Chinese text
+            fontSize: '16px'
           }}
         >
           {sentenceData?.sentence || 'No sentence text'}
         </Typography>
       </Box>
 
-      {/* Translation field - using Textarea for multi-line support */}
+      {/* Translations with tabs for each language */}
       <Box paddingTop={1} paddingBottom={2}>
-        {simplified ? (
-          // No label in simplified mode
-          <Textarea
-            name={`translation-${index}`}
-            placeholder="Translation"
-            value={sentenceData?.translation || ''}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-              onTranslationChange(index, e.target.value)
-            }
-            aria-label={`Translation for sentence ${index + 1}`} // Keep for accessibility
-            style={{ minHeight: '60px' }} // Ensure adequate height
-          />
+        {translations.length > 0 ? (
+          <TabGroup
+            id={`translations-${index}`}
+            label={`Translations for sentence ${index + 1}`}
+            variant="simple"
+          >
+            <Flex justifyContent="space-between" alignItems="center">
+              <Tabs>
+                {translations.map((translation) => (
+                  <Tab key={translation.language}>
+                    {getLanguageName(translation.language)}
+                  </Tab>
+                ))}
+              </Tabs>
+
+              {/* Add translation button */}
+              <Button
+                variant="tertiary"
+                startIcon={<Plus />}
+                onClick={() => setIsAddingTranslation(true)}
+                disabled={getAvailableLanguages().length === 0}
+              >
+                Add Translation
+              </Button>
+            </Flex>
+
+            <TabPanels>
+              {translations.map((translation) => (
+                <TabPanel key={translation.language}>
+                  <Flex gap={2}>
+                    <Box style={{ flexGrow: 1 }}>
+                      <Textarea
+                        name={`translation-${index}-${translation.language}`}
+                        placeholder={`Translation (${getLanguageName(translation.language)})`}
+                        value={translation.text}
+                        onChange={(e: any) => onTranslationChange(index, translation.language, e.target.value)}
+                        style={{ minHeight: simplified ? '60px' : '80px' }}
+                      />
+                    </Box>
+                  </Flex>
+                </TabPanel>
+              ))}
+            </TabPanels>
+          </TabGroup>
         ) : (
-          // Keep label in normal mode
-          <Textarea
-            name={`translation-${index}`}
-            label={`Translation for sentence ${index + 1}`}
-            value={sentenceData?.translation || ''}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-              onTranslationChange(index, e.target.value)
-            }
-            placeholder="No translation available. Click 'Translate All' to generate translations."
-            style={{ minHeight: '80px' }} // Slightly taller in normal mode
-          />
+          <Box marginBottom={2}>
+            <Typography>No translations available. Click 'Translate All' to generate translations.</Typography>
+          </Box>
+        )}
+
+        {/* Add new translation UI */}
+        {isAddingTranslation && (
+          <Box marginTop={4}>
+            <Flex gap={2}>
+              <Box style={{ flexGrow: 1 }}>
+                <LanguageSelector
+                  value={newLanguage}
+                  onChange={setNewLanguage}
+                  label="Add New Translation"
+                />
+              </Box>
+              <Box style={{ alignSelf: 'flex-end' }}>
+                <Button onClick={handleAddTranslation} disabled={!newLanguage}>
+                  Add
+                </Button>
+              </Box>
+              <Box style={{ alignSelf: 'flex-end' }}>
+                <Button
+                  variant="tertiary"
+                  onClick={() => {
+                    setIsAddingTranslation(false);
+                    setNewLanguage("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Box>
+            </Flex>
+          </Box>
         )}
       </Box>
 

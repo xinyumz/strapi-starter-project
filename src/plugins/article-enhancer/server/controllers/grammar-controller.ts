@@ -27,7 +27,6 @@ interface ExtendedContext extends Context {
     };
     params: {
         id?: string;
-        ruleId?: string;
     };
 }
 
@@ -148,45 +147,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             } else {
                 strapi.log.error('Failed to save grammar data with unknown error');
                 ctx.throw(500, 'Failed to save grammar data');
-            }
-        }
-    },
-
-    // Delete a specific grammar rule
-    async deleteRule(ctx: ExtendedContext) {
-        try {
-            const ruleId = ctx.params.ruleId;
-
-            if (!ruleId) {
-                return ctx.badRequest('Rule ID is required');
-            }
-
-            // Make sure it's a valid number
-            const parsedId = parseInt(ruleId, 10);
-
-            if (isNaN(parsedId)) {
-                strapi.log.error(`Invalid rule ID: ${ruleId}`);
-                return ctx.badRequest(`Invalid rule ID: ${ruleId}`);
-            }
-
-            const grammarService = strapi.plugin('article-enhancer').service('grammarService');
-            const result = await grammarService.deleteRule(parsedId);
-
-            if (!result.success) {
-                strapi.log.error(`Grammar rule deletion failed: ${result.error}`);
-                return ctx.throw(500, result.error || 'Failed to delete rule');
-            }
-
-            ctx.body = {
-                data: { success: true }
-            };
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                strapi.log.error(`Grammar rule deletion failed: ${error.message}`);
-                ctx.throw(500, `Grammar rule deletion failed: ${error.message}`);
-            } else {
-                strapi.log.error('Grammar rule deletion failed with unknown error');
-                ctx.throw(500, 'Grammar rule deletion failed');
             }
         }
     }

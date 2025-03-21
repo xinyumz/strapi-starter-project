@@ -5,19 +5,28 @@ import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../../util
 import GrammarToolbar from './GrammarToolbar';
 import SentenceItem from './SentenceItem';
 import BulkActions from './BulkActions';
+import TranslationManagement from './TranslationManagement';
 
 interface GrammarSectionProps {
   sentences: GrammarRule[];
   engineChoice: GrammarEngineChoice;
+  activeLanguage: string;
+  supportedLanguages: { code: string, name: string }[];
+  hasSupportedLanguages: boolean;
   isLoading: boolean;
   isTranslating: boolean;
   hasTranslationChanges: boolean;
   selectedRulesCount: number;
   selectedRules: SelectedRule[];
   onEngineChange: (engine: GrammarEngineChoice) => void;
+  onLanguageChange: (language: string) => void;
   onGenerateClick: () => Promise<void>;
   onTranslateClick: () => Promise<void>;
-  onTranslationChange: (index: number, newTranslation: string) => void;
+  onTranslationChange: (sentenceIndex: number, language: string, newTranslation: string) => void;
+  onAddTranslation: (sentenceIndex: number, language: string) => void;
+  onRemoveTranslation: (sentenceIndex: number, language: string) => void;
+  onAddBulkTranslation: (language: string) => Promise<void>;
+  onRemoveBulkTranslation: (language: string) => Promise<void>;
   onToggleRuleSelection: (sentenceIndex: number, ruleIndex: number) => void;
   onDeleteRuleClick: (sentenceIndex: number, ruleIndex: number) => void;
   onSaveTranslations: () => Promise<void>;
@@ -28,20 +37,28 @@ interface GrammarSectionProps {
 
 /**
  * Component for the grammar analysis and translation section
- * Supports both standard and two-column compact view with improved spacing
+ * Updated with multi-language translation support
  */
 const GrammarSection: React.FC<GrammarSectionProps> = ({
   sentences,
   engineChoice,
+  activeLanguage,
+  supportedLanguages,
+  hasSupportedLanguages,
   isLoading,
   isTranslating,
   hasTranslationChanges,
   selectedRulesCount,
   selectedRules,
   onEngineChange,
+  onLanguageChange,
   onGenerateClick,
   onTranslateClick,
   onTranslationChange,
+  onAddTranslation,
+  onRemoveTranslation,
+  onAddBulkTranslation,
+  onRemoveBulkTranslation,
   onToggleRuleSelection,
   onDeleteRuleClick,
   onSaveTranslations,
@@ -51,13 +68,36 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
 }) => {
   const hasSentences = sentences.length > 0;
 
+  // Get all active languages across all sentences
+  const getActiveLanguages = (sentences: GrammarRule[]): string[] => {
+    const languagesSet = new Set<string>();
+
+    // Always include English
+    languagesSet.add('en');
+
+    // Collect all languages from all sentences
+    sentences.forEach(sentence => {
+      if (Array.isArray(sentence.translations)) {
+        sentence.translations.forEach(translation => {
+          languagesSet.add(translation.language);
+        });
+      }
+    });
+
+    return Array.from(languagesSet);
+  };
+
   // Function to render sentence items
   const renderSentenceItem = (item: GrammarRule, index: number) => (
     <SentenceItem
       key={`sentence-${index}`}
       sentenceData={item}
       index={index}
+      activeLanguage={activeLanguage}
+      supportedLanguages={supportedLanguages}
       onTranslationChange={onTranslationChange}
+      onAddTranslation={onAddTranslation}
+      onRemoveTranslation={onRemoveTranslation}
       onToggleRuleSelection={onToggleRuleSelection}
       onDeleteRuleClick={onDeleteRuleClick}
       isRuleSelected={isRuleSelected}
@@ -97,7 +137,10 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
         isLoading={isLoading}
         isTranslating={isTranslating}
         engineChoice={engineChoice}
+        targetLanguage={activeLanguage}
+        hasSupportedLanguages={hasSupportedLanguages}
         onEngineChange={onEngineChange}
+        onLanguageChange={onLanguageChange}
         onGenerateClick={onGenerateClick}
         onTranslateClick={onTranslateClick}
       />
@@ -147,6 +190,23 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
             onSaveTranslations={onSaveTranslations}
             onDeleteSelected={onDeleteSelected}
           />
+
+          {/* Add Translation Management Section */}
+          {!simplified && (
+            <Box marginTop={6}>
+              <TranslationManagement
+                activeLanguages={getActiveLanguages(sentences)}
+                supportedLanguages={supportedLanguages}
+                onAddLanguage={(language: string) => {
+                  void onAddBulkTranslation(language);
+                }}
+                onBulkDeleteLanguage={(language: string) => {
+                  void onRemoveBulkTranslation(language);
+                }}
+                isLoading={isLoading || isTranslating}
+              />
+            </Box>
+          )}
         </>
       )}
     </Box>

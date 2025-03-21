@@ -1,9 +1,19 @@
 // src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/grammar/GrammarToolbar.tsx
 import React from 'react';
-import { Flex, Typography, Button, Radio, Stack, Box, Divider } from '@strapi/design-system';
-import { Refresh, Plus } from '@strapi/icons';
+import {
+  Box,
+  Button,
+  Typography,
+  Divider,
+  Flex,
+  Select,
+  Option,
+  Grid,
+  GridItem
+} from '@strapi/design-system';
+import { Refresh, Play } from '@strapi/icons';
 import { GrammarEngineChoice } from '../../../../utils/types';
-import { GRAMMAR_ENGINE_OPTIONS } from '../../../../utils/constants';
+import LanguageSelector from './LanguageSelector';
 
 interface GrammarToolbarProps {
   title: string;
@@ -11,13 +21,16 @@ interface GrammarToolbarProps {
   isLoading: boolean;
   isTranslating: boolean;
   engineChoice: GrammarEngineChoice;
+  targetLanguage: string;
+  hasSupportedLanguages: boolean;
   onEngineChange: (engine: GrammarEngineChoice) => void;
+  onLanguageChange: (language: string) => void;
   onGenerateClick: () => Promise<void>;
   onTranslateClick: () => Promise<void>;
 }
 
 /**
- * Component for grammar generation and translation controls
+ * Toolbar component for grammar controls with improved layout
  */
 const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
   title,
@@ -25,70 +38,77 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
   isLoading,
   isTranslating,
   engineChoice,
+  targetLanguage,
+  hasSupportedLanguages,
   onEngineChange,
+  onLanguageChange,
   onGenerateClick,
   onTranslateClick
 }) => {
   return (
-    <>
-      <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
-        <Typography variant="delta">{title}</Typography>
+    <Box paddingBottom={4}>
+      {/* Title row */}
+      <Flex justifyContent="space-between" alignItems="center" paddingBottom={4}>
+        <Typography variant="beta">{title}</Typography>
+      </Flex>
 
-        <Flex gap={2}>
-          <Button
-            onClick={onGenerateClick}
-            disabled={isLoading || isTranslating}
-            loading={isLoading && !isTranslating}
-            startIcon={<Refresh />}
+      <Grid gap={4}>
+        {/* Engine Selection */}
+        <GridItem col={4}>
+          <Select
+            id="engine-select"
+            name="engine"
+            label="Grammar Engine"
+            value={engineChoice}
+            onChange={(value: GrammarEngineChoice) => onEngineChange(value)}
+            disabled={isLoading}
           >
-            Generate Grammar Rules
-          </Button>
+            <Option value="stanford">Stanford</Option>
+            <Option value="jieba">Jieba</Option>
+            <Option value="both">Both (Stanford + Jieba)</Option>
+          </Select>
+        </GridItem>
 
-          {hasSentences && (
+        {/* Language Selection */}
+        <GridItem col={4}>
+          <LanguageSelector
+            value={targetLanguage}
+            onChange={onLanguageChange}
+            disabled={isLoading || isTranslating || !hasSupportedLanguages}
+            hint={!hasSupportedLanguages ? "Translator plugin not configured" : undefined}
+          />
+        </GridItem>
+
+        {/* Action Buttons */}
+        <GridItem col={4}>
+          <Flex justifyContent="flex-end" alignItems="flex-end" gap={2} style={{ height: '100%' }}>
             <Button
               variant="secondary"
+              startIcon={<Refresh />}
+              onClick={onGenerateClick}
+              disabled={isLoading}
+              loading={isLoading && !isTranslating}
+            >
+              Generate Grammar Rules
+            </Button>
+
+            <Button
+              variant="default"
+              startIcon={<Play />}
               onClick={onTranslateClick}
-              disabled={isLoading || isTranslating}
+              disabled={isLoading || !hasSentences}
               loading={isTranslating}
-              startIcon={<Plus />}
             >
               Translate All
             </Button>
-          )}
-        </Flex>
-      </Flex>
-
-      <Box paddingBottom={4}>
-        <Stack spacing={2}>
-          <Typography variant="epsilon">Grammar Engine</Typography>
-          <Flex gap={4}>
-            <Radio
-              value={GRAMMAR_ENGINE_OPTIONS.STANFORD}
-              checked={engineChoice === GRAMMAR_ENGINE_OPTIONS.STANFORD}
-              onChange={() => onEngineChange(GRAMMAR_ENGINE_OPTIONS.STANFORD)}
-            >
-              Stanford
-            </Radio>
-            <Radio
-              value={GRAMMAR_ENGINE_OPTIONS.JIEBA}
-              checked={engineChoice === GRAMMAR_ENGINE_OPTIONS.JIEBA}
-              onChange={() => onEngineChange(GRAMMAR_ENGINE_OPTIONS.JIEBA)}
-            >
-              Jieba
-            </Radio>
-            <Radio
-              value={GRAMMAR_ENGINE_OPTIONS.BOTH}
-              checked={engineChoice === GRAMMAR_ENGINE_OPTIONS.BOTH}
-              onChange={() => onEngineChange(GRAMMAR_ENGINE_OPTIONS.BOTH)}
-            >
-              Both
-            </Radio>
           </Flex>
-        </Stack>
-      </Box>
+        </GridItem>
+      </Grid>
 
-      <Divider />
-    </>
+      <Box paddingTop={4}>
+        <Divider />
+      </Box>
+    </Box>
   );
 };
 
