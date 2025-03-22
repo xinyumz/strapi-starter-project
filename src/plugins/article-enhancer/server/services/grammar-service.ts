@@ -16,7 +16,7 @@ interface RulesResponse {
 const { ApplicationError } = errors;
 
 export default ({ strapi }: { strapi: Strapi }) => ({
-    // Generate grammar rules from external API
+    // Generate grammar rules from external API (no changes needed)
     async generateRules(text: string, engineChoice: 'stanford' | 'jieba' | 'both' = 'both'): Promise<GrammarRule[]> {
         try {
             strapi.log.info(`Generating grammar rules with engine: ${engineChoice}`);
@@ -73,13 +73,12 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 };
             }
 
-            // Use Knex query builder to get sentences with grammar_rules
+            // Use Knex query builder to get sentences
             const sentences = await strapi.db.connection
                 .select(
                     'article_sentences.id as sentence_id',
                     'article_sentences.sentence_text',
-                    'article_sentences.sentence_order',
-                    'article_sentences.grammar_rules'
+                    'article_sentences.sentence_order'
                 )
                 .from('article_sentences')
                 .where('article_sentences.article_id', articleId)
@@ -87,8 +86,26 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             strapi.log.info(`Found ${sentences.length} sentences for article ID: ${articleId}`);
 
-            // Get translations for all sentences
+            // Get grammar rules for all sentences
             const sentenceIds = sentences.map((s: any) => s.sentence_id);
+
+            // Get grammar rules for all sentences from the new table
+            const grammarRules = await strapi.db.connection('sentence_grammar_rules')
+                .whereIn('sentence_id', sentenceIds)
+                .select('sentence_id', 'rule');
+
+            strapi.log.info(`Found ${grammarRules.length} grammar rules for article ID: ${articleId}`);
+
+            // Group grammar rules by sentence_id
+            const rulesBySentence: Record<number, string[]> = {};
+            grammarRules.forEach(rule => {
+                if (!rulesBySentence[rule.sentence_id]) {
+                    rulesBySentence[rule.sentence_id] = [];
+                }
+                rulesBySentence[rule.sentence_id].push(rule.rule);
+            });
+
+            // Get translations for all sentences
             const translations = await strapi.db.connection('sentence_translations')
                 .whereIn('sentence_id', sentenceIds)
                 .select('sentence_id', 'translation_language', 'translation_text');
@@ -106,17 +123,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             // Format sentences with their rules and translations
             const formattedSentences: GrammarRule[] = sentences.map(sentence => {
-                // Parse grammar rules from JSON
-                let rules: string[] = [];
-                if (sentence.grammar_rules) {
-                    try {
-                        rules = typeof sentence.grammar_rules === 'string'
-                            ? JSON.parse(sentence.grammar_rules)
-                            : sentence.grammar_rules;
-                    } catch (e) {
-                        strapi.log.error(`Error parsing grammar rules for sentence ${sentence.sentence_id}: ${e}`);
-                    }
-                }
+                // Get rules for this sentence
+                const rules = rulesBySentence[sentence.sentence_id] || [];
 
                 // Get English translation for backward compatibility
                 const translations = translationsBySentence[sentence.sentence_id] || {};
@@ -130,7 +138,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                 return {
                     sentence: sentence.sentence_text,
-                    rules: Array.isArray(rules) ? rules : [],
+                    rules: rules,
                     translation: englishTranslation, // For backward compatibility
                     translations: translationsArray
                 };
@@ -198,14 +206,19 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             strapi.log.info(`Found ${sentenceIds.length} existing sentences to delete`);
 
-            // Delete translations for these sentences
+            // Delete translations and grammar rules for these sentences
             if (sentenceIds.length > 0) {
                 await trx('sentence_translations')
                     .whereIn('sentence_id', sentenceIds)
                     .delete();
+
+                // Delete grammar rules for these sentences
+                await trx('sentence_grammar_rules')
+                    .whereIn('sentence_id', sentenceIds)
+                    .delete();
             }
 
-            // Delete sentences (cascade will handle grammar rules)
+            // Delete sentences
             await trx('article_sentences')
                 .where('article_id', articleId)
                 .delete();
@@ -224,16 +237,27 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     const sentenceText = typeof sentence.sentence === 'string' ?
                         sentence.sentence : String(sentence.sentence);
 
-                    // Insert sentence with grammar_rules as JSON
+                    // Insert sentence
                     const [sentenceId] = await trx('article_sentences')
                         .insert({
                             article_id: articleId,
                             sentence_text: sentenceText,
                             sentence_order: i,
-                            grammar_rules: JSON.stringify(sentence.rules || []),
                             created_at: trx.fn.now(),
                             updated_at: trx.fn.now()
                         });
+
+                    // Insert grammar rules
+                    if (sentence.rules && Array.isArray(sentence.rules) && sentence.rules.length > 0) {
+                        const rulesToInsert = sentence.rules.map(rule => ({
+                            sentence_id: sentenceId,
+                            rule: typeof rule === 'string' ? rule : String(rule),
+                            created_at: trx.fn.now(),
+                            updated_at: trx.fn.now()
+                        }));
+
+                        await trx('sentence_grammar_rules').insert(rulesToInsert);
+                    }
 
                     // Insert translations
                     // Handle legacy translation field (as English)

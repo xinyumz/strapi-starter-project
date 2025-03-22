@@ -152,10 +152,21 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                             article_id: articleId,
                             sentence_text: sentence.chinese,
                             sentence_order: i + 1,
-                            grammar_rules: JSON.stringify(sentence.grammarRules),
                             created_at: trx.fn.now(),
                             updated_at: trx.fn.now()
                         });
+
+                    // Insert grammar rules if any
+                    if (sentence.grammarRules && Array.isArray(sentence.grammarRules) && sentence.grammarRules.length > 0) {
+                        const rulesToInsert = sentence.grammarRules.map(rule => ({
+                            sentence_id: sentenceId,
+                            rule: typeof rule === 'string' ? rule : String(rule),
+                            created_at: trx.fn.now(),
+                            updated_at: trx.fn.now()
+                        }));
+
+                        await trx('sentence_grammar_rules').insert(rulesToInsert);
+                    }
 
                     // Insert translations for each language
                     const translationsToInsert = Object.entries(sentence.translations).map(
