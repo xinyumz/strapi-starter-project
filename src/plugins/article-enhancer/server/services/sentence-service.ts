@@ -12,7 +12,95 @@ interface EnhancedSentence {
     grammarRules: string[];
 }
 
+interface BatchTranslationOptions {
+    batchSize?: number;
+    maxRetries?: number;
+    retryDelay?: number;
+}
+
 export default ({ strapi }: { strapi: Strapi }) => ({
+    /**
+     * Helper method to translate sentences in batches for better performance
+     */
+    async translateSentencesBatch(
+        sentences: string[],
+        targetLanguage: string,
+        options: BatchTranslationOptions = {}
+    ): Promise<string[]> {
+        const {
+            batchSize = 10,
+            maxRetries = 3,
+            retryDelay = 1000
+        } = options;
+
+        if (!strapi.plugin('translator')) {
+            throw new Error('Translator plugin not found');
+        }
+
+        const translationService = strapi.plugin('translator').service('translationService');
+
+        if (!translationService || !translationService.translate) {
+            throw new Error('Translation service not available');
+        }
+
+        // Process in batches for better performance
+        const translations: string[] = [];
+        let errorCount = 0;
+
+        for (let i = 0; i < sentences.length; i += batchSize) {
+            const batch = sentences.slice(i, i + batchSize);
+            console.log(`Translating batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(sentences.length / batchSize)}`);
+
+            // Process each batch of sentences
+            const batchTranslations = await Promise.all(
+                batch.map(async (sentence) => {
+                    if (typeof sentence !== 'string' || sentence.trim() === '') {
+                        return '';
+                    }
+
+                    // Retry mechanism for more robust translations
+                    let retryCount = 0;
+                    while (retryCount < maxRetries) {
+                        try {
+                            const translation = await translationService.translate(sentence, targetLanguage);
+                            if (translation && typeof translation === 'string') {
+                                return translation;
+                            } else {
+                                throw new Error('Invalid translation result');
+                            }
+                        } catch (error) {
+                            retryCount++;
+                            if (retryCount >= maxRetries) {
+                                console.error(`Failed to translate after ${maxRetries} attempts: "${sentence.substring(0, 50)}..."`, error);
+                                errorCount++;
+                                return `[Translation error]`;
+                            }
+
+                            // Wait before retrying
+                            await new Promise(resolve => setTimeout(resolve, retryDelay));
+                            console.log(`Retrying translation (${retryCount}/${maxRetries})`);
+                        }
+                    }
+
+                    return `[Translation error]`; // Fallback
+                })
+            );
+
+            translations.push(...batchTranslations);
+        }
+
+        if (errorCount > 0) {
+            console.warn(`Completed with ${errorCount} errors out of ${sentences.length} translations`);
+        } else {
+            console.log(`All ${sentences.length} translations to ${targetLanguage} completed successfully`);
+        }
+
+        return translations;
+    },
+
+    /**
+     * Translate a list of sentences to the target language
+     */
     async translateSentences(sentences: string[], targetLanguage: string = 'en'): Promise<string[]> {
         if (!Array.isArray(sentences)) {
             throw new ApplicationError('Input must be an array of sentences');
@@ -40,58 +128,13 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 throw new Error('Translate method not found in translation service');
             }
 
-            console.log("Translation service found, proceeding with translations");
+            // Use the batch translation method for better performance
+            return await this.translateSentencesBatch(sentences, targetLanguage, {
+                batchSize: 10, // Number of sentences to translate at once
+                maxRetries: 3,  // Number of retry attempts per sentence
+                retryDelay: 1000 // Delay between retries in ms
+            });
 
-            // Validate target language
-            try {
-                // If we have a listLanguages method, check if the target language is supported
-                if (translationService.listLanguages) {
-                    const languages = await translationService.listLanguages();
-                    const isSupported = languages.some((lang: { code: string }) => lang.code === targetLanguage);
-
-                    if (!isSupported) {
-                        console.warn(`Language '${targetLanguage}' may not be supported, proceeding anyway`);
-                    }
-                }
-            } catch (langError) {
-                console.warn('Could not validate language support:', langError);
-            }
-
-            // Translate each sentence individually and handle errors
-            const translations = [];
-            let errorCount = 0;
-
-            for (const sentence of sentences) {
-                if (typeof sentence !== 'string' || sentence.trim() === '') {
-                    console.warn('Skipping empty or non-string sentence');
-                    translations.push('');
-                    continue;
-                }
-
-                try {
-                    const translation = await translationService.translate(sentence, targetLanguage);
-
-                    if (!translation || typeof translation !== 'string') {
-                        console.warn(`Received invalid translation for: "${sentence.substring(0, 50)}..."`);
-                        translations.push(`[Invalid translation received]`);
-                        errorCount++;
-                    } else {
-                        translations.push(translation);
-                    }
-                } catch (translationError: unknown) {
-                    console.error(`Error translating sentence "${sentence.substring(0, 50)}..."`, translationError);
-                    translations.push(`[Translation error]`);
-                    errorCount++;
-                }
-            }
-
-            if (errorCount > 0) {
-                console.warn(`Completed with ${errorCount} errors out of ${sentences.length} translations`);
-            } else {
-                console.log(`All ${sentences.length} translations to ${targetLanguage} completed successfully`);
-            }
-
-            return translations;
         } catch (error: unknown) {
             console.error('Sentence translation error:', error);
 
