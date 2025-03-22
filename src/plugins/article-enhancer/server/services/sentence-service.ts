@@ -132,7 +132,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                 // Delete translations for existing sentences
                 if (existingSentenceIds.length > 0) {
-                    await trx('article_translations')
+                    await trx('sentence_translations')
                         .whereIn('sentence_id', existingSentenceIds)
                         .delete();
                 }
@@ -180,7 +180,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     );
 
                     if (translationsToInsert.length > 0) {
-                        await trx('article_translations').insert(translationsToInsert);
+                        await trx('sentence_translations').insert(translationsToInsert);
                     }
                 }
             });
@@ -207,7 +207,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             // Get translations for all sentences
             const sentenceIds = sentences.map((s: any) => s.id);
-            const translations = await knex('article_translation')
+            const translations = await knex('sentence_translations')
                 .whereIn('sentence_id', sentenceIds)
                 .select('sentence_id', 'translation_language', 'translation_text');
 
