@@ -1,4 +1,4 @@
-// src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/grammar/GrammarSection.tsx
+// src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/sentence-processing/SentenceProcessingSection.tsx
 import React from 'react';
 import { Box, Typography, Alert, Grid, GridItem } from '@strapi/design-system';
 import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../../utils/types';
@@ -6,8 +6,9 @@ import { GrammarToolbar } from './grammar';
 import { SentenceItem } from './';
 import { BulkActions } from './grammar';
 import { TranslationManagement } from './sentence-translation';
+import SimplifiedTranslationManagement from './sentence-translation/SimplifiedTranslationManagement';
 
-interface GrammarSectionProps {
+interface SentenceProcessingSectionProps {
   sentences: GrammarRule[];
   engineChoice: GrammarEngineChoice;
   activeLanguage: string;
@@ -23,8 +24,6 @@ interface GrammarSectionProps {
   onGenerateClick: () => Promise<void>;
   onTranslateClick: () => Promise<void>;
   onTranslationChange: (sentenceIndex: number, language: string, newTranslation: string) => void;
-  onAddTranslation: (sentenceIndex: number, language: string) => void;
-  onRemoveTranslation: (sentenceIndex: number, language: string) => void;
   onAddBulkTranslation: (language: string) => Promise<void>;
   onRemoveBulkTranslation: (language: string) => Promise<void>;
   onToggleRuleSelection: (sentenceIndex: number, ruleIndex: number) => void;
@@ -39,7 +38,7 @@ interface GrammarSectionProps {
  * Component for the grammar analysis and translation section
  * Updated with multi-language translation support
  */
-const GrammarSection: React.FC<GrammarSectionProps> = ({
+const SentenceProcessingSection: React.FC<SentenceProcessingSectionProps> = ({
   sentences,
   engineChoice,
   activeLanguage,
@@ -55,8 +54,6 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
   onGenerateClick,
   onTranslateClick,
   onTranslationChange,
-  onAddTranslation,
-  onRemoveTranslation,
   onAddBulkTranslation,
   onRemoveBulkTranslation,
   onToggleRuleSelection,
@@ -93,11 +90,8 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
       key={`sentence-${index}`}
       sentenceData={item}
       index={index}
-      activeLanguage={activeLanguage}
       supportedLanguages={supportedLanguages}
       onTranslationChange={onTranslationChange}
-      onAddTranslation={onAddTranslation}
-      onRemoveTranslation={onRemoveTranslation}
       onToggleRuleSelection={onToggleRuleSelection}
       onDeleteRuleClick={onDeleteRuleClick}
       isRuleSelected={isRuleSelected}
@@ -123,6 +117,9 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
       );
     }
   };
+
+  // Get active languages for translation management
+  const activeLanguages = getActiveLanguages(sentences);
 
   return (
     <Box
@@ -191,11 +188,25 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
             onDeleteSelected={onDeleteSelected}
           />
 
-          {/* Add Translation Management Section */}
+          {/* Add Simplified Translation Management Section in simplified view */}
+          {simplified && activeLanguages.length > 1 && (
+            <Box marginTop={4}>
+              <SimplifiedTranslationManagement
+                activeLanguages={activeLanguages}
+                supportedLanguages={supportedLanguages}
+                onBulkDeleteLanguage={(language: string) => {
+                  void onRemoveBulkTranslation(language);
+                }}
+                isLoading={isLoading || isTranslating}
+              />
+            </Box>
+          )}
+
+          {/* Add Full Translation Management Section in standard view */}
           {!simplified && (
             <Box marginTop={6}>
               <TranslationManagement
-                activeLanguages={getActiveLanguages(sentences)}
+                activeLanguages={activeLanguages}
                 supportedLanguages={supportedLanguages}
                 onAddLanguage={(language: string) => {
                   void onAddBulkTranslation(language);
@@ -213,4 +224,4 @@ const GrammarSection: React.FC<GrammarSectionProps> = ({
   );
 };
 
-export default GrammarSection;
+export default SentenceProcessingSection;

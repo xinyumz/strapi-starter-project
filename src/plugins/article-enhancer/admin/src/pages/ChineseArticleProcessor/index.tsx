@@ -90,7 +90,6 @@ const ChineseArticleProcessor = () => {
         finishProcessing,
         setProcessingError,
         saveOriginalSentences,
-        hasSentences
     } = useArticleProcessor({
         articleId,
         pluginId,
@@ -103,12 +102,10 @@ const ChineseArticleProcessor = () => {
         engineChoice,
         selectedRules,
         isDeleteModalVisible,
-        ruleToDelete,
         generateGrammarRules,
         handleEngineChange,
         toggleRuleSelection,
         isRuleSelected,
-        clearSelections,
         handleShowDeleteConfirm,
         handleDeleteRuleConfirmed,
         handleBulkDeleteConfirmed,
@@ -137,8 +134,6 @@ const ChineseArticleProcessor = () => {
         translateAllSentences,
         handleLanguageChange,
         handleTranslationChange,
-        addTranslation,
-        removeTranslation,
         addBulkTranslation,
         removeBulkTranslation
     } = useTranslationManagement({
@@ -307,8 +302,6 @@ const ChineseArticleProcessor = () => {
                             onGenerateClick={generateGrammarRules}
                             onTranslateClick={translateAllSentences}
                             onTranslationChange={handleTranslationChange}
-                            onAddTranslation={addTranslation}
-                            onRemoveTranslation={removeTranslation}
                             onAddBulkTranslation={addBulkTranslation}
                             onRemoveBulkTranslation={removeBulkTranslation}
                             onToggleRuleSelection={toggleRuleSelection}

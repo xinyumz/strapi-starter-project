@@ -1,3 +1,10 @@
-// sentence-translation/index.ts
-export { default as LanguageSelector } from './LanguageSelector';
-export { default as TranslationManagement } from './TranslationManagement';
+// src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/sentence-processing/sentence-translation/index.ts
+import TranslationManagement from './TranslationManagement';
+import SimplifiedTranslationManagement from './SimplifiedTranslationManagement';
+import LanguageSelector from './LanguageSelector';
+
+export {
+    TranslationManagement,
+    SimplifiedTranslationManagement,
+    LanguageSelector
+};
