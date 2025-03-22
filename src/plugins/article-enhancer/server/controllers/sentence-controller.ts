@@ -154,11 +154,43 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.notFound('Translation service not found or does not support language listing');
             }
 
-            const languages = await translationService.listLanguages();
+            try {
+                // Get all languages
+                const allLanguages = await translationService.listLanguages();
 
-            ctx.body = {
-                data: languages
-            };
+                // Define the languages you want to support
+                const supportedCodes = ['en', 'fr', 'es', 'de', 'it', 'ja', 'ko', 'ru', 'pt', 'ar'];
+
+                // Filter to just the languages you want to support
+                // Add proper type annotation for the lang parameter
+                const filteredLanguages = allLanguages.filter((lang: { code: string; name: string }) =>
+                    supportedCodes.includes(lang.code)
+                );
+
+                ctx.body = {
+                    data: filteredLanguages
+                };
+            } catch (serviceError) {
+                console.error('Error fetching languages from translation service:', serviceError);
+
+                // Fallback to hardcoded default languages if the service call fails
+                const defaultLanguages = [
+                    { code: 'en', name: 'English' },
+                    { code: 'fr', name: 'French' },
+                    { code: 'es', name: 'Spanish' },
+                    { code: 'de', name: 'German' },
+                    { code: 'it', name: 'Italian' },
+                    { code: 'ja', name: 'Japanese' },
+                    { code: 'ko', name: 'Korean' },
+                    { code: 'ru', name: 'Russian' },
+                    { code: 'pt', name: 'Portuguese' },
+                    { code: 'ar', name: 'Arabic' }
+                ];
+
+                ctx.body = {
+                    data: defaultLanguages
+                };
+            }
         } catch (error: unknown) {
             if (error instanceof ApplicationError) {
                 ctx.throw(400, error.message);

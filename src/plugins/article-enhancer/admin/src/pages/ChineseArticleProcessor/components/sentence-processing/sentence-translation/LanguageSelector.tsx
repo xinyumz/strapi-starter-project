@@ -67,29 +67,53 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
 
     // Load available languages from translator plugin if custom languages not provided
     useEffect(() => {
-        // Skip fetching if custom languages are provided
-        if (customLanguages) {
-            return;
-        }
+        let isMounted = true;
+        const controller = new AbortController();
 
         const fetchLanguages = async () => {
+            if (customLanguages) {
+                setLanguages(customLanguages);
+                return;
+            }
+
             try {
                 setIsLoading(true);
-                const response = await get('/translator/languages');
 
-                if (response.data && Array.isArray(response.data.data)) {
-                    setLanguages(response.data.data);
+                // Use the useFetchClient hook instead of window.strapi
+                const { data, error } = await get('/article-enhancer/languages', {
+                    signal: controller.signal
+                });
+
+                if (!isMounted) return;
+
+                if (error) {
+                    console.warn('Failed to fetch languages, using defaults', error);
+                    setLanguages(defaultLanguages);
+                } else if (data && Array.isArray(data.data)) {
+                    setLanguages(data.data);
+                } else {
+                    console.warn('Invalid response format, using defaults');
+                    setLanguages(defaultLanguages);
                 }
             } catch (error) {
-                console.error('Failed to fetch languages:', error);
-                // Keep using the default languages
+                if (isMounted) {
+                    console.error('Failed to fetch languages:', error);
+                    setLanguages(defaultLanguages);
+                }
             } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
         };
 
         fetchLanguages();
-    }, [get, customLanguages]);
+
+        return () => {
+            isMounted = false;
+            controller.abort();
+        };
+    }, [customLanguages]);
 
     return (
         <Box>
