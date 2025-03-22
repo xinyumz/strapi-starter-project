@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import {
     Select,
     Option,
-    Typography,
     Flex,
     Button,
     Box
@@ -65,7 +64,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const { get } = useFetchClient();
 
-    // Load available languages from translator plugin if custom languages not provided
+    // Load available languages from article-enhancer plugin endpoints
     useEffect(() => {
         let isMounted = true;
         const controller = new AbortController();
@@ -79,7 +78,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             try {
                 setIsLoading(true);
 
-                // Use the useFetchClient hook instead of window.strapi
+                // Use article-enhancer's language endpoint directly (filtered on server)
                 const { data, error } = await get('/article-enhancer/languages', {
                     signal: controller.signal
                 });
@@ -87,12 +86,13 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 if (!isMounted) return;
 
                 if (error) {
-                    console.warn('Failed to fetch languages, using defaults', error);
+                    console.warn('Failed to fetch languages from server, using defaults', error);
                     setLanguages(defaultLanguages);
                 } else if (data && Array.isArray(data.data)) {
+                    console.log(`Received ${data.data.length} languages from server`);
                     setLanguages(data.data);
                 } else {
-                    console.warn('Invalid response format, using defaults');
+                    console.warn('Invalid response format from language endpoint, using defaults');
                     setLanguages(defaultLanguages);
                 }
             } catch (error) {
@@ -113,7 +113,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             isMounted = false;
             controller.abort();
         };
-    }, [customLanguages]);
+    }, [customLanguages, get]);
 
     return (
         <Box>

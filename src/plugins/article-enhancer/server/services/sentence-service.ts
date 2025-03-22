@@ -18,8 +18,12 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             throw new ApplicationError('Input must be an array of sentences');
         }
 
+        if (sentences.length === 0) {
+            return [];
+        }
+
         try {
-            console.log(`Attempting to translate sentences to ${targetLanguage}:`, sentences);
+            console.log(`Attempting to translate ${sentences.length} sentences to ${targetLanguage}`);
 
             // Check if translator plugin and translation service exist
             if (!strapi.plugin('translator')) {
@@ -38,33 +42,75 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             console.log("Translation service found, proceeding with translations");
 
+            // Validate target language
+            try {
+                // If we have a listLanguages method, check if the target language is supported
+                if (translationService.listLanguages) {
+                    const languages = await translationService.listLanguages();
+                    const isSupported = languages.some((lang: { code: string }) => lang.code === targetLanguage);
+
+                    if (!isSupported) {
+                        console.warn(`Language '${targetLanguage}' may not be supported, proceeding anyway`);
+                    }
+                }
+            } catch (langError) {
+                console.warn('Could not validate language support:', langError);
+            }
+
             // Translate each sentence individually and handle errors
             const translations = [];
+            let errorCount = 0;
+
             for (const sentence of sentences) {
-                if (typeof sentence !== 'string') {
-                    console.warn('Skipping non-string sentence:', sentence);
+                if (typeof sentence !== 'string' || sentence.trim() === '') {
+                    console.warn('Skipping empty or non-string sentence');
                     translations.push('');
                     continue;
                 }
 
                 try {
                     const translation = await translationService.translate(sentence, targetLanguage);
-                    translations.push(translation);
+
+                    if (!translation || typeof translation !== 'string') {
+                        console.warn(`Received invalid translation for: "${sentence.substring(0, 50)}..."`);
+                        translations.push(`[Invalid translation received]`);
+                        errorCount++;
+                    } else {
+                        translations.push(translation);
+                    }
                 } catch (translationError: unknown) {
-                    console.error(`Error translating sentence "${sentence}":`, translationError);
-                    translations.push(`[Translation error for: ${sentence}]`);
+                    console.error(`Error translating sentence "${sentence.substring(0, 50)}..."`, translationError);
+                    translations.push(`[Translation error]`);
+                    errorCount++;
                 }
             }
 
-            console.log(`All translations to ${targetLanguage} completed:`, translations);
+            if (errorCount > 0) {
+                console.warn(`Completed with ${errorCount} errors out of ${sentences.length} translations`);
+            } else {
+                console.log(`All ${sentences.length} translations to ${targetLanguage} completed successfully`);
+            }
+
             return translations;
         } catch (error: unknown) {
             console.error('Sentence translation error:', error);
+
             if (error instanceof ApplicationError) {
                 throw error;
             }
+
+            // Provide more specific error messages based on the error type
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            throw new ApplicationError(`Failed to translate sentences: ${errorMessage}`);
+
+            if (errorMessage.includes('Translator plugin not found')) {
+                throw new ApplicationError('Translation service is not properly configured');
+            } else if (errorMessage.includes('quota')) {
+                throw new ApplicationError('Translation quota exceeded. Please try again later.');
+            } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
+                throw new ApplicationError('Network error during translation. Please check your connection and try again.');
+            } else {
+                throw new ApplicationError(`Failed to translate sentences: ${errorMessage}`);
+            }
         }
     },
 
