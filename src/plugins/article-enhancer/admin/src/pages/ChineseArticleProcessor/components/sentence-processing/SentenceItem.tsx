@@ -1,5 +1,5 @@
-// src/plugins/article-enhancer/admin/src/pages/ChineseArticleProcessor/components/grammar/SentenceItem.tsx
-import React, { useState } from 'react';
+// src/pages/ChineseArticleProcessor/components/sentence-processing/SentenceItem.tsx
+import React from 'react';
 import {
   Box,
   Textarea,
@@ -11,23 +11,16 @@ import {
   Tab,
   TabGroup,
   TabPanel,
-  TabPanels,
-  IconButton,
-  Button
+  TabPanels
 } from '@strapi/design-system';
-import { Plus, Trash } from '@strapi/icons';
 import { GrammarRule, Translation } from '../../../../utils/types';
 import GrammarRuleItem from './grammar/GrammarRuleItem';
-import LanguageSelector from './sentence-translation/LanguageSelector';
 
 interface SentenceItemProps {
   sentenceData: GrammarRule;
   index: number;
-  activeLanguage: string;
   supportedLanguages: { code: string, name: string }[];
   onTranslationChange: (sentenceIndex: number, language: string, text: string) => void;
-  onAddTranslation: (sentenceIndex: number, language: string) => void;
-  onRemoveTranslation: (sentenceIndex: number, language: string) => void;
   onToggleRuleSelection: (sentenceIndex: number, ruleIndex: number) => void;
   onDeleteRuleClick: (sentenceIndex: number, ruleIndex: number) => void;
   isRuleSelected: (sentenceIndex: number, ruleIndex: number) => boolean;
@@ -41,19 +34,14 @@ interface SentenceItemProps {
 const SentenceItem: React.FC<SentenceItemProps> = ({
   sentenceData,
   index,
-  activeLanguage,
   supportedLanguages,
   onTranslationChange,
-  onAddTranslation,
-  onRemoveTranslation,
   onToggleRuleSelection,
   onDeleteRuleClick,
   isRuleSelected,
   simplified = false
 }) => {
   const hasRules = Array.isArray(sentenceData?.rules) && sentenceData.rules.length > 0;
-  const [isAddingTranslation, setIsAddingTranslation] = useState(false);
-  const [newLanguage, setNewLanguage] = useState("");
 
   // Combine legacy translation with new multi-language translations
   const getTranslations = (): Translation[] => {
@@ -79,31 +67,10 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
 
   const translations = getTranslations();
 
-  // Find the selected language translation
-  const getTranslationForLanguage = (language: string): string => {
-    const translation = translations.find(t => t.language === language);
-    return translation ? translation.text : '';
-  };
-
   // Get the display name for a language code
   const getLanguageName = (code: string): string => {
     const language = supportedLanguages.find(lang => lang.code === code);
     return language ? language.name : code;
-  };
-
-  // Handle adding a new translation
-  const handleAddTranslation = () => {
-    if (newLanguage && !translations.some(t => t.language === newLanguage)) {
-      onAddTranslation(index, newLanguage);
-      setIsAddingTranslation(false);
-      setNewLanguage("");
-    }
-  };
-
-  // Get available languages (that don't already have translations)
-  const getAvailableLanguages = () => {
-    const existingLanguages = new Set(translations.map(t => t.language));
-    return supportedLanguages.filter(lang => !existingLanguages.has(lang.code));
   };
 
   return (
@@ -147,25 +114,13 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
             label={`Translations for sentence ${index + 1}`}
             variant="simple"
           >
-            <Flex justifyContent="space-between" alignItems="center">
-              <Tabs>
-                {translations.map((translation) => (
-                  <Tab key={translation.language}>
-                    {getLanguageName(translation.language)}
-                  </Tab>
-                ))}
-              </Tabs>
-
-              {/* Add translation button */}
-              <Button
-                variant="tertiary"
-                startIcon={<Plus />}
-                onClick={() => setIsAddingTranslation(true)}
-                disabled={getAvailableLanguages().length === 0}
-              >
-                Add Translation
-              </Button>
-            </Flex>
+            <Tabs>
+              {translations.map((translation) => (
+                <Tab key={translation.language}>
+                  {getLanguageName(translation.language)}
+                </Tab>
+              ))}
+            </Tabs>
 
             <TabPanels>
               {translations.map((translation) => (
@@ -188,37 +143,6 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
         ) : (
           <Box marginBottom={2}>
             <Typography>No translations available. Click 'Translate All' to generate translations.</Typography>
-          </Box>
-        )}
-
-        {/* Add new translation UI */}
-        {isAddingTranslation && (
-          <Box marginTop={4}>
-            <Flex gap={2}>
-              <Box style={{ flexGrow: 1 }}>
-                <LanguageSelector
-                  value={newLanguage}
-                  onChange={setNewLanguage}
-                  label="Add New Translation"
-                />
-              </Box>
-              <Box style={{ alignSelf: 'flex-end' }}>
-                <Button onClick={handleAddTranslation} disabled={!newLanguage}>
-                  Add
-                </Button>
-              </Box>
-              <Box style={{ alignSelf: 'flex-end' }}>
-                <Button
-                  variant="tertiary"
-                  onClick={() => {
-                    setIsAddingTranslation(false);
-                    setNewLanguage("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </Box>
-            </Flex>
           </Box>
         )}
       </Box>
