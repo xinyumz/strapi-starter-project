@@ -2,10 +2,10 @@
 import React from 'react';
 import { Box, Typography, Alert, Grid, GridItem } from '@strapi/design-system';
 import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../../utils/types';
-import GrammarToolbar from './GrammarToolbar';
-import SentenceItem from './SentenceItem';
-import BulkActions from './BulkActions';
-import TranslationManagement from './TranslationManagement';
+import { GrammarToolbar } from './grammar';
+import { SentenceItem } from './';
+import { BulkActions } from './grammar';
+import { TranslationManagement } from './sentence-translation';
 
 interface GrammarSectionProps {
   sentences: GrammarRule[];

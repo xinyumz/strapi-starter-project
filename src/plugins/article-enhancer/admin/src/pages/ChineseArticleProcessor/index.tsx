@@ -1,4 +1,4 @@
-// Updated ChineseArticleProcessor component with multi-language support
+// Updated ChineseArticleProcessor component with separated hooks and infinite loop fix
 import React, { useState, useEffect } from 'react';
 import {
     HeaderLayout,
@@ -15,19 +15,18 @@ import pluginId from '../../pluginId';
 
 // Components from shared directory
 import { LoadingOverlay, AlertMessages, ConfirmationDialog } from '../../components/common';
-// Import removed - LanguageSelector is now used directly in child components
 
 // Feature-specific components
 import { HSKAnalysisSection } from './components/hsk';
-import { GrammarSection } from './components/grammar';
+import { SentenceProcessingSection } from './components/sentence-processing';
 
-// Hooks
+// Hooks - Import from the hooks directory
 import { useLoadingState } from '../../hooks';
-import { useHSKManagement, useGrammarManagement } from './hooks';
+import { useHSKManagement, useArticleProcessor, useGrammarManagement, useTranslationManagement } from './hooks';
 
 /**
  * Main component for processing Chinese articles
- * Handles HSK level calculation, grammar rule generation, and multi-language translations
+ * Using separated hooks for better code organization
  */
 const ChineseArticleProcessor = () => {
     // Common state
@@ -36,6 +35,7 @@ const ChineseArticleProcessor = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('Operation completed successfully');
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Simplified mode toggle
     const [simplified, setSimplified] = useState(true); // Default to simplified mode
@@ -77,45 +77,85 @@ const ChineseArticleProcessor = () => {
         onError: handleError
     });
 
-    // Initialize Grammar management hook with multi-language support
+    // Initialize Article Processor (base hook for shared functionality)
     const {
         sentences,
-        engineChoice,
-        activeLanguage,
-        supportedLanguages,
-        hasSupportedLanguages,
-        hasTranslationChanges,
+        setSentences,
+        hasDataChanges,
         isProcessing,
-        isTranslating,
-        isDeleteModalVisible,
-        selectedRules,
-        loadGrammarData,
-        generateGrammarRules,
-        handleEngineChange,
-        handleLanguageChange,
-        translateAllSentences,
-        handleTranslationChange,
-        addTranslation,
-        removeTranslation,
-        addBulkTranslation,
-        removeBulkTranslation,
-        saveAllTranslations,
-        handleShowDeleteConfirm,
-        handleDeleteRuleConfirmed,
-        handleBulkDeleteConfirmed,
-        setIsDeleteModalVisible,
-        toggleRuleSelection,
-        isRuleSelected,
-        selectedRulesCount
-    } = useGrammarManagement({
+        loadArticleData,
+        saveArticleData,
+        updateArticleWithProcessorData,
+        startProcessing,
+        finishProcessing,
+        setProcessingError,
+        saveOriginalSentences,
+        hasSentences
+    } = useArticleProcessor({
         articleId,
         pluginId,
         onSuccess: handleSuccess,
         onError: handleError
     });
 
-    // Get query parameters on component mount
+    // Initialize Grammar Management hook
+    const {
+        engineChoice,
+        selectedRules,
+        isDeleteModalVisible,
+        ruleToDelete,
+        generateGrammarRules,
+        handleEngineChange,
+        toggleRuleSelection,
+        isRuleSelected,
+        clearSelections,
+        handleShowDeleteConfirm,
+        handleDeleteRuleConfirmed,
+        handleBulkDeleteConfirmed,
+        setIsDeleteModalVisible,
+        selectedRulesCount
+    } = useGrammarManagement({
+        articleId,
+        pluginId,
+        sentences,
+        setSentences,
+        startProcessing,
+        finishProcessing,
+        setProcessingError,
+        saveOriginalSentences,
+        updateArticleWithProcessorData,
+        onSuccess: handleSuccess,
+        onError: handleError
+    });
+
+    // Initialize Translation Management hook
+    const {
+        activeLanguage,
+        supportedLanguages,
+        hasSupportedLanguages,
+        isTranslating,
+        translateAllSentences,
+        handleLanguageChange,
+        handleTranslationChange,
+        addTranslation,
+        removeTranslation,
+        addBulkTranslation,
+        removeBulkTranslation
+    } = useTranslationManagement({
+        articleId,
+        pluginId,
+        sentences,
+        setSentences,
+        saveOriginalSentences,
+        updateArticleWithProcessorData,
+        onSuccess: handleSuccess,
+        onError: handleError
+    });
+
+    // Get query parameters on component mount - only run once
     useEffect(() => {
+        if (isInitialized) return;
+
         const params = new URLSearchParams(window.location.search);
         const id = params.get('articleId');
         const engine = params.get('engine') || 'both';
@@ -123,11 +163,17 @@ const ChineseArticleProcessor = () => {
         if (id) {
             setArticleId(id);
             handleEngineChange(engine as any);
-            loadArticleInfo(id);
-            loadGrammarData(id);
-            loadHSKData(id);
+
+            // Load data in a specific order
+            Promise.all([
+                loadArticleInfo(id),
+                loadArticleData(id),
+                loadHSKData(id)
+            ]).then(() => {
+                setIsInitialized(true);
+            });
         }
-    }, []);
+    }, []);  // Empty dependency array - only run once
 
     // Load article information with proper authentication
     const loadArticleInfo = async (articleId: string) => {
@@ -172,8 +218,8 @@ const ChineseArticleProcessor = () => {
                 await saveHSKLevel();
             }
 
-            if (hasTranslationChanges) {
-                await saveAllTranslations();
+            if (hasDataChanges) {
+                await saveArticleData();
             }
 
             // Construct the URL to go back to the article edit page
@@ -244,8 +290,8 @@ const ChineseArticleProcessor = () => {
                             onSaveLevel={saveHSKLevel}
                         />
 
-                        {/* Grammar and Translation Section - Updated with multi-language support */}
-                        <GrammarSection
+                        {/* Grammar and Translation Section - Updated with separated hooks */}
+                        <SentenceProcessingSection
                             sentences={sentences}
                             engineChoice={engineChoice}
                             activeLanguage={activeLanguage}
@@ -253,7 +299,7 @@ const ChineseArticleProcessor = () => {
                             hasSupportedLanguages={hasSupportedLanguages}
                             isLoading={isLoading || isProcessing}
                             isTranslating={isTranslating}
-                            hasTranslationChanges={hasTranslationChanges}
+                            hasTranslationChanges={hasDataChanges}
                             selectedRulesCount={selectedRulesCount}
                             selectedRules={selectedRules}
                             onEngineChange={handleEngineChange}
@@ -267,7 +313,7 @@ const ChineseArticleProcessor = () => {
                             onRemoveBulkTranslation={removeBulkTranslation}
                             onToggleRuleSelection={toggleRuleSelection}
                             onDeleteRuleClick={handleShowDeleteConfirm}
-                            onSaveTranslations={saveAllTranslations}
+                            onSaveTranslations={saveArticleData}
                             onDeleteSelected={handleBulkDeleteConfirmed}
                             isRuleSelected={isRuleSelected}
                             simplified={simplified}

@@ -12,8 +12,8 @@ import {
   GridItem
 } from '@strapi/design-system';
 import { Refresh, Play } from '@strapi/icons';
-import { GrammarEngineChoice } from '../../../../utils/types';
-import LanguageSelector from './LanguageSelector';
+import { GrammarEngineChoice } from '../../../../../utils/types';
+import LanguageSelector from '../sentence-translation/LanguageSelector';
 
 interface GrammarToolbarProps {
   title: string;

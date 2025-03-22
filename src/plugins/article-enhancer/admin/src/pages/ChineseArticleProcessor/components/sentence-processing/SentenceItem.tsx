@@ -17,8 +17,8 @@ import {
 } from '@strapi/design-system';
 import { Plus, Trash } from '@strapi/icons';
 import { GrammarRule, Translation } from '../../../../utils/types';
-import GrammarRuleItem from './GrammarRuleItem';
-import LanguageSelector from './LanguageSelector';
+import GrammarRuleItem from './grammar/GrammarRuleItem';
+import LanguageSelector from './sentence-translation/LanguageSelector';
 
 interface SentenceItemProps {
   sentenceData: GrammarRule;
