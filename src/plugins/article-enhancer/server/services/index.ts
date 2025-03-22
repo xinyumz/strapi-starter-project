@@ -1,5 +1,14 @@
 // server/services/index.ts
-export { default as hskService } from './hsk-service';
-export { default as grammarService } from './grammar-service';
-export { default as sentenceService } from './sentence-service';
-export { default as pinyinService } from './pinyin-service';
+import grammarService from './grammar-service';
+import hskService from './hsk-service';
+import pinyinService from './pinyin-service';
+import translationService from './translation-service';
+import articleService from './article-service';
+
+export default {
+    grammarService,
+    hskService,
+    pinyinService,
+    translationService,
+    articleService,
+};

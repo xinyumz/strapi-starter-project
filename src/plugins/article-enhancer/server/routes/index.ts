@@ -42,11 +42,11 @@ export default [
             description: 'Save grammar data for an article'
         }
     },
-    // Sentence processing routes
+    // Translation routes
     {
         method: 'POST',
         path: '/process-sentences',
-        handler: 'sentenceController.translateSentences',
+        handler: 'translationController.translateSentences',
         config: {
             policies: [],
             auth: false,
@@ -54,34 +54,34 @@ export default [
         }
     },
     {
+        method: 'GET',
+        path: '/languages',
+        handler: 'translationController.getSupportedLanguages',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Get supported languages for translation'
+        }
+    },
+    // Article routes
+    {
         method: 'POST',
         path: '/process-article',
-        handler: 'sentenceController.processArticle',
+        handler: 'articleController.processArticle',
         config: {
             policies: [],
             auth: false,
             description: 'Process full article content with translations and grammar rules'
         }
     },
-    // Routes for multi-language support
     {
         method: 'GET',
         path: '/article/:id/sentences',
-        handler: 'sentenceController.getArticleSentences',
+        handler: 'articleController.getArticleSentences',
         config: {
             policies: [],
             auth: false,
             description: 'Get sentences with translations for an article'
-        }
-    },
-    {
-        method: 'GET',
-        path: '/languages',
-        handler: 'sentenceController.getSupportedLanguages',
-        config: {
-            policies: [],
-            auth: false,
-            description: 'Get supported languages for translation'
         }
     }
 ];

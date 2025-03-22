@@ -3,11 +3,11 @@ import bootstrap from './bootstrap';
 import destroy from './destroy';
 import config from './config';
 import contentTypes from './content-types';
-import * as controllers from './controllers';
+import controllers from './controllers';
 import routes from './routes';
 import middlewares from './middlewares';
 import policies from './policies';
-import * as services from './services';
+import services from './services';
 
 export default {
   register,

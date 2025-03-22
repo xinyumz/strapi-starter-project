@@ -1,4 +1,12 @@
 // server/controllers/index.ts
-export { default as grammarController } from './grammar-controller';
-export { default as hskController } from './hsk-controller';
-export { default as sentenceController } from './sentence-controller';
+import grammarController from './grammar-controller';
+import hskController from './hsk-controller';
+import translationController from './translation-controller';
+import articleController from './article-controller';
+
+export default {
+    grammarController,
+    hskController,
+    translationController,
+    articleController,
+};
