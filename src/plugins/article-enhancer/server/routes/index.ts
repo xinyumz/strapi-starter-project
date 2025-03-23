@@ -73,6 +73,22 @@ export default [
             description: 'Get supported languages for translation'
         }
     },
+    {
+        method: 'DELETE',
+        path: '/article/:id/translations/:language',
+        handler: 'translationController.removeLanguageTranslations',
+        config: {
+            policies: []
+        }
+    },
+    {
+        method: 'GET',
+        path: '/article/:id/translations/diagnostic',
+        handler: 'translationController.diagnosticInfo',
+        config: {
+            policies: []
+        }
+    },
     // Article routes
     {
         method: 'POST',

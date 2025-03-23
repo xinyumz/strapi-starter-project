@@ -572,29 +572,14 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                 // Handle new translations format if available
                 if (sentence.translations && Array.isArray(sentence.translations)) {
-                    const translationsToInsert = sentence.translations
-                        .filter(trans => {
-                            // Skip empty translations or those already handled by legacy field
-                            if (!trans || !trans.text || !trans.language) return false;
-                            if (trans.language === 'en' && sentence.translation) return false;
-                            return true;
-                        })
-                        .map(trans => {
-                            // Ensure text is a string
-                            const translationText = typeof trans.text === 'string' ?
-                                trans.text : String(trans.text);
+                    // Filter out English translations that are already handled by legacy field
+                    const translationsToProcess = sentence.translations.filter(
+                        trans => !(trans.language === 'en' && sentence.translation)
+                    );
 
-                            return {
-                                sentence_id: sentence.id,
-                                translation_language: trans.language,
-                                translation_text: translationText,
-                                created_at: trx.fn.now(),
-                                updated_at: trx.fn.now()
-                            };
-                        });
-
-                    if (translationsToInsert.length > 0) {
-                        await trx('sentence_translations').insert(translationsToInsert);
+                    if (translationsToProcess.length > 0) {
+                        // Use the new helper method to handle translations with better error handling
+                        await this.handleTranslationConflicts(sentence.id, translationsToProcess, trx);
                     }
                 }
             }
@@ -662,29 +647,14 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                         // Handle new translations format if available
                         if (sentence.translations && Array.isArray(sentence.translations)) {
-                            const translationsToInsert = sentence.translations
-                                .filter(trans => {
-                                    // Skip empty translations or those already handled by legacy field
-                                    if (!trans || !trans.text || !trans.language) return false;
-                                    if (trans.language === 'en' && sentence.translation) return false;
-                                    return true;
-                                })
-                                .map(trans => {
-                                    // Ensure text is a string
-                                    const translationText = typeof trans.text === 'string' ?
-                                        trans.text : String(trans.text);
+                            // Filter out English translations that are already handled by legacy field
+                            const translationsToProcess = sentence.translations.filter(
+                                trans => !(trans.language === 'en' && sentence.translation)
+                            );
 
-                                    return {
-                                        sentence_id: sentenceId,
-                                        translation_language: trans.language,
-                                        translation_text: translationText,
-                                        created_at: trx.fn.now(),
-                                        updated_at: trx.fn.now()
-                                    };
-                                });
-
-                            if (translationsToInsert.length > 0) {
-                                await trx('sentence_translations').insert(translationsToInsert);
+                            if (translationsToProcess.length > 0) {
+                                // Use the new helper method to handle translations with better error handling
+                                await this.handleTranslationConflicts(sentenceId, translationsToProcess, trx);
                             }
                         }
                     } catch (translationError) {
@@ -943,6 +913,70 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 failed: operations.length,
                 errors: [errorMessage]
             };
+        }
+    },
+    // Add this function to the exported object in grammar-service.ts
+    /**
+     * Improves handling of duplicate translations for the translation limit issue
+     */
+    async handleTranslationConflicts(
+        sentence_id: number,
+        translations: Array<{ language: string, text: string }>,
+        trx: any
+    ): Promise<void> {
+        try {
+            // Get existing translations for this sentence
+            const existingTranslations = await trx('sentence_translations')
+                .where('sentence_id', sentence_id)
+                .select('translation_language');
+
+            const existingLanguages = new Set(existingTranslations.map((t: any) => t.translation_language));
+
+            strapi.log.info(`Sentence ${sentence_id} has existing translations for: ${Array.from(existingLanguages).join(', ')}`);
+
+            for (const trans of translations) {
+                // Skip invalid translations
+                if (!trans || !trans.text || !trans.language) continue;
+
+                // Ensure text is a string
+                const translationText = typeof trans.text === 'string' ?
+                    trans.text : String(trans.text);
+
+                try {
+                    if (existingLanguages.has(trans.language)) {
+                        // Update existing translation instead of inserting
+                        strapi.log.info(`Updating existing ${trans.language} translation for sentence ${sentence_id}`);
+                        await trx('sentence_translations')
+                            .where('sentence_id', sentence_id)
+                            .where('translation_language', trans.language)
+                            .update({
+                                translation_text: translationText,
+                                updated_at: trx.fn.now()
+                            });
+                    } else {
+                        // Insert new translation
+                        strapi.log.info(`Inserting new ${trans.language} translation for sentence ${sentence_id}`);
+                        await trx('sentence_translations').insert({
+                            sentence_id: sentence_id,
+                            translation_language: trans.language,
+                            translation_text: translationText,
+                            created_at: trx.fn.now(),
+                            updated_at: trx.fn.now()
+                        });
+
+                        // Add to set of existing languages to prevent duplicates
+                        existingLanguages.add(trans.language);
+                    }
+                } catch (transError) {
+                    strapi.log.error(`Error handling translation for ${trans.language} (sentence ${sentence_id}): ${transError instanceof Error ? transError.message : 'Unknown error'
+                        }`);
+                    // Continue with next translation instead of failing the whole batch
+                }
+            }
+        } catch (error) {
+            strapi.log.error(`Error in handleTranslationConflicts: ${error instanceof Error ? error.message : 'Unknown error'
+                }`);
+            // Don't throw - we want to continue processing other translations
         }
     }
 });

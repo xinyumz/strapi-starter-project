@@ -178,5 +178,45 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 { code: 'ar', name: 'Arabic' }
             ];
         }
+    },
+
+
+    async removeLanguageTranslations(articleId: number, language: string): Promise<{ success: boolean, error?: string }> {
+        if (!strapi.db) {
+            return { success: false, error: 'Database connection not available' };
+        }
+
+        try {
+            console.log(`Removing all translations for language ${language} from article ${articleId}`);
+
+            // Get all sentence IDs for this article
+            const sentences = await strapi.db.connection('article_sentences')
+                .where('article_id', articleId)
+                .select('id');
+
+            const sentenceIds = sentences.map(s => s.id);
+
+            if (sentenceIds.length === 0) {
+                return { success: false, error: 'No sentences found for this article' };
+            }
+
+            console.log(`Found ${sentenceIds.length} sentences for deletion of ${language} translations`);
+
+            // Delete all translations for this language
+            const deleted = await strapi.db.connection('sentence_translations')
+                .whereIn('sentence_id', sentenceIds)
+                .where('translation_language', language)
+                .delete();
+
+            console.log(`Deleted ${deleted} translation entries for language ${language}`);
+
+            return { success: true };
+        } catch (error) {
+            console.error('Error removing translations:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error removing translations'
+            };
+        }
     }
 });
