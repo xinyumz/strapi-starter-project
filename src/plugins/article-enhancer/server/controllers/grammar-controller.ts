@@ -1,34 +1,9 @@
 // server/controllers/grammar-controller.ts
 import { Strapi } from '@strapi/strapi';
-import { Context } from 'koa';
 import { errors } from '@strapi/utils';
+import { ExtendedContext, GrammarRule, BatchGrammarOptions } from '../services/types';
 
 const { ApplicationError } = errors;
-
-interface GrammarRule {
-    sentence: string;
-    rules: string[];
-    translation?: string;
-}
-
-interface ExtendedContext extends Context {
-    body: any;
-    request: Context['request'] & {
-        body: {
-            data?: {
-                text?: string;
-                engineChoice?: 'stanford' | 'jieba' | 'both';
-                sentences?: Array<GrammarRule>;
-            };
-            text?: string;
-            engineChoice?: 'stanford' | 'jieba' | 'both';
-            sentences?: Array<GrammarRule>;
-        };
-    };
-    params: {
-        id?: string;
-    };
-}
 
 export default ({ strapi }: { strapi: Strapi }) => ({
     // Generate grammar rules
@@ -36,7 +11,14 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             // Handle both structured and flat request formats
             const data = ctx.request.body.data || ctx.request.body;
-            const { text, engineChoice = 'both' } = data;
+
+            // Extract data with type safety
+            const text = data.text;
+            const engineChoice = data.engineChoice || 'both';
+
+            // Use type assertion or check for properties that might not be defined in interface
+            const useBatch = 'useBatch' in data ? Boolean(data.useBatch) : false;
+            const batchOptions = data.batchOptions || {};
 
             if (!text) {
                 return ctx.badRequest('Text content is required');
@@ -47,7 +29,35 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             }
 
             const grammarService = strapi.plugin('article-enhancer').service('grammarService');
-            const rules = await grammarService.generateRules(text, engineChoice);
+
+            let rules: GrammarRule[] = [];
+
+            if (useBatch) {
+                // Split text into sentences using your preferred delimiter
+                const sentences = text.split('|').filter(s => s.trim());
+
+                if (sentences.length === 0) {
+                    return ctx.badRequest('No valid sentences found in content');
+                }
+
+                // Configure batch options with defaults if not provided
+                const options: BatchGrammarOptions = {
+                    batchSize: batchOptions.batchSize || 5,
+                    maxRetries: batchOptions.maxRetries || 3,
+                    retryDelay: batchOptions.retryDelay || 1000,
+                    concurrentRequests: batchOptions.concurrentRequests || 2
+                };
+
+                // Use batch processing method
+                rules = await grammarService.generateRulesBatch(sentences, engineChoice, options);
+
+                strapi.log.info(`Generated grammar rules for ${rules.length} sentences using batch processing`);
+            } else {
+                // Use traditional single request method
+                rules = await grammarService.generateRules(text, engineChoice);
+
+                strapi.log.info(`Generated grammar rules using single request processing`);
+            }
 
             ctx.body = {
                 data: {

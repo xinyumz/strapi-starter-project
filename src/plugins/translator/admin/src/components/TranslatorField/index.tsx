@@ -87,7 +87,7 @@ const TranslatorField: React.FC<TranslatorFieldProps> = ({
                 required={required}
             />
             <Select
-                label="Target Language"
+                label="Translation Language"
                 value={targetLanguage}
                 onChange={(value: string) => setTargetLanguage(value)}
             >

@@ -1,4 +1,4 @@
-// Updated ChineseArticleProcessor component with separated hooks and infinite loop fix
+// Updated ChineseArticleProcessor component with batch processing toggle
 import React, { useState, useEffect } from 'react';
 import {
     HeaderLayout,
@@ -102,8 +102,12 @@ const ChineseArticleProcessor = () => {
         engineChoice,
         selectedRules,
         isDeleteModalVisible,
+        useBatch,
+        batchOptions,
         generateGrammarRules,
         handleEngineChange,
+        toggleBatchProcessing,
+        updateBatchOptions,
         toggleRuleSelection,
         isRuleSelected,
         handleShowDeleteConfirm,
@@ -310,6 +314,9 @@ const ChineseArticleProcessor = () => {
                             onDeleteSelected={handleBulkDeleteConfirmed}
                             isRuleSelected={isRuleSelected}
                             simplified={simplified}
+                            // Add the batch processing props
+                            useBatch={useBatch}
+                            onToggleBatch={toggleBatchProcessing}
                         />
                     </>
                 )}

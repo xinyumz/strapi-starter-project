@@ -1,10 +1,18 @@
-// hooks/useGrammarManagement.ts - Refactored to focus only on grammar rules
+// hooks/useGrammarManagement.ts - Updated with batch processing support
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useFetchClient } from '@strapi/helper-plugin';
 import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../utils/types';
 import { ERROR_MESSAGES, STATUS_MESSAGES, GRAMMAR_ENGINE_OPTIONS } from '../../../utils/constants';
 import { useLoadingState } from '../../../hooks';
+
+// New interface for batch options
+interface BatchOptions {
+  batchSize?: number;
+  maxRetries?: number;
+  retryDelay?: number;
+  concurrentRequests?: number;
+}
 
 interface UseGrammarManagementProps {
   articleId: string | null;
@@ -38,6 +46,15 @@ const useGrammarManagement = ({
 }: UseGrammarManagementProps) => {
   // Grammar engine choice
   const [engineChoice, setEngineChoice] = useState<GrammarEngineChoice>(GRAMMAR_ENGINE_OPTIONS.BOTH as GrammarEngineChoice);
+
+  // Batch processing options
+  const [useBatch, setUseBatch] = useState<boolean>(false); // Disable batch by default
+  const [batchOptions, setBatchOptions] = useState<BatchOptions>({
+    batchSize: 5,
+    maxRetries: 3,
+    retryDelay: 1000,
+    concurrentRequests: 1
+  });
 
   // Direct management of selected rules within this hook
   const [selectedRules, setSelectedRules] = useState<SelectedRule[]>([]);
@@ -204,13 +221,19 @@ const useGrammarManagement = ({
         }
       });
 
-      // Generate grammar rules
-      console.log(`Generating grammar rules for article ID: ${articleId}`);
+      // Generate grammar rules with batch processing options
+      console.log(`Generating grammar rules for article ID: ${articleId} with batch processing: ${useBatch}`);
+
+      // Include batch processing options in the request
+      const requestData = {
+        text: translationText,
+        engineChoice,
+        useBatch,
+        batchOptions
+      };
+
       const genResponse = await post(`/${pluginId}/grammar/generate`, {
-        data: {
-          text: translationText,
-          engineChoice
-        }
+        data: requestData
       });
 
       if (!genResponse.data) {
@@ -265,6 +288,8 @@ const useGrammarManagement = ({
     articleId,
     pluginId,
     engineChoice,
+    useBatch,
+    batchOptions,
     sentences,
     get,
     post,
@@ -448,16 +473,37 @@ const useGrammarManagement = ({
     setEngineChoice(engine);
   }, []);
 
+  /**
+   * Toggle batch processing
+   */
+  const toggleBatchProcessing = useCallback((value: boolean) => {
+    setUseBatch(value);
+  }, []);
+
+  /**
+   * Update batch options
+   */
+  const updateBatchOptions = useCallback((options: BatchOptions) => {
+    setBatchOptions(prev => ({
+      ...prev,
+      ...options
+    }));
+  }, []);
+
   return {
     // State
     engineChoice,
     selectedRules,
     isDeleteModalVisible,
     ruleToDelete,
+    useBatch,
+    batchOptions,
 
     // Grammar rule actions
     generateGrammarRules,
     handleEngineChange,
+    toggleBatchProcessing,
+    updateBatchOptions,
 
     // Selection/deletion actions
     toggleRuleSelection,

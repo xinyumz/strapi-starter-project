@@ -1,7 +1,7 @@
 // server/services/article-service.ts
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
-import { EnhancedSentence } from './types';
+import { EnhancedSentence, BatchGrammarOptions, BatchTranslationOptions } from './types';
 
 const { ApplicationError } = errors;
 
@@ -10,7 +10,12 @@ export default ({ strapi }: { strapi: Strapi }) => ({
      * Process an article by splitting it into sentences, generating grammar rules,
      * and translating to the target languages
      */
-    async processArticle(content: string, targetLanguages: string[] = ['en']): Promise<EnhancedSentence[]> {
+    async processArticle(
+        content: string,
+        targetLanguages: string[] = ['en'],
+        useBatchGrammar: boolean = true,
+        batchOptions: BatchGrammarOptions = {}
+    ): Promise<EnhancedSentence[]> {
         if (typeof content !== 'string') {
             throw new ApplicationError('Content must be a string');
         }
@@ -25,8 +30,23 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const grammarService = strapi.plugin('article-enhancer').service('grammarService');
             const translationService = strapi.plugin('article-enhancer').service('translationService');
 
-            // Get grammar rules first
-            const grammarRules = await grammarService.generateRules(content);
+            // Get grammar rules based on batch preference
+            let grammarRules;
+            if (useBatchGrammar && sentences.length > 1) {
+                // Configure default batch options if not provided
+                const options: BatchGrammarOptions = {
+                    batchSize: batchOptions.batchSize || 5,
+                    maxRetries: batchOptions.maxRetries || 3,
+                    retryDelay: batchOptions.retryDelay || 1000,
+                    concurrentRequests: batchOptions.concurrentRequests || 2
+                };
+
+                strapi.log.info(`Processing ${sentences.length} sentences with batch grammar generation`);
+                grammarRules = await grammarService.generateRulesBatch(sentences, 'both', options);
+            } else {
+                strapi.log.info(`Processing article with standard grammar generation`);
+                grammarRules = await grammarService.generateRules(content);
+            }
 
             // Then get translations for each target language
             const translationsByLanguage: { [language: string]: string[] } = {};
@@ -79,6 +99,11 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 // Delete translations for existing sentences
                 if (existingSentenceIds.length > 0) {
                     await trx('sentence_translations')
+                        .whereIn('sentence_id', existingSentenceIds)
+                        .delete();
+
+                    // Delete grammar rules for existing sentences
+                    await trx('sentence_grammar_rules')
                         .whereIn('sentence_id', existingSentenceIds)
                         .delete();
                 }
@@ -152,10 +177,26 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const sentences = await knex('article_sentences')
                 .where('article_id', articleId)
                 .orderBy('sentence_order')
-                .select('id', 'sentence_text', 'grammar_rules');
+                .select('id', 'sentence_text');
+
+            // Get all grammar rules for these sentences
+            const sentenceIds = sentences.map((s: any) => s.id);
+
+            // Get grammar rules
+            const grammarRules = await knex('sentence_grammar_rules')
+                .whereIn('sentence_id', sentenceIds)
+                .select('sentence_id', 'rule');
+
+            // Group grammar rules by sentence_id
+            const rulesBySentenceId: { [key: number]: string[] } = {};
+            for (const rule of grammarRules) {
+                if (!rulesBySentenceId[rule.sentence_id]) {
+                    rulesBySentenceId[rule.sentence_id] = [];
+                }
+                rulesBySentenceId[rule.sentence_id].push(rule.rule);
+            }
 
             // Get translations for all sentences
-            const sentenceIds = sentences.map((s: any) => s.id);
             const translations = await knex('sentence_translations')
                 .whereIn('sentence_id', sentenceIds)
                 .select('sentence_id', 'translation_language', 'translation_text');
@@ -174,7 +215,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             return sentences.map((sentence: any) => ({
                 chinese: sentence.sentence_text,
                 translations: translationsBySentenceId[sentence.id] || {},
-                grammarRules: JSON.parse(sentence.grammar_rules || '[]')
+                grammarRules: rulesBySentenceId[sentence.id] || []
             }));
         } catch (error) {
             console.error('Error fetching article sentences:', error);

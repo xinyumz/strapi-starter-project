@@ -1,25 +1,9 @@
 // server/controllers/article-controller.ts
 import { Strapi } from '@strapi/strapi';
-import { Context } from 'koa';
 import { errors } from '@strapi/utils';
+import { ExtendedContext, BatchGrammarOptions } from '../services/types';
 
 const { ApplicationError } = errors;
-
-interface ExtendedContext extends Context {
-    body: any;
-    request: Context['request'] & {
-        body: {
-            data?: {
-                content?: string;
-                targetLanguages?: string[];
-                articleId?: number;
-            };
-            content?: string;
-            targetLanguages?: string[];
-            articleId?: number;
-        };
-    };
-}
 
 export default ({ strapi }: { strapi: Strapi }) => ({
     // Process full article content
@@ -27,16 +11,32 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             // Handle both structured and flat request formats
             const data = ctx.request.body.data || ctx.request.body;
-            const { content, targetLanguages = ['en'], articleId } = data;
+
+            // Extract data with type safety and defaults
+            const content = data.content;
+            const targetLanguages = data.targetLanguages || ['en'];
+            const articleId = data.articleId;
+
+            // Use type assertion for optional properties that might not be defined in the interface
+            const useBatchGrammar = 'useBatchGrammar' in data ? data.useBatchGrammar : true;
+            const batchOptions = data.batchOptions || {};
 
             if (!content) {
                 return ctx.badRequest('Article content is required');
             }
 
+            // Configure batch options with defaults if not provided
+            const grammarBatchOptions: BatchGrammarOptions = {
+                batchSize: batchOptions.batchSize || 5,
+                maxRetries: batchOptions.maxRetries || 3,
+                retryDelay: batchOptions.retryDelay || 1000,
+                concurrentRequests: batchOptions.concurrentRequests || 2
+            };
+
             const processedArticle = await strapi
                 .plugin('article-enhancer')
                 .service('articleService')
-                .processArticle(content, targetLanguages);
+                .processArticle(content, targetLanguages, useBatchGrammar, grammarBatchOptions);
 
             // If articleId is provided, save the processed article to the database
             if (articleId) {

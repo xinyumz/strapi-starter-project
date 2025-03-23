@@ -34,7 +34,7 @@ interface Language {
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     value,
     onChange,
-    label = 'Target Language',
+    label = 'Translation Language',
     disabled = false,
     hint,
     error,

@@ -32,11 +32,14 @@ interface SentenceProcessingSectionProps {
   onDeleteSelected: () => void;
   isRuleSelected: (sentenceIndex: number, ruleIndex: number) => boolean;
   simplified?: boolean; // Control simplified view
+  // New batch processing props
+  useBatch: boolean;
+  onToggleBatch: (value: boolean) => void;
 }
 
 /**
  * Component for the grammar analysis and translation section
- * Updated with multi-language translation support
+ * Updated with multi-language translation support and batch processing toggle
  */
 const SentenceProcessingSection: React.FC<SentenceProcessingSectionProps> = ({
   sentences,
@@ -61,7 +64,10 @@ const SentenceProcessingSection: React.FC<SentenceProcessingSectionProps> = ({
   onSaveTranslations,
   onDeleteSelected,
   isRuleSelected,
-  simplified = false
+  simplified = false,
+  // New batch processing props
+  useBatch,
+  onToggleBatch
 }) => {
   const hasSentences = sentences.length > 0;
 
@@ -140,6 +146,9 @@ const SentenceProcessingSection: React.FC<SentenceProcessingSectionProps> = ({
         onLanguageChange={onLanguageChange}
         onGenerateClick={onGenerateClick}
         onTranslateClick={onTranslateClick}
+        // Add batch processing props
+        useBatch={useBatch}
+        onToggleBatch={onToggleBatch}
       />
 
       {hasTranslationChanges && (

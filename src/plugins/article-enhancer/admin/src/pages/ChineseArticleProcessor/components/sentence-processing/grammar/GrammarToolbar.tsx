@@ -9,7 +9,8 @@ import {
   Select,
   Option,
   Grid,
-  GridItem
+  GridItem,
+  ToggleCheckbox
 } from '@strapi/design-system';
 import { Refresh, Play } from '@strapi/icons';
 import { GrammarEngineChoice } from '../../../../../utils/types';
@@ -23,8 +24,10 @@ interface GrammarToolbarProps {
   engineChoice: GrammarEngineChoice;
   targetLanguage: string;
   hasSupportedLanguages: boolean;
+  useBatch: boolean; // Add batch processing flag
   onEngineChange: (engine: GrammarEngineChoice) => void;
   onLanguageChange: (language: string) => void;
+  onToggleBatch: (value: boolean) => void; // Add toggle handler
   onGenerateClick: () => Promise<void>;
   onTranslateClick: () => Promise<void>;
 }
@@ -40,8 +43,10 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
   engineChoice,
   targetLanguage,
   hasSupportedLanguages,
+  useBatch,
   onEngineChange,
   onLanguageChange,
+  onToggleBatch,
   onGenerateClick,
   onTranslateClick
 }) => {
@@ -54,7 +59,7 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
 
       <Grid gap={4}>
         {/* Engine Selection */}
-        <GridItem col={4}>
+        <GridItem col={3}>
           <Select
             id="engine-select"
             name="engine"
@@ -69,8 +74,28 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
           </Select>
         </GridItem>
 
+        {/* Batch Processing Toggle */}
+        <GridItem col={2}>
+          <Box>
+            <Typography variant="pi" fontWeight="bold">Batch Processing</Typography>
+            <Flex gap={2} paddingTop={1}>
+              <ToggleCheckbox
+                onLabel="ON"
+                offLabel="OFF"
+                checked={useBatch}
+                onChange={() => onToggleBatch(!useBatch)}
+                disabled={isLoading}
+                aria-label="Toggle batch processing"
+              />
+              <Typography variant="pi" textColor={useBatch ? "success600" : "neutral600"}>
+                {useBatch ? "Enabled" : "Disabled"}
+              </Typography>
+            </Flex>
+          </Box>
+        </GridItem>
+
         {/* Language Selection */}
-        <GridItem col={4}>
+        <GridItem col={3}>
           <LanguageSelector
             value={targetLanguage}
             onChange={onLanguageChange}
