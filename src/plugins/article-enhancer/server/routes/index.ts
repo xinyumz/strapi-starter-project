@@ -42,6 +42,16 @@ export default [
             description: 'Save grammar data for an article'
         }
     },
+    {
+        method: 'POST',
+        path: '/grammar/article/:id/recover',
+        handler: 'grammarController.recoverArticleOperations',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Recover failed operations for an article'
+        }
+    },
     // Translation routes
     {
         method: 'POST',

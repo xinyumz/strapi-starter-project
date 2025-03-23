@@ -1,58 +1,272 @@
 // server/services/grammar-service.ts
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
-
-interface GrammarRule {
-    sentence: string;
-    rules: string[];
-    translation?: string;
-    translations?: { language: string; text: string }[];
-}
-
-interface RulesResponse {
-    rules: GrammarRule[];
-}
+import crypto from 'crypto';
+import {
+    GrammarRule,
+    RulesResponse,
+    ArticleGrammarResult,
+    FailedOperation,
+    RecoveryResult,
+    CacheEntry
+} from './types';
 
 const { ApplicationError } = errors;
 
+// Simple in-memory cache
+const rulesCache: Record<string, CacheEntry> = {};
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+// Rate limiting parameters
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
+// In-memory store for failed operations
+let failedOperationsStore: FailedOperation[] = [];
+
+// Function to generate a cache key
+function generateCacheKey(text: string, engineChoice: string): string {
+    return crypto.createHash('md5').update(`${text}:${engineChoice}`).digest('hex');
+}
+
+/**
+ * Validates and sanitizes Chinese text input
+ * @param {string} text - The Chinese text to validate
+ * @param {number} maxLength - Maximum allowed text length
+ * @returns {string} - Sanitized text
+ * @throws {Error} - If validation fails
+ */
+function validateChineseText(text: string, maxLength: number = 10000): string {
+    // Check if text is provided and is a string
+    if (!text || typeof text !== 'string') {
+        throw new Error('Input must be a non-empty string');
+    }
+
+    // Check text length
+    if (text.length > maxLength) {
+        throw new Error(`Text exceeds maximum length of ${maxLength} characters`);
+    }
+
+    // Check if text contains at least some Chinese characters
+    // This regex matches common Chinese character ranges
+    const chineseRegex = /[\u4e00-\u9fa5]/;
+    if (!chineseRegex.test(text)) {
+        throw new Error('Text must contain Chinese characters');
+    }
+
+    // Sanitize the text: strip potentially harmful characters
+    const sanitized = text
+        .replace(/[<>]/g, '') // Remove HTML brackets
+        .replace(/\\x[0-9a-fA-F]{2}/g, ''); // Remove hex escape sequences
+
+    return sanitized;
+}
+
+/**
+ * Registers a failed operation for later recovery
+ */
+function registerFailedOperation(
+    type: 'sentence' | 'rule' | 'translation',
+    data: any,
+    error: string,
+    articleId: number,
+    sentenceId?: number
+): void {
+    failedOperationsStore.push({
+        type,
+        data,
+        error,
+        timestamp: Date.now(),
+        articleId,
+        sentenceId
+    });
+
+    strapi.log.warn(`Registered failed ${type} operation for article ${articleId}: ${error}`);
+}
+
 export default ({ strapi }: { strapi: Strapi }) => ({
-    // Generate grammar rules from external API (no changes needed)
+    // Generate grammar rules from external API with improved error handling and caching
     async generateRules(text: string, engineChoice: 'stanford' | 'jieba' | 'both' = 'both'): Promise<GrammarRule[]> {
         try {
+            // Validate and sanitize input
+            text = validateChineseText(text);
+
             strapi.log.info(`Generating grammar rules with engine: ${engineChoice}`);
 
-            const response = await fetch('https://api.pandaist.com/api/v1/rulesgen/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    text,
-                    rule_choice: engineChoice
-                })
-            });
+            // Generate cache key
+            const cacheKey = generateCacheKey(text, engineChoice);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                strapi.log.error(`Grammar rules API error: ${response.status} ${response.statusText} - ${errorText}`);
-                throw new Error(`Grammar rules generation failed: ${response.statusText}`);
+            // Check cache first
+            if (rulesCache[cacheKey] &&
+                (Date.now() - rulesCache[cacheKey].timestamp) < CACHE_TTL) {
+                strapi.log.info(`Returning cached grammar rules for key: ${cacheKey}`);
+                return rulesCache[cacheKey].data;
             }
 
-            const data = (await response.json()) as RulesResponse;
+            // Implementation with retry logic
+            let retries = 0;
+            let lastError: Error | null = null;
 
-            if (!data.rules || !Array.isArray(data.rules)) {
-                throw new Error('Invalid response format from grammar rules API');
+            while (retries <= MAX_RETRIES) {
+                try {
+                    // Create abort controller for timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+                    try {
+                        const response = await fetch('https://api.pandaist.com/api/v1/rulesgen/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                text,
+                                rule_choice: engineChoice
+                            }),
+                            signal: controller.signal
+                        });
+
+                        // Clear the timeout
+                        clearTimeout(timeoutId);
+
+                        // Handle rate limiting explicitly
+                        if (response.status === 429) {
+                            // Get retry-after header if available
+                            const retryAfter = response.headers.get('retry-after');
+                            const retryDelay = retryAfter ? parseInt(retryAfter, 10) * 1000 :
+                                INITIAL_RETRY_DELAY * Math.pow(2, retries);
+
+                            strapi.log.warn(`Rate limit exceeded. Retrying after ${retryDelay}ms. Retry ${retries + 1}/${MAX_RETRIES}`);
+                            await new Promise(resolve => setTimeout(resolve, retryDelay));
+                            retries++;
+                            continue;
+                        }
+
+                        // Check for other HTTP errors
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            strapi.log.error(`Grammar rules API error: ${response.status} ${response.statusText} - ${errorText}`);
+
+                            // Different handling based on status code
+                            if (response.status >= 500) {
+                                throw new Error('Grammar rules service is currently unavailable. Please try again later.');
+                            } else {
+                                throw new Error(`Grammar rules generation failed: ${response.statusText}`);
+                            }
+                        }
+
+                        const data = (await response.json()) as RulesResponse;
+
+                        if (!data.rules || !Array.isArray(data.rules)) {
+                            throw new Error('Invalid response format from grammar rules API');
+                        }
+
+                        // Store in cache
+                        rulesCache[cacheKey] = {
+                            data: data.rules,
+                            timestamp: Date.now()
+                        };
+
+                        return data.rules;
+                    } catch (fetchError) {
+                        // Clear the timeout to prevent memory leaks
+                        clearTimeout(timeoutId);
+
+                        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+                            strapi.log.error('Grammar rules API request timed out after 30 seconds');
+                            throw new Error('Grammar rules generation timed out. Please try with shorter text.');
+                        }
+
+                        throw fetchError;
+                    }
+                } catch (error) {
+                    lastError = error instanceof Error ? error : new Error(String(error));
+
+                    // For server errors (5xx), we retry with exponential backoff
+                    if (error instanceof Error &&
+                        error.message.includes('unavailable') &&
+                        retries < MAX_RETRIES) {
+                        const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retries);
+                        strapi.log.warn(`Server error. Retrying after ${retryDelay}ms. Retry ${retries + 1}/${MAX_RETRIES}`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelay));
+                        retries++;
+                    } else {
+                        // For other errors, we don't retry
+                        throw error;
+                    }
+                }
             }
 
-            return data.rules;
+            // If we've exhausted retries, throw the last error
+            if (lastError) {
+                throw lastError;
+            }
+
+            // This should never happen due to the loop logic, but TypeScript needs it
+            throw new Error('Unexpected error in retry logic');
         } catch (error) {
             console.error('Grammar rules generation error:', error);
             throw error;
         }
     },
 
+    /**
+     * Processes a large text by splitting it into batches for better performance
+     * @param {string} text - Full text to process
+     * @param {string} engineChoice - Parser engine choice
+     * @param {number} batchSize - Maximum number of sentences per batch
+     * @returns {Promise<GrammarRule[]>} - Combined grammar rules
+     */
+    async batchProcessText(
+        text: string,
+        engineChoice: 'stanford' | 'jieba' | 'both' = 'both',
+        batchSize: number = 20
+    ): Promise<GrammarRule[]> {
+        // Validate input
+        const validatedText = validateChineseText(text);
+
+        // Split text into sentences (assuming '|' is the sentence separator)
+        const sentences = validatedText.split('|').filter(s => s.trim());
+
+        // If text is small enough, process directly
+        if (sentences.length <= batchSize) {
+            return this.generateRules(validatedText, engineChoice);
+        }
+
+        strapi.log.info(`Processing large text with ${sentences.length} sentences in batches of ${batchSize}`);
+
+        // Process in batches
+        const batches: string[][] = [];
+        for (let i = 0; i < sentences.length; i += batchSize) {
+            batches.push(sentences.slice(i, i + batchSize));
+        }
+
+        const results: GrammarRule[] = [];
+
+        // Process each batch with reasonable delay between batches
+        for (let i = 0; i < batches.length; i++) {
+            const batchText = batches[i].join('|');
+            strapi.log.info(`Processing batch ${i + 1}/${batches.length} with ${batches[i].length} sentences`);
+
+            try {
+                const batchResults = await this.generateRules(batchText, engineChoice);
+                results.push(...batchResults);
+
+                // Add delay between batches to avoid rate limiting
+                if (i < batches.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            } catch (error) {
+                strapi.log.error(`Error processing batch ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
+                // Continue with next batch despite errors
+            }
+        }
+
+        return results;
+    },
+
     // Get all grammar data for an article from the normalized database
-    async getArticleGrammar(articleId: number): Promise<{ sentences: GrammarRule[], success: boolean, error?: string }> {
+    async getArticleGrammar(articleId: number): Promise<ArticleGrammarResult> {
         try {
             strapi.log.info(`Getting grammar data for article ID: ${articleId}`);
 
@@ -159,7 +373,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // Save grammar data for an article to the normalized database
+    // Save grammar data for an article to the normalized database with optimized approach
     async saveArticleGrammar(articleId: number, sentences: GrammarRule[]): Promise<{ success: boolean, error?: string }> {
         if (!strapi.db || !strapi.db.connection) {
             return {
@@ -169,6 +383,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
 
         strapi.log.info(`Saving grammar data for article ID: ${articleId} with ${sentences.length} sentences`);
+
+        // Clear any existing failed operations for this article to avoid duplicates
+        failedOperationsStore = failedOperationsStore.filter(op => op.articleId !== articleId);
 
         // Check if article exists
         try {
@@ -195,116 +412,337 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         const trx = await strapi.db.connection.transaction();
 
         try {
-            // First delete existing data
-            // Get all sentence IDs for this article
+            // 1. Get existing sentences for this article
             const existingSentences = await trx
-                .select('id')
+                .select('id', 'sentence_text', 'sentence_order')
                 .from('article_sentences')
                 .where('article_id', articleId);
 
-            const sentenceIds = existingSentences.map(s => s.id);
+            strapi.log.info(`Found ${existingSentences.length} existing sentences`);
 
-            strapi.log.info(`Found ${sentenceIds.length} existing sentences to delete`);
+            // 2. Compare with new sentences to find what needs to be updated/deleted/added
+            const existingSentenceMap = new Map();
+            existingSentences.forEach(s => existingSentenceMap.set(s.sentence_order, s));
 
-            // Delete translations and grammar rules for these sentences
-            if (sentenceIds.length > 0) {
-                await trx('sentence_translations')
-                    .whereIn('sentence_id', sentenceIds)
-                    .delete();
+            const sentencesToDelete = [];
+            const sentencesToUpdate = [];
+            const sentencesToAdd = [];
 
-                // Delete grammar rules for these sentences
-                await trx('sentence_grammar_rules')
-                    .whereIn('sentence_id', sentenceIds)
-                    .delete();
+            // Identify sentences that need to be deleted (no longer in the new set)
+            if (existingSentences.length > sentences.length) {
+                // Find sentences that are no longer present
+                for (const existing of existingSentences) {
+                    if (existing.sentence_order >= sentences.length) {
+                        sentencesToDelete.push(existing.id);
+                    }
+                }
             }
 
-            // Delete sentences
-            await trx('article_sentences')
-                .where('article_id', articleId)
-                .delete();
-
-            // Insert new sentences and rules
+            // Identify sentences that need to be updated or added
             for (let i = 0; i < sentences.length; i++) {
-                const sentence = sentences[i];
+                const newSentence = sentences[i];
+                const existingSentence = existingSentenceMap.get(i);
 
-                if (!sentence.sentence) {
+                if (!newSentence.sentence) {
                     strapi.log.warn(`Skipping empty sentence at index ${i}`);
                     continue;
                 }
 
-                try {
-                    // Safely get sentence text, ensuring it's a string
-                    const sentenceText = typeof sentence.sentence === 'string' ?
-                        sentence.sentence : String(sentence.sentence);
+                // Normalize sentence text for comparison
+                const newSentenceText = typeof newSentence.sentence === 'string' ?
+                    newSentence.sentence.trim() : String(newSentence.sentence).trim();
 
+                if (existingSentence && existingSentence.sentence_text.trim() === newSentenceText) {
+                    // Check if grammar rules need to be updated
+                    const existingRules = await trx('sentence_grammar_rules')
+                        .where('sentence_id', existingSentence.id)
+                        .select('rule');
+
+                    const existingRuleSet = new Set(existingRules.map(r => r.rule));
+                    const newRuleSet = new Set(newSentence.rules || []);
+
+                    // Check if rules have changed by comparing sets
+                    let rulesChanged = existingRuleSet.size !== newRuleSet.size;
+                    if (!rulesChanged) {
+                        // If sizes match, check content
+                        for (const rule of newRuleSet) {
+                            if (!existingRuleSet.has(rule)) {
+                                rulesChanged = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (rulesChanged) {
+                        // Rules have changed, add to update list
+                        sentencesToUpdate.push({
+                            id: existingSentence.id,
+                            rules: newSentence.rules || [],
+                            translations: newSentence.translations || [],
+                            translation: newSentence.translation // Legacy support
+                        });
+                    }
+                } else if (existingSentence) {
+                    // Sentence text has changed, add to update list
+                    sentencesToUpdate.push({
+                        id: existingSentence.id,
+                        text: newSentenceText,
+                        rules: newSentence.rules || [],
+                        translations: newSentence.translations || [],
+                        translation: newSentence.translation // Legacy support
+                    });
+                } else {
+                    // This is a new sentence, add to add list
+                    sentencesToAdd.push({
+                        order: i,
+                        text: newSentenceText,
+                        rules: newSentence.rules || [],
+                        translations: newSentence.translations || [],
+                        translation: newSentence.translation // Legacy support
+                    });
+                }
+            }
+
+            strapi.log.info(`Changes detected: ${sentencesToDelete.length} to delete, ${sentencesToUpdate.length} to update, ${sentencesToAdd.length} to add`);
+
+            // 3. Process deletions
+            if (sentencesToDelete.length > 0) {
+                // Delete translations for these sentences
+                await trx('sentence_translations')
+                    .whereIn('sentence_id', sentencesToDelete)
+                    .delete();
+
+                // Delete grammar rules for these sentences
+                await trx('sentence_grammar_rules')
+                    .whereIn('sentence_id', sentencesToDelete)
+                    .delete();
+
+                // Delete the sentences
+                await trx('article_sentences')
+                    .whereIn('id', sentencesToDelete)
+                    .delete();
+            }
+
+            // 4. Process updates
+            for (const sentence of sentencesToUpdate) {
+                // Update sentence text if needed
+                if (sentence.text) {
+                    await trx('article_sentences')
+                        .where('id', sentence.id)
+                        .update({
+                            sentence_text: sentence.text,
+                            updated_at: trx.fn.now()
+                        });
+                }
+
+                // Update grammar rules
+                await trx('sentence_grammar_rules')
+                    .where('sentence_id', sentence.id)
+                    .delete();
+
+                if (sentence.rules.length > 0) {
+                    const rulesToInsert = sentence.rules.map(rule => ({
+                        sentence_id: sentence.id,
+                        rule: typeof rule === 'string' ? rule : String(rule),
+                        created_at: trx.fn.now(),
+                        updated_at: trx.fn.now()
+                    }));
+
+                    await trx('sentence_grammar_rules').insert(rulesToInsert);
+                }
+
+                // Update translations
+                await trx('sentence_translations')
+                    .where('sentence_id', sentence.id)
+                    .delete();
+
+                // Handle legacy translation field (as English)
+                if (sentence.translation) {
+                    const englishText = typeof sentence.translation === 'string' ?
+                        sentence.translation : String(sentence.translation);
+
+                    await trx('sentence_translations').insert({
+                        sentence_id: sentence.id,
+                        translation_language: 'en',
+                        translation_text: englishText,
+                        created_at: trx.fn.now(),
+                        updated_at: trx.fn.now()
+                    });
+                }
+
+                // Handle new translations format if available
+                if (sentence.translations && Array.isArray(sentence.translations)) {
+                    const translationsToInsert = sentence.translations
+                        .filter(trans => {
+                            // Skip empty translations or those already handled by legacy field
+                            if (!trans || !trans.text || !trans.language) return false;
+                            if (trans.language === 'en' && sentence.translation) return false;
+                            return true;
+                        })
+                        .map(trans => {
+                            // Ensure text is a string
+                            const translationText = typeof trans.text === 'string' ?
+                                trans.text : String(trans.text);
+
+                            return {
+                                sentence_id: sentence.id,
+                                translation_language: trans.language,
+                                translation_text: translationText,
+                                created_at: trx.fn.now(),
+                                updated_at: trx.fn.now()
+                            };
+                        });
+
+                    if (translationsToInsert.length > 0) {
+                        await trx('sentence_translations').insert(translationsToInsert);
+                    }
+                }
+            }
+
+            // 5. Process additions
+            for (const sentence of sentencesToAdd) {
+                try {
                     // Insert sentence
                     const [sentenceId] = await trx('article_sentences')
                         .insert({
                             article_id: articleId,
-                            sentence_text: sentenceText,
-                            sentence_order: i,
+                            sentence_text: sentence.text,
+                            sentence_order: sentence.order,
                             created_at: trx.fn.now(),
                             updated_at: trx.fn.now()
                         });
 
                     // Insert grammar rules
-                    if (sentence.rules && Array.isArray(sentence.rules) && sentence.rules.length > 0) {
-                        const rulesToInsert = sentence.rules.map(rule => ({
-                            sentence_id: sentenceId,
-                            rule: typeof rule === 'string' ? rule : String(rule),
-                            created_at: trx.fn.now(),
-                            updated_at: trx.fn.now()
-                        }));
+                    if (sentence.rules.length > 0) {
+                        try {
+                            const rulesToInsert = sentence.rules.map(rule => ({
+                                sentence_id: sentenceId,
+                                rule: typeof rule === 'string' ? rule : String(rule),
+                                created_at: trx.fn.now(),
+                                updated_at: trx.fn.now()
+                            }));
 
-                        await trx('sentence_grammar_rules').insert(rulesToInsert);
-                    }
+                            await trx('sentence_grammar_rules').insert(rulesToInsert);
+                        } catch (ruleError) {
+                            // Register failed rules for recovery
+                            const errorMessage = ruleError instanceof Error ? ruleError.message : 'Unknown error';
 
-                    // Insert translations
-                    // Handle legacy translation field (as English)
-                    if (sentence.translation) {
-                        const englishText = typeof sentence.translation === 'string' ?
-                            sentence.translation : String(sentence.translation);
-
-                        await trx('sentence_translations').insert({
-                            sentence_id: sentenceId,
-                            translation_language: 'en',
-                            translation_text: englishText,
-                            created_at: trx.fn.now(),
-                            updated_at: trx.fn.now()
-                        });
-                    }
-
-                    // Handle new translations format if available
-                    if (sentence.translations && Array.isArray(sentence.translations)) {
-                        const translationsToInsert = sentence.translations
-                            .filter(trans => {
-                                // Skip empty translations or those already handled by legacy field
-                                if (!trans || !trans.text || !trans.language) return false;
-                                if (trans.language === 'en' && sentence.translation) return false;
-                                return true;
-                            })
-                            .map(trans => {
-                                // Ensure text is a string
-                                const translationText = typeof trans.text === 'string' ?
-                                    trans.text : String(trans.text);
-
-                                return {
-                                    sentence_id: sentenceId,
-                                    translation_language: trans.language,
-                                    translation_text: translationText,
-                                    created_at: trx.fn.now(),
-                                    updated_at: trx.fn.now()
-                                };
+                            sentence.rules.forEach(rule => {
+                                registerFailedOperation(
+                                    'rule',
+                                    {
+                                        rule: typeof rule === 'string' ? rule : String(rule),
+                                        originalOrder: sentence.order
+                                    },
+                                    errorMessage,
+                                    articleId,
+                                    sentenceId
+                                );
                             });
 
-                        if (translationsToInsert.length > 0) {
-                            await trx('sentence_translations').insert(translationsToInsert);
+                            strapi.log.error(`Error inserting grammar rules for sentence ${sentenceId}: ${errorMessage}`);
                         }
                     }
+
+                    // Handle translations with error recovery
+                    try {
+                        // Handle legacy translation field (as English)
+                        if (sentence.translation) {
+                            const englishText = typeof sentence.translation === 'string' ?
+                                sentence.translation : String(sentence.translation);
+
+                            await trx('sentence_translations').insert({
+                                sentence_id: sentenceId,
+                                translation_language: 'en',
+                                translation_text: englishText,
+                                created_at: trx.fn.now(),
+                                updated_at: trx.fn.now()
+                            });
+                        }
+
+                        // Handle new translations format if available
+                        if (sentence.translations && Array.isArray(sentence.translations)) {
+                            const translationsToInsert = sentence.translations
+                                .filter(trans => {
+                                    // Skip empty translations or those already handled by legacy field
+                                    if (!trans || !trans.text || !trans.language) return false;
+                                    if (trans.language === 'en' && sentence.translation) return false;
+                                    return true;
+                                })
+                                .map(trans => {
+                                    // Ensure text is a string
+                                    const translationText = typeof trans.text === 'string' ?
+                                        trans.text : String(trans.text);
+
+                                    return {
+                                        sentence_id: sentenceId,
+                                        translation_language: trans.language,
+                                        translation_text: translationText,
+                                        created_at: trx.fn.now(),
+                                        updated_at: trx.fn.now()
+                                    };
+                                });
+
+                            if (translationsToInsert.length > 0) {
+                                await trx('sentence_translations').insert(translationsToInsert);
+                            }
+                        }
+                    } catch (translationError) {
+                        // Register failed translations for recovery
+                        const errorMessage = translationError instanceof Error ? translationError.message : 'Unknown error';
+
+                        // Register legacy translation
+                        if (sentence.translation) {
+                            registerFailedOperation(
+                                'translation',
+                                {
+                                    language: 'en',
+                                    text: typeof sentence.translation === 'string' ?
+                                        sentence.translation : String(sentence.translation),
+                                    originalOrder: sentence.order
+                                },
+                                errorMessage,
+                                articleId,
+                                sentenceId
+                            );
+                        }
+
+                        // Register new format translations
+                        if (sentence.translations && Array.isArray(sentence.translations)) {
+                            sentence.translations
+                                .filter(trans => trans && trans.text && trans.language)
+                                .forEach(trans => {
+                                    registerFailedOperation(
+                                        'translation',
+                                        {
+                                            language: trans.language,
+                                            text: typeof trans.text === 'string' ? trans.text : String(trans.text),
+                                            originalOrder: sentence.order
+                                        },
+                                        errorMessage,
+                                        articleId,
+                                        sentenceId
+                                    );
+                                });
+                        }
+
+                        strapi.log.error(`Error inserting translations for sentence ${sentenceId}: ${errorMessage}`);
+                    }
                 } catch (insertError) {
-                    // Log the specific error for this sentence but continue with others
+                    // Register the entire sentence as failed
                     const errorMessage = insertError instanceof Error ? insertError.message : 'Unknown error';
-                    strapi.log.error(`Error inserting sentence ${i}: ${errorMessage}`);
+
+                    registerFailedOperation(
+                        'sentence',
+                        {
+                            text: sentence.text,
+                            order: sentence.order
+                        },
+                        errorMessage,
+                        articleId
+                    );
+
+                    strapi.log.error(`Error inserting sentence at order ${sentence.order}: ${errorMessage}`);
                 }
             }
 
@@ -319,6 +757,191 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             return {
                 success: false,
                 error: errorMessage
+            };
+        }
+    },
+
+    /**
+     * Gets all failed operations for an article
+     */
+    async getFailedOperations(articleId: number): Promise<FailedOperation[]> {
+        return failedOperationsStore.filter(op => op.articleId === articleId);
+    },
+
+    /**
+     * Attempts to recover failed operations for an article
+     */
+    async recoverFailedOperations(articleId: number): Promise<RecoveryResult> {
+        const operations = failedOperationsStore.filter(op => op.articleId === articleId);
+
+        if (operations.length === 0) {
+            return {
+                success: true,
+                recovered: 0,
+                failed: 0,
+                errors: []
+            };
+        }
+
+        strapi.log.info(`Attempting to recover ${operations.length} failed operations for article ${articleId}`);
+
+        if (!strapi.db || !strapi.db.connection) {
+            return {
+                success: false,
+                recovered: 0,
+                failed: operations.length,
+                errors: ['Database connection not available']
+            };
+        }
+
+        let recovered = 0;
+        let failed = 0;
+        const errors: string[] = [];
+
+        // Group operations by type for efficient processing
+        const sentenceOps = operations.filter(op => op.type === 'sentence');
+        const ruleOps = operations.filter(op => op.type === 'rule');
+        const translationOps = operations.filter(op => op.type === 'translation');
+
+        // Process in transaction to ensure consistency
+        const trx = await strapi.db.connection.transaction();
+
+        try {
+            // Recover sentences first
+            for (const op of sentenceOps) {
+                try {
+                    const [sentenceId] = await trx('article_sentences')
+                        .insert({
+                            article_id: articleId,
+                            sentence_text: op.data.text,
+                            sentence_order: op.data.order,
+                            created_at: trx.fn.now(),
+                            updated_at: trx.fn.now()
+                        });
+
+                    // Update the operation with the new sentence ID for rules and translations
+                    const sentenceOpsToUpdate = [...ruleOps, ...translationOps]
+                        .filter(sOp => sOp.data.originalOrder === op.data.order);
+
+                    sentenceOpsToUpdate.forEach(sOp => {
+                        sOp.sentenceId = sentenceId;
+                    });
+
+                    // Remove this operation from the store
+                    const index = failedOperationsStore.findIndex(fOp =>
+                        fOp.type === op.type &&
+                        fOp.articleId === op.articleId &&
+                        fOp.data.order === op.data.order
+                    );
+
+                    if (index !== -1) {
+                        failedOperationsStore.splice(index, 1);
+                    }
+
+                    recovered++;
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    strapi.log.error(`Failed to recover sentence: ${errorMessage}`);
+                    errors.push(`Sentence recovery failed: ${errorMessage}`);
+                    failed++;
+                }
+            }
+
+            // Recover rules
+            for (const op of ruleOps) {
+                try {
+                    // Skip if we don't have a valid sentence ID
+                    if (!op.sentenceId) {
+                        strapi.log.warn(`Skipping rule recovery due to missing sentence ID`);
+                        continue;
+                    }
+
+                    await trx('sentence_grammar_rules').insert({
+                        sentence_id: op.sentenceId,
+                        rule: op.data.rule,
+                        created_at: trx.fn.now(),
+                        updated_at: trx.fn.now()
+                    });
+
+                    // Remove this operation from the store
+                    const index = failedOperationsStore.findIndex(fOp =>
+                        fOp.type === op.type &&
+                        fOp.articleId === op.articleId &&
+                        fOp.sentenceId === op.sentenceId &&
+                        fOp.data.rule === op.data.rule
+                    );
+
+                    if (index !== -1) {
+                        failedOperationsStore.splice(index, 1);
+                    }
+
+                    recovered++;
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    strapi.log.error(`Failed to recover rule: ${errorMessage}`);
+                    errors.push(`Rule recovery failed: ${errorMessage}`);
+                    failed++;
+                }
+            }
+
+            // Recover translations
+            for (const op of translationOps) {
+                try {
+                    // Skip if we don't have a valid sentence ID
+                    if (!op.sentenceId) {
+                        strapi.log.warn(`Skipping translation recovery due to missing sentence ID`);
+                        continue;
+                    }
+
+                    await trx('sentence_translations').insert({
+                        sentence_id: op.sentenceId,
+                        translation_language: op.data.language,
+                        translation_text: op.data.text,
+                        created_at: trx.fn.now(),
+                        updated_at: trx.fn.now()
+                    });
+
+                    // Remove this operation from the store
+                    const index = failedOperationsStore.findIndex(fOp =>
+                        fOp.type === op.type &&
+                        fOp.articleId === op.articleId &&
+                        fOp.sentenceId === op.sentenceId &&
+                        fOp.data.language === op.data.language
+                    );
+
+                    if (index !== -1) {
+                        failedOperationsStore.splice(index, 1);
+                    }
+
+                    recovered++;
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    strapi.log.error(`Failed to recover translation: ${errorMessage}`);
+                    errors.push(`Translation recovery failed: ${errorMessage}`);
+                    failed++;
+                }
+            }
+
+            await trx.commit();
+
+            strapi.log.info(`Recovery completed for article ${articleId}: ${recovered} recovered, ${failed} failed`);
+
+            return {
+                success: recovered > 0,
+                recovered,
+                failed,
+                errors
+            };
+        } catch (error) {
+            await trx.rollback();
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            strapi.log.error(`Error during recovery process: ${errorMessage}`);
+
+            return {
+                success: false,
+                recovered: 0,
+                failed: operations.length,
+                errors: [errorMessage]
             };
         }
     }
