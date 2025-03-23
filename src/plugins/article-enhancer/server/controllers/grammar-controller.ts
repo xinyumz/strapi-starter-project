@@ -1,9 +1,34 @@
 // server/controllers/grammar-controller.ts
 import { Strapi } from '@strapi/strapi';
+import { Context } from 'koa';
 import { errors } from '@strapi/utils';
-import { ExtendedContext, GrammarRule } from '../services/types';
 
 const { ApplicationError } = errors;
+
+interface GrammarRule {
+    sentence: string;
+    rules: string[];
+    translation?: string;
+}
+
+interface ExtendedContext extends Context {
+    body: any;
+    request: Context['request'] & {
+        body: {
+            data?: {
+                text?: string;
+                engineChoice?: 'stanford' | 'jieba' | 'both';
+                sentences?: Array<GrammarRule>;
+            };
+            text?: string;
+            engineChoice?: 'stanford' | 'jieba' | 'both';
+            sentences?: Array<GrammarRule>;
+        };
+    };
+    params: {
+        id?: string;
+    };
+}
 
 export default ({ strapi }: { strapi: Strapi }) => ({
     // Generate grammar rules
@@ -22,16 +47,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             }
 
             const grammarService = strapi.plugin('article-enhancer').service('grammarService');
-
-            // Use batch processing for large texts
-            const sentences = text.split('|').filter((s: string) => s.trim());
-            let rules;
-
-            if (sentences.length > 20) {
-                rules = await grammarService.batchProcessText(text, engineChoice);
-            } else {
-                rules = await grammarService.generateRules(text, engineChoice);
-            }
+            const rules = await grammarService.generateRules(text, engineChoice);
 
             ctx.body = {
                 data: {
@@ -113,25 +129,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.badRequest('Valid sentences array is required');
             }
 
-            // Validate sentence data
-            for (let i = 0; i < sentences.length; i++) {
-                const sentence = sentences[i];
-
-                if (!sentence.sentence) {
-                    return ctx.badRequest(`Sentence at index ${i} is missing text content`);
-                }
-
-                if (!sentence.rules || !Array.isArray(sentence.rules)) {
-                    // Initialize empty rules array if missing
-                    sentence.rules = [];
-                }
-
-                // Validate translations format if present
-                if (sentence.translations && !Array.isArray(sentence.translations)) {
-                    return ctx.badRequest(`Invalid translations format at sentence index ${i}`);
-                }
-            }
-
             const grammarService = strapi.plugin('article-enhancer').service('grammarService');
             const result = await grammarService.saveArticleGrammar(parsedId, sentences);
 
@@ -150,59 +147,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             } else {
                 strapi.log.error('Failed to save grammar data with unknown error');
                 ctx.throw(500, 'Failed to save grammar data');
-            }
-        }
-    },
-
-    // Recover failed operations for an article
-    async recoverArticleOperations(ctx: ExtendedContext) {
-        try {
-            const articleId = ctx.params.id;
-
-            if (!articleId) {
-                return ctx.badRequest('Article ID is required');
-            }
-
-            // Make sure it's a valid number
-            const parsedId = parseInt(articleId, 10);
-
-            if (isNaN(parsedId)) {
-                strapi.log.error(`Invalid article ID: ${articleId}`);
-                return ctx.badRequest(`Invalid article ID: ${articleId}`);
-            }
-
-            const grammarService = strapi.plugin('article-enhancer').service('grammarService');
-
-            // Get failed operations first
-            const failedOps = await grammarService.getFailedOperations(parsedId);
-
-            if (failedOps.length === 0) {
-                return ctx.body = {
-                    data: {
-                        message: 'No failed operations to recover',
-                        count: 0
-                    }
-                };
-            }
-
-            // Attempt recovery
-            const result = await grammarService.recoverFailedOperations(parsedId);
-
-            ctx.body = {
-                data: {
-                    success: result.success,
-                    recovered: result.recovered,
-                    failed: result.failed,
-                    errors: result.errors
-                }
-            };
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                strapi.log.error(`Failed to recover operations: ${error.message}`);
-                ctx.throw(500, `Failed to recover operations: ${error.message}`);
-            } else {
-                strapi.log.error('Failed to recover operations with unknown error');
-                ctx.throw(500, 'Failed to recover operations');
             }
         }
     }

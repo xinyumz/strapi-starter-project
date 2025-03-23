@@ -459,16 +459,15 @@ const useTranslationManagement = ({
     /**
      * Remove a language translation from all sentences
      */
-    // For removeBulkTranslation - Update to use the correct URL and ensure proper data saving:
     const removeBulkTranslation = useCallback(async (language: string) => {
-        if (!sentences.length || !articleId || language === 'en') return;
+        if (!sentences.length || language === 'en') return;
 
         startTranslating();
 
         try {
             console.log(`Removing all translations for language: ${language}...`);
 
-            // First, update the UI state by removing the translations
+            // Update all sentences to remove the specified language
             const updatedSentences = sentences.map(sentence => {
                 // Create a copy of the sentence
                 const updatedSentence = { ...sentence };
@@ -486,45 +485,25 @@ const useTranslationManagement = ({
                 return updatedSentence;
             });
 
-            // Call the dedicated endpoint to remove translations from the database
-            console.log(`Calling API to remove ${language} translations from database...`);
-            const response = await fetch(`/${pluginId}/article/${articleId}/translations/${language}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
+            // Save to plugin database
+            if (articleId) {
+                console.log("Saving updated translations to plugin database...");
+                const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
+                    data: {
+                        sentences: updatedSentences
+                    }
+                });
 
-            if (!response.ok) {
-                // Try to parse the error response
-                try {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `Failed to remove ${language} translations`);
-                } catch (parseError) {
-                    // If parsing fails, use the status text
-                    throw new Error(`Failed to remove ${language} translations: ${response.statusText}`);
+                if (!saveResponse.data) {
+                    throw new Error(ERROR_MESSAGES.TRANSLATION_SAVE_FAILED);
                 }
+
+                // Also save to the article's ChineseProcessor field
+                console.log("Saving to article's ChineseProcessor field...");
+                await updateArticleWithProcessorData(articleId, updatedSentences);
             }
 
             console.log(`Successfully removed all translations for language: ${language}`);
-
-            // Save to plugin database
-            console.log("Saving to plugin database...");
-            const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
-                data: {
-                    sentences: updatedSentences
-                }
-            });
-
-            if (!saveResponse.data) {
-                throw new Error(ERROR_MESSAGES.TRANSLATION_SAVE_FAILED);
-            }
-
-            // Also save to the article's ChineseProcessor field
-            console.log("Saving to article's ChineseProcessor field...");
-            await updateArticleWithProcessorData(articleId, updatedSentences);
-
-            // Update the local state with the updated sentences
             setSentences(updatedSentences);
             saveOriginalSentences();
 

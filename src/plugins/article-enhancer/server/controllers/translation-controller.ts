@@ -12,16 +12,10 @@ interface ExtendedContext extends Context {
             data?: {
                 sentences?: string[];
                 targetLanguage?: string;
-                language?: string;
             };
             sentences?: string[];
             targetLanguage?: string;
-            language?: string;
         };
-    };
-    params: {
-        id?: string;
-        language?: string;
     };
 }
 
@@ -127,113 +121,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 ctx.throw(500, `Failed to fetch supported languages: ${error.message}`);
             } else {
                 ctx.throw(500, 'Failed to fetch supported languages');
-            }
-        }
-    },
-
-    async removeLanguageTranslations(ctx: ExtendedContext) {
-        try {
-            // Get language from params instead of body
-            const { id: articleId, language } = ctx.params;
-
-            if (!articleId) {
-                return ctx.badRequest('Article ID is required');
-            }
-
-            if (!language) {
-                return ctx.badRequest('Language code is required');
-            }
-
-            // Call the service to delete the translations
-            const result = await strapi
-                .plugin('article-enhancer')
-                .service('translationService')
-                .removeLanguageTranslations(parseInt(articleId, 10), language);
-
-            if (!result.success) {
-                return ctx.throw(500, result.error || 'Failed to remove translations');
-            }
-
-            ctx.body = {
-                data: { success: true }
-            };
-        } catch (error: unknown) {
-            if (error instanceof ApplicationError) {
-                ctx.throw(400, error.message);
-            } else if (error instanceof Error) {
-                ctx.throw(500, `Failed to remove translations: ${error.message}`);
-            } else {
-                ctx.throw(500, 'Failed to remove translations');
-            }
-        }
-    },
-    async diagnosticInfo(ctx: ExtendedContext) {
-        try {
-            const { id: articleId } = ctx.params;
-
-            if (!articleId) {
-                return ctx.badRequest('Article ID is required');
-            }
-
-            if (!strapi.db) {
-                return ctx.throw(500, 'Database connection not available');
-            }
-
-            // Get sentences for this article
-            const sentences = await strapi.db.connection('article_sentences')
-                .where('article_id', parseInt(articleId, 10))
-                .select('id', 'sentence_text', 'sentence_order');
-
-            // Get translations for these sentences
-            const sentenceIds = sentences.map(s => s.id);
-            const translations = await strapi.db.connection('sentence_translations')
-                .whereIn('sentence_id', sentenceIds)
-                .select('id', 'sentence_id', 'translation_language', 'translation_text');
-
-            // Group translations by language
-            const languageCounts: { [key: string]: number } = {};
-            translations.forEach(t => {
-                if (!languageCounts[t.translation_language]) {
-                    languageCounts[t.translation_language] = 0;
-                }
-                languageCounts[t.translation_language]++;
-            });
-
-            // Count sentences with each language
-            const sentencesWithLanguage: { [key: string]: number } = {};
-            const languages = Object.keys(languageCounts);
-
-            for (const lang of languages) {
-                const countResult = await strapi.db.connection('sentence_translations')
-                    .whereIn('sentence_id', sentenceIds)
-                    .where('translation_language', lang)
-                    .countDistinct('sentence_id as count')
-                    .first();
-
-                // Properly handle the count result
-                const count = countResult && typeof countResult === 'object' && 'count' in countResult
-                    ? Number(countResult.count)
-                    : 0;
-
-                sentencesWithLanguage[lang] = count;
-            }
-
-            ctx.body = {
-                data: {
-                    articleId,
-                    sentenceCount: sentences.length,
-                    translationCount: translations.length,
-                    languageCounts,
-                    sentencesWithLanguage,
-                    // Handle database-specific differences
-                    translationTableInfo: await strapi.db.connection.raw('SHOW COLUMNS FROM sentence_translations')
-                }
-            };
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                ctx.throw(500, `Diagnostic failed: ${error.message}`);
-            } else {
-                ctx.throw(500, 'Diagnostic failed');
             }
         }
     }

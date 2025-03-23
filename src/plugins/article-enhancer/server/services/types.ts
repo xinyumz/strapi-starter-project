@@ -1,5 +1,4 @@
 // src/plugins/article-enhancer/server/services/types.ts
-import { Context } from 'koa';
 
 /**
  * Interfaces for server-side use in the article-enhancer plugin
@@ -13,17 +12,6 @@ export interface SupportedLanguage {
 export interface Translation {
     language: string;
     text: string;
-}
-
-export interface GrammarRule {
-    sentence: string;
-    rules: string[];
-    translation?: string;
-    translations?: Translation[];
-}
-
-export interface RulesResponse {
-    rules: GrammarRule[];
 }
 
 export interface EnhancedSentence {
@@ -54,63 +42,4 @@ export interface TranslationServiceInterface {
     translate: (text: string, targetLanguage: string) => Promise<string>;
     listLanguages?: () => Promise<SupportedLanguage[]>;
     detectLanguage?: (text: string) => Promise<string>;
-}
-
-export interface GrammarRuleResult {
-    success: boolean;
-    sentences?: GrammarRule[];
-    error?: string;
-}
-
-export interface ArticleGrammarResult {
-    sentences: GrammarRule[];
-    success: boolean;
-    error?: string;
-}
-
-export interface FailedOperation {
-    type: 'sentence' | 'rule' | 'translation';
-    data: any;
-    error: string;
-    timestamp: number;
-    articleId: number;
-    sentenceId?: number;
-}
-
-export interface RecoveryResult {
-    success: boolean;
-    recovered: number;
-    failed: number;
-    errors: string[];
-}
-
-export interface CacheEntry {
-    data: GrammarRule[];
-    timestamp: number;
-}
-
-// Context extension for controllers
-export interface ExtendedContext extends Context {
-    body: any;
-    request: Context['request'] & {
-        body: {
-            data?: {
-                text?: string;
-                engineChoice?: 'stanford' | 'jieba' | 'both';
-                sentences?: Array<GrammarRule>;
-                content?: string;
-                targetLanguages?: string[];
-                articleId?: number;
-            };
-            text?: string;
-            engineChoice?: 'stanford' | 'jieba' | 'both';
-            sentences?: Array<GrammarRule>;
-            content?: string;
-            targetLanguages?: string[];
-            articleId?: number;
-        };
-    };
-    params: {
-        id?: string;
-    };
 }

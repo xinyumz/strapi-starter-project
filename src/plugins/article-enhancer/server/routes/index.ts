@@ -42,16 +42,6 @@ export default [
             description: 'Save grammar data for an article'
         }
     },
-    {
-        method: 'POST',
-        path: '/grammar/article/:id/recover',
-        handler: 'grammarController.recoverArticleOperations',
-        config: {
-            policies: [],
-            auth: false,
-            description: 'Recover failed operations for an article'
-        }
-    },
     // Translation routes
     {
         method: 'POST',
@@ -71,22 +61,6 @@ export default [
             policies: [],
             auth: false,
             description: 'Get supported languages for translation'
-        }
-    },
-    {
-        method: 'DELETE',
-        path: '/article/:id/translations/:language',
-        handler: 'translationController.removeLanguageTranslations',
-        config: {
-            policies: []
-        }
-    },
-    {
-        method: 'GET',
-        path: '/article/:id/translations/diagnostic',
-        handler: 'translationController.diagnosticInfo',
-        config: {
-            policies: []
         }
     },
     // Article routes
