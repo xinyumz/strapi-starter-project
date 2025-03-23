@@ -14,11 +14,11 @@ export default async ({ strapi }: { strapi: Strapi }) => {
     const knex = strapi.db.connection;
 
     // Check if migration tracking table exists
-    const hasTrackingTable = await knex.schema.hasTable('article_enhancer_migrations');
+    const hasTrackingTable = await knex.schema.hasTable('chinese_article_processor_migrations');
 
     if (!hasTrackingTable) {
       // Create migration tracking table if it doesn't exist
-      await knex.schema.createTable('article_enhancer_migrations', (table) => {
+      await knex.schema.createTable('chinese_article_processor_migrations', (table) => {
         table.increments('id').primary();
         table.string('name', 255).notNullable();
         table.datetime('executed_at').defaultTo(knex.fn.now());
@@ -27,14 +27,14 @@ export default async ({ strapi }: { strapi: Strapi }) => {
     }
 
     // Check if our database setup has been run
-    const hasSetupRun = await knex('article_enhancer_migrations')
+    const hasSetupRun = await knex('chinese_article_processor_migrations')
       .where('name', 'setup-chinese-article-database')
       .first();
 
     if (!hasSetupRun) {
       // Run the setup
       await setupChineseArticleDatabase(knex);
-      await knex('article_enhancer_migrations').insert({
+      await knex('chinese_article_processor_migrations').insert({
         name: 'setup-chinese-article-database',
         executed_at: knex.fn.now()
       });
