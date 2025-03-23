@@ -6,8 +6,8 @@ export default ({ env }) => ({
         enabled: true,
         resolve: './src/plugins/translator'
     },
-    'article-enhancer': {
+    'chinese-article-processor': {
         enabled: true,
-        resolve: './src/plugins/article-enhancer'
+        resolve: './src/plugins/chinese-article-processor'
     },
 });

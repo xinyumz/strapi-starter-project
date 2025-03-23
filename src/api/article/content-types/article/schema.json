@@ -63,7 +63,7 @@
     },
     "ChineseProcessor": {
       "type": "customField",
-      "customField": "plugin::article-enhancer.chinese-language-tools"
+      "customField": "plugin::chinese-article-processor.chinese-language-tools"
     }
   }
 }

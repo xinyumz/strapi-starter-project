@@ -823,7 +823,7 @@ export interface ApiArticleArticle extends Schema.CollectionType {
     AccessTier: Attribute.Enumeration<['Free', 'Login', 'Premium']> &
       Attribute.DefaultTo<'Free'>;
     ChineseProcessor: Attribute.JSON &
-      Attribute.CustomField<'plugin::article-enhancer.chinese-language-tools'>;
+      Attribute.CustomField<'plugin::chinese-article-processor.chinese-language-tools'>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
