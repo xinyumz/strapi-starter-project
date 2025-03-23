@@ -4,7 +4,6 @@ import { errors } from '@strapi/utils';
 import {
     GrammarRule,
     RulesResponse,
-    ArticleGrammarResult,
     BatchGrammarOptions
 } from './types';
 
