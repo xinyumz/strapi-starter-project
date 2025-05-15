@@ -590,6 +590,50 @@ export interface PluginContentReleasesReleaseAction
   };
 }
 
+export interface PluginPerLanguagePerLanguage extends Schema.CollectionType {
+  collectionName: 'per_languages';
+  info: {
+    singularName: 'per-language';
+    pluralName: 'per-languages';
+    displayName: 'Language-Specific Content';
+    description: 'Language-specific content for articles';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    article_id: Attribute.Integer & Attribute.Required;
+    language: Attribute.String & Attribute.Required;
+    per_language_text: Attribute.Text & Attribute.Required;
+    processed_data: Attribute.JSON;
+    display_skill: Attribute.String;
+    published: Attribute.Boolean & Attribute.DefaultTo<false>;
+    access_tier: Attribute.String;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'plugin::per-language.per-language',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'plugin::per-language.per-language',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
 export interface PluginI18NLocale extends Schema.CollectionType {
   collectionName: 'i18n_locale';
   info: {
@@ -924,6 +968,7 @@ declare module '@strapi/types' {
       'plugin::upload.folder': PluginUploadFolder;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
+      'plugin::per-language.per-language': PluginPerLanguagePerLanguage;
       'plugin::i18n.locale': PluginI18NLocale;
       'plugin::users-permissions.permission': PluginUsersPermissionsPermission;
       'plugin::users-permissions.role': PluginUsersPermissionsRole;
