@@ -78,13 +78,13 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
         try {
             const translationService = strapi.plugin('per-language').service('translationService');
-            const result = await translationService.translateArticle(parseInt(articleId), targetLanguage);
+            const result = await translationService.translateArticle(articleId, targetLanguage);
 
             ctx.body = result;
         } catch (error) {
             console.error('Error translating article:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            ctx.throw(500, `Failed to translate article: ${errorMessage}`);
+            return ctx.throw(500, `Failed to translate article: ${errorMessage}`);
         }
     },
 
@@ -100,13 +100,17 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
         try {
             const processingService = strapi.plugin('per-language').service('processingService');
-            const result = await processingService.processArticle(parseInt(articleId), targetLanguage);
+            const result = await processingService.processArticle(articleId, targetLanguage);
+
+            if (!result.success) {
+                return ctx.badRequest(result.message);
+            }
 
             ctx.body = result;
         } catch (error) {
             console.error('Error processing article:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            ctx.throw(500, `Failed to process article: ${errorMessage}`);
+            return ctx.throw(500, `Failed to process article: ${errorMessage}`);
         }
     },
 

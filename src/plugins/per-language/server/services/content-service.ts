@@ -70,25 +70,28 @@ export default ({ strapi }: { strapi: Strapi }) => {
         /**
          * Get content for a specific language
          */
-        async getLanguageContent(articleId: number, languageCode: string): Promise<PerLanguageContentType | null> {
+        async getLanguageContent(articleId: number, languageCode: string): Promise<any> {
             try {
+                console.log(`[ContentService] Getting language content for article ${articleId} in ${languageCode}`);
                 const entityService = getEntityService();
-                const content = await entityService.findMany('plugin::per-language.per-language', {
+                const existingContent = await entityService.findMany('plugin::per-language.per-language', {
                     filters: {
-                        article: articleId,
+                        article_id: articleId,
                         language: languageCode
                     }
                 });
 
-                if (!content || content.length === 0) {
+                if (!existingContent || existingContent.length === 0) {
+                    console.log(`[ContentService] No content found in per_language table`);
                     return null;
                 }
 
-                return content[0] as PerLanguageContentType;
+                console.log(`[ContentService] Found content in per_language table:`, existingContent[0].id);
+                return existingContent[0];
             } catch (error) {
-                console.error('Error fetching language content:', error);
+                console.error(`[ContentService] Error getting language content:`, error);
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                throw new ApplicationError(`Failed to fetch language content: ${errorMessage}`);
+                throw new ApplicationError(`Failed to get language content: ${errorMessage}`);
             }
         },
 
