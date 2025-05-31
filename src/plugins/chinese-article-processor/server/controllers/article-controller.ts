@@ -86,5 +86,58 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 ctx.throw(500, 'Failed to fetch article sentences');
             }
         }
+    },
+
+    // Process article using the new dual-source approach
+    async processArticleFromAnySource(ctx: ExtendedContext) {
+        try {
+            const { id } = ctx.params;
+            const { targetLanguages = ['en'] } = ctx.request.body.data || ctx.request.body;
+
+            if (!id) {
+                return ctx.badRequest('Article ID is required');
+            }
+
+            // Call the process service
+            const processService = strapi.plugin('chinese-article-processor').service('processService');
+
+            if (!processService) {
+                return ctx.badRequest('Process service not available');
+            }
+
+            // Get content from either source
+            const content = await processService.getArticleContent(Number(id), 'zh');
+
+            // Process the content using existing article service
+            const articleService = strapi.plugin('chinese-article-processor').service('articleService');
+            const processedArticle = await articleService.processArticle(
+                content,
+                targetLanguages,
+                true, // Default to batch processing
+                {} // Use default batch options
+            );
+
+            // Save processed data to both places
+            await processService.saveProcessedData(
+                Number(id),
+                'zh',
+                processedArticle
+            );
+
+            // Also save to the sentence tables
+            await articleService.saveProcessedArticle(Number(id), processedArticle);
+
+            ctx.body = {
+                data: processedArticle
+            };
+        } catch (error: unknown) {
+            if (error instanceof ApplicationError) {
+                ctx.throw(400, error.message);
+            } else if (error instanceof Error) {
+                ctx.throw(500, `Article processing failed: ${error.message}`);
+            } else {
+                ctx.throw(500, 'Article processing failed');
+            }
+        }
     }
 });

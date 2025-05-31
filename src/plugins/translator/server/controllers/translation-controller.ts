@@ -15,7 +15,15 @@ const initializeTranslateClient = () => {
 
 export default ({ strapi }: { strapi: Strapi }) => ({
     async translate(ctx) {
-        const { text, targetLanguage } = ctx.request.body;
+        console.log('[Translation Controller] Request body:', JSON.stringify(ctx.request.body, null, 2));
+        const { text, targetLanguage, articleId } = ctx.request.body;
+
+        console.log('[Translation Controller] Extracted values:', {
+            hasText: !!text,
+            targetLanguage,
+            articleId,
+            articleIdType: typeof articleId
+        });
 
         if (!text || !targetLanguage) {
             return ctx.badRequest('Text and target language are required');
@@ -29,6 +37,44 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             console.log(`Translating text: "${text}" to language: ${targetLanguage}`);
             const [translation] = await translateClient.translate(text, targetLanguage);
             console.log(`Translation result: "${translation}"`);
+
+            // NEW: Also sync to per_language table if we can determine the article ID
+            // Check if there's article context in the request
+            const { articleId } = ctx.request.body;
+
+            console.log('[Translation Controller] Checking sync conditions:', {
+                hasArticleId: !!articleId,
+                targetLanguage,
+                shouldSync: !!(articleId && targetLanguage === 'zh')
+            });
+
+            if (articleId && targetLanguage === 'zh') {
+                try {
+                    console.log(`[Translation Controller] Attempting to sync article ${articleId} to per_language table`);
+
+                    // Check if per-language plugin service is available
+                    const perLanguagePlugin = strapi.plugin('per-language');
+                    if (perLanguagePlugin?.service('contentService')) {
+                        const contentService = perLanguagePlugin.service('contentService');
+
+                        // Sync the translation to per_language table
+                        const result = await contentService.upsertLanguageContent(
+                            parseInt(articleId),
+                            targetLanguage,
+                            translation
+                        );
+
+                        console.log(`[Translation Controller] Successfully synced article ${articleId}:`, result);
+                    } else {
+                        console.error('[Translation Controller] per-language plugin or service not available');
+                    }
+                } catch (syncError) {
+                    console.error('[Translation Controller] Sync error:', syncError);
+                    // Don't fail the translation if sync fails
+                }
+            } else {
+                console.log('[Translation Controller] Sync skipped - conditions not met');
+            }
 
             ctx.body = { translatedText: translation };
         } catch (err) {

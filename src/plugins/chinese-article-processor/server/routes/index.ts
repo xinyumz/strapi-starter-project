@@ -83,5 +83,13 @@ export default [
             auth: false,
             description: 'Get sentences with translations for an article'
         }
-    }
+    },
+    {
+        method: 'POST',
+        path: '/process-from-any-source/:id',
+        handler: 'articleController.processArticleFromAnySource',
+        config: {
+            policies: [],
+        },
+    },
 ];

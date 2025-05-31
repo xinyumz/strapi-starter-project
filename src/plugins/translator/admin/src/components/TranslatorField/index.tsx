@@ -36,7 +36,18 @@ const TranslatorField: React.FC<TranslatorFieldProps> = ({
     ];
 
     const handleTranslate = async () => {
-        const sourceText = modifiedData.Base;
+        const sourceText = modifiedData.Base || modifiedData.base;
+        const articleId = modifiedData.id;
+
+        console.log('[TranslatorField] Starting translation:', {
+            hasSourceText: !!sourceText,
+            sourceTextLength: sourceText?.length || 0,
+            articleId,
+            targetLanguage,
+            modifiedDataKeys: Object.keys(modifiedData),
+            currentTranslationValue: value, // Current value of translation field
+            fieldName: name // What field are we updating
+        });
 
         if (!sourceText) {
             console.error('Base field is empty');
@@ -45,16 +56,21 @@ const TranslatorField: React.FC<TranslatorFieldProps> = ({
 
         setIsTranslating(true);
         try {
+            const requestBody = {
+                text: sourceText,
+                targetLanguage,
+                articleId: articleId
+            };
+
+            console.log('[TranslatorField] Request body:', requestBody);
+
             const response = await fetch('/translator/translate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
                 },
-                body: JSON.stringify({
-                    text: sourceText,
-                    targetLanguage,
-                }),
+                body: JSON.stringify(requestBody),
             });
 
             if (!response.ok) {
@@ -63,7 +79,25 @@ const TranslatorField: React.FC<TranslatorFieldProps> = ({
             }
 
             const { translatedText } = await response.json();
+
+            console.log('[TranslatorField] Before onChange:', {
+                fieldName: name,
+                translatedText: translatedText.substring(0, 100) + '...',
+                translatedTextLength: translatedText.length
+            });
+
             onChange({ target: { name, value: translatedText } });
+
+            console.log('[TranslatorField] After onChange - field should be updated');
+
+            // Add a delay and check if the field was actually updated
+            setTimeout(() => {
+                console.log('[TranslatorField] Delayed check:', {
+                    currentValue: value,
+                    valueLength: value?.length || 0
+                });
+            }, 100);
+
         } catch (error) {
             console.error('Translation error:', error);
         } finally {
