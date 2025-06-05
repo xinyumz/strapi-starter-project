@@ -86,22 +86,33 @@ export default async ({ strapi }: { strapi: Strapi }) => {
           hasResult: !!event.result,
           resultId: event.result?.id,
           hasTranslation: !!article?.translation,
-          hasTranslationCap: !!article?.Translation,  // Add this
+          hasTranslationCap: !!article?.Translation,
           translationLength: (article?.translation || article?.Translation)?.length || 0,
           translationInUpdateData: !!inputData?.translation,
-          translationInUpdateDataCap: !!inputData?.Translation  // Add this
+          translationInUpdateDataCap: !!inputData?.Translation,
+          hasChineseProcessor: !!article?.chinese_processor || !!inputData?.chinese_processor,
+          hasChineseProcessorCap: !!article?.ChineseProcessor || !!inputData?.ChineseProcessor
         });
 
-        // Handle updated articles - check both field variations
+        // Handle translation sync (existing)
         const translation = article?.translation || article?.Translation ||
           inputData?.translation || inputData?.Translation;
 
         if (article && translation) {
           const articleWithTranslation = {
             ...article,
-            translation: translation  // Normalize to lowercase
+            translation: translation
           };
           await syncToPerLanguage(articleWithTranslation, strapi);
+        }
+
+        // NEW: Handle chinese_processor sync with BOTH field name variations
+        const chineseProcessor = article?.chinese_processor || article?.ChineseProcessor ||
+          inputData?.chinese_processor || inputData?.ChineseProcessor;
+
+        if (article && chineseProcessor) {
+          console.log('[Translator Hook] Syncing processed data to per_language table');
+          await syncProcessedDataToPerLanguage(article.id, chineseProcessor, strapi);
         }
       },
     });
@@ -112,6 +123,117 @@ export default async ({ strapi }: { strapi: Strapi }) => {
   }
 };
 
+async function syncProcessedDataToPerLanguage(articleId: number, processedData: any, strapi: Strapi) {
+  try {
+    console.log(`[syncProcessedData] Syncing processed data for article ${articleId}`);
+    console.log(`[syncProcessedData] Raw processed data:`, JSON.stringify(processedData, null, 2));
+
+    const perLanguagePlugin = strapi.plugin('per-language');
+    const contentService = perLanguagePlugin?.service('contentService');
+
+    if (!contentService) {
+      console.log('[syncProcessedData] per-language service not available');
+      return;
+    }
+
+    // Check if per_language entry exists
+    const existingContent = await contentService.getLanguageContent(articleId, 'zh');
+
+    if (existingContent) {
+      let convertedData = processedData;
+      let displaySkill: string | null = null;
+
+      // **NEW: Smart validation - check if data is complete**
+      const isAdminFormat = processedData && typeof processedData === 'object' && processedData.hsk && processedData.grammar;
+      const isApiFormat = Array.isArray(processedData);
+
+      if (isAdminFormat) {
+        console.log('[syncProcessedData] Detected admin format data');
+
+        // **NEW: Check if grammar processing is complete**
+        const hasCompleteSentences = processedData.grammar &&
+          processedData.grammar.sentences &&
+          Array.isArray(processedData.grammar.sentences) &&
+          processedData.grammar.sentences.length > 0;
+
+        if (!hasCompleteSentences) {
+          console.log('[syncProcessedData] Grammar processing incomplete, skipping conversion');
+          console.log('[syncProcessedData] Will wait for complete data in next update');
+
+          // Still update display_skill if HSK is available
+          if (processedData.hsk) {
+            if (processedData.hsk.selectedLevel) {
+              displaySkill = `HSK ${processedData.hsk.selectedLevel}`;
+            } else if (processedData.hsk.calculatedLevel) {
+              displaySkill = `HSK ${processedData.hsk.calculatedLevel}`;
+            }
+
+            if (displaySkill) {
+              console.log('[syncProcessedData] Updating display_skill only:', displaySkill);
+              await contentService.updateProcessedData(existingContent.id, existingContent.processed_data, displaySkill);
+            }
+          }
+          return; // Exit early, don't update processed_data yet
+        }
+
+        console.log('[syncProcessedData] Converting complete admin format to API format');
+
+        // Extract HSK info for display_skill
+        if (processedData.hsk && processedData.hsk.selectedLevel) {
+          displaySkill = `HSK ${processedData.hsk.selectedLevel}`;
+        } else if (processedData.hsk && processedData.hsk.calculatedLevel) {
+          displaySkill = `HSK ${processedData.hsk.calculatedLevel}`;
+        }
+
+        // Convert to the API format (array of sentence objects)
+        convertedData = processedData.grammar.sentences.map((sentence: any) => ({
+          chinese: sentence.sentence,
+          grammarRules: sentence.rules || [],
+          translations: sentence.translations ?
+            sentence.translations.reduce((acc: any, trans: any) => {
+              acc[trans.language] = trans.text;
+              return acc;
+            }, {}) :
+            { en: sentence.translation }
+        }));
+      }
+      else if (isApiFormat) {
+        console.log('[syncProcessedData] Data already in API format');
+        convertedData = processedData;
+
+        // Try to extract HSK level from the original article if available
+        try {
+          const article = await strapi.entityService?.findOne('api::article.article', articleId, {});
+          const chineseProcessorField = article?.chinese_processor || article?.ChineseProcessor;
+          if (chineseProcessorField && chineseProcessorField.hsk) {
+            if (chineseProcessorField.hsk.selectedLevel) {
+              displaySkill = `HSK ${chineseProcessorField.hsk.selectedLevel}`;
+            } else if (chineseProcessorField.hsk.calculatedLevel) {
+              displaySkill = `HSK ${chineseProcessorField.hsk.calculatedLevel}`;
+            }
+          }
+        } catch (error) {
+          console.log('[syncProcessedData] Could not extract HSK level from article:', error);
+        }
+      }
+      else {
+        console.log('[syncProcessedData] Unknown data format, skipping sync');
+        return;
+      }
+
+      console.log('[syncProcessedData] Final converted data:', JSON.stringify(convertedData, null, 2));
+      console.log('[syncProcessedData] Display skill:', displaySkill);
+
+      // Update existing entry with converted processed data
+      await contentService.updateProcessedData(existingContent.id, convertedData, displaySkill);
+      console.log(`[syncProcessedData] Successfully updated processed data and display_skill for article ${articleId}`);
+    } else {
+      console.log(`[syncProcessedData] No per_language entry found for article ${articleId}, skipping processed data sync`);
+    }
+  } catch (error) {
+    console.error('[syncProcessedData] Error syncing processed data:', error);
+  }
+}
 /**
  * Sync article translation data to the per_language table
  */

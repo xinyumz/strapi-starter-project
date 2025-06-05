@@ -221,5 +221,19 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             console.error('Error fetching article sentences:', error);
             throw new ApplicationError('Failed to fetch article sentences');
         }
+    },
+
+    async processArticleWithDualSource(
+        articleId: number,
+        targetLanguages: string[] = ['en'],
+        useBatchGrammar: boolean = true,
+        batchOptions: BatchGrammarOptions = {}
+    ): Promise<EnhancedSentence[]> {
+        // Get content using process service instead of direct access
+        const processService = strapi.plugin('chinese-article-processor').service('processService');
+        const content = await processService.getArticleContent(articleId, 'zh');
+
+        // Use existing processArticle method
+        return this.processArticle(content, targetLanguages, useBatchGrammar, batchOptions);
     }
 });

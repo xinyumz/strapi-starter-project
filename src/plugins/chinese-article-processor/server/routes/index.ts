@@ -90,6 +90,38 @@ export default [
         handler: 'articleController.processArticleFromAnySource',
         config: {
             policies: [],
+            auth: false,
+            description: 'Process article using dual-source approach with fallback'
         },
     },
+    {
+        method: 'POST',
+        path: '/process-v2/:id',
+        handler: 'articleController.processArticleV2',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Process article using dual-source approach (Phase 3)'
+        }
+    },
+    {
+        method: 'PUT',
+        path: '/article/:id/processed-data',
+        handler: 'articleController.updateArticleProcessedData',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Update article processed data with dual-write support'
+        }
+    },
+    {
+        method: 'POST',
+        path: '/sync-processed-data/:id',
+        handler: 'articleController.syncProcessedDataManually',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Manually sync processed data from articles to per_languages table'
+        }
+    }
 ];

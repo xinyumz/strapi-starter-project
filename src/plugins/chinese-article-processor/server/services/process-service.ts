@@ -24,21 +24,48 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                         console.log(`[ProcessService] Found content in per_language table`);
                         return perLanguageContent.per_language_text;
                     }
+                    console.log(`[ProcessService] No content found in per_language table`);
                 } catch (err) {
                     console.log('[ProcessService] Error accessing per_language table, falling back:', err);
-                    // Continue to fallback
                 }
             }
 
             // Fallback to original article table
             console.log(`[ProcessService] Falling back to articles table`);
-            const article = await strapi.entityService?.findOne('api::article.article', articleId, {});
 
-            if (!article || !article.translation) {
+            // Try different ways to fetch the article
+            let article;
+            try {
+                article = await strapi.entityService?.findOne('api::article.article', articleId, {
+                    populate: '*'  // Make sure we get all fields
+                });
+            } catch (entityError) {
+                console.log('[ProcessService] EntityService failed, trying db.query:', entityError);
+                // Fallback to direct database query
+                if (strapi.db) {
+                    article = await strapi.db.query('api::article.article').findOne({
+                        where: { id: articleId }
+                    });
+                }
+            }
+
+            console.log(`[ProcessService] Article found:`, {
+                id: article?.id,
+                hasTranslation: !!article?.translation,
+                hasTranslationCap: !!article?.Translation,
+                translationLength: article?.translation?.length || article?.Translation?.length || 0,
+                allKeys: article ? Object.keys(article) : []
+            });
+
+            // Check both 'translation' and 'Translation' (case sensitivity issue)
+            const content = article?.translation || article?.Translation;
+
+            if (!article || !content) {
                 throw new ApplicationError(`No content found for article ${articleId}`);
             }
 
-            return article.translation;
+            console.log(`[ProcessService] Using fallback content from articles table, length: ${content.length}`);
+            return content;
         } catch (error) {
             console.error('[ProcessService] Error getting article content:', error);
             throw error;
@@ -105,6 +132,39 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             }
         } catch (error) {
             console.error('[ProcessService] Error saving processed data:', error);
+            throw error;
+        }
+    },
+
+    async processArticleComplete(
+        articleId: number,
+        language: string = 'zh',
+        targetLanguages: string[] = ['en']
+    ): Promise<any> {
+        try {
+            console.log(`[ProcessService] Complete processing for article ${articleId}`);
+
+            // 1. Get content from either source
+            const content = await this.getArticleContent(articleId, language);
+
+            // 2. Process using existing article service
+            const articleService = strapi.plugin('chinese-article-processor').service('articleService');
+            const processedArticle = await articleService.processArticle(
+                content,
+                targetLanguages,
+                true, // Use batch processing
+                {} // Default batch options
+            );
+
+            // 3. Save processed data to both locations
+            await this.saveProcessedData(articleId, language, processedArticle);
+
+            // 4. Save to sentence tables as well
+            await articleService.saveProcessedArticle(articleId, processedArticle);
+
+            return processedArticle;
+        } catch (error) {
+            console.error('[ProcessService] Error in complete processing:', error);
             throw error;
         }
     }
