@@ -1,76 +1,91 @@
-// Path: /src/plugins/chinese-article-processor/server/migrations/setup-chinese-article-database.ts
+// src/plugins/chinese-article-processor/server/migrations/setup-chinese-article-database.ts
+// SAFE VERSION: Sets up tables for fresh installs, preserves existing data
 
 export async function up(knex: any): Promise<void> {
     try {
-        // Clean up any existing tables to ensure a fresh start
-        // Drop tables in the correct order to avoid foreign key constraint issues
-        await knex.schema.dropTableIfExists('sentence_grammar_rules');
-        await knex.schema.dropTableIfExists('sentence_translations');
-        await knex.schema.dropTableIfExists('article_translations'); // In case old table exists
-        await knex.schema.dropTableIfExists('article_sentences');
+        console.log('[Migration] Starting safe database setup...');
 
-        // Create article_sentences table
-        await knex.schema.createTable('article_sentences', (table: any) => {
-            table.increments('id').primary();
-            table.integer('article_id').unsigned().notNullable();
-            table.text('sentence_text').notNullable();
-            table.integer('sentence_order').notNullable();
-            table.datetime('created_at').defaultTo(knex.fn.now());
-            table.datetime('updated_at').defaultTo(knex.fn.now());
-            table.foreign('article_id').references('articles.id').onDelete('CASCADE');
-        });
-        console.log('Created article_sentences table');
+        // REMOVED: All dropTableIfExists calls to preserve existing data
+        // ONLY create tables if they don't exist
 
-        // Create sentence_translations table
-        await knex.schema.createTable('sentence_translations', (table: any) => {
-            table.increments('id').primary();
-            table.integer('sentence_id').unsigned().notNullable();
-            table.string('translation_language', 255).notNullable();
-            table.text('translation_text').notNullable();
-            table.datetime('created_at').defaultTo(knex.fn.now());
-            table.datetime('updated_at').defaultTo(knex.fn.now());
+        // Create article_sentences table (only if missing)
+        const hasArticleSentences = await knex.schema.hasTable('article_sentences');
+        if (!hasArticleSentences) {
+            await knex.schema.createTable('article_sentences', (table: any) => {
+                table.increments('id').primary();
+                table.integer('article_id').unsigned().notNullable();
+                table.longtext('sentence_text').notNullable(); // Use LONGTEXT to prevent length issues
+                table.integer('sentence_order').notNullable();
+                table.datetime('created_at', { precision: 6 }).defaultTo(knex.fn.now());
+                table.datetime('updated_at', { precision: 6 }).defaultTo(knex.fn.now());
 
-            // Foreign key relationship
-            table.foreign('sentence_id').references('article_sentences.id').onDelete('CASCADE');
+                // Add indexes for performance
+                table.index('article_id');
+                table.index('sentence_order');
+            });
+            console.log('✅ Created article_sentences table');
+        } else {
+            console.log('📋 article_sentences table already exists, preserving data');
+        }
 
-            // Add a unique constraint on sentence_id and language
-            table.unique(['sentence_id', 'translation_language']);
-        });
-        console.log('Created sentence_translations table');
+        // Create sentence_translations table (only if missing)
+        const hasSentenceTranslations = await knex.schema.hasTable('sentence_translations');
+        if (!hasSentenceTranslations) {
+            await knex.schema.createTable('sentence_translations', (table: any) => {
+                table.increments('id').primary();
+                table.integer('sentence_id').unsigned().notNullable();
+                table.string('translation_language', 255).notNullable();
+                table.longtext('translation_text').notNullable(); // Use LONGTEXT for long translations
+                table.datetime('created_at', { precision: 6 }).defaultTo(knex.fn.now());
+                table.datetime('updated_at', { precision: 6 }).defaultTo(knex.fn.now());
 
-        // Create sentence_grammar_rules table
-        await knex.schema.createTable('sentence_grammar_rules', (table: any) => {
-            table.increments('id').primary();
-            table.integer('sentence_id').unsigned().notNullable();
-            table.string('rule', 255).notNullable();
-            table.datetime('created_at').defaultTo(knex.fn.now());
-            table.datetime('updated_at').defaultTo(knex.fn.now());
+                // Add indexes
+                table.index('sentence_id');
+                table.index('translation_language');
 
-            // Foreign key to article_sentences
-            table.foreign('sentence_id').references('article_sentences.id').onDelete('CASCADE');
-        });
-        console.log('Created sentence_grammar_rules table');
+                // Unique constraint
+                table.unique(['sentence_id', 'translation_language']);
+            });
+            console.log('✅ Created sentence_translations table');
+        } else {
+            console.log('📋 sentence_translations table already exists, preserving data');
+        }
 
-        // Modify articles table if needed
+        // Create sentence_grammar_rules table (only if missing)
+        const hasSentenceGrammarRules = await knex.schema.hasTable('sentence_grammar_rules');
+        if (!hasSentenceGrammarRules) {
+            await knex.schema.createTable('sentence_grammar_rules', (table: any) => {
+                table.increments('id').primary();
+                table.integer('sentence_id').unsigned().notNullable();
+                table.text('rule').notNullable(); // TEXT should be enough for grammar rules
+                table.datetime('created_at', { precision: 6 }).defaultTo(knex.fn.now());
+                table.datetime('updated_at', { precision: 6 }).defaultTo(knex.fn.now());
+
+                // Add index
+                table.index('sentence_id');
+            });
+            console.log('✅ Created sentence_grammar_rules table');
+        } else {
+            console.log('📋 sentence_grammar_rules table already exists, preserving data');
+        }
+
+        // Ensure articles table has proper column size (safe ALTER)
         const hasArticlesTable = await knex.schema.hasTable('articles');
         if (hasArticlesTable) {
-            const hasGrammarColumn = await knex.schema.hasColumn('articles', 'grammar');
-            if (hasGrammarColumn) {
+            try {
                 await knex.schema.alterTable('articles', (table: any) => {
-                    table.dropColumn('grammar');
+                    table.longtext('translation').alter(); // Ensure translation is LONGTEXT
                 });
-                console.log('Dropped articles.grammar column');
+                console.log('✅ Updated articles.translation to LONGTEXT');
+            } catch (alterError) {
+                console.log('⚠️  Articles table alteration skipped (may already be correct)');
             }
         }
+
+        console.log('🎉 Safe database setup completed successfully');
+
     } catch (error) {
-        console.error('Error in database setup:', error);
+        console.error('❌ Error in safe database setup:', error);
         throw error;
     }
-}
-
-export async function down(knex: any): Promise<void> {
-    // Drop all tables in reverse order
-    await knex.schema.dropTableIfExists('sentence_grammar_rules');
-    await knex.schema.dropTableIfExists('sentence_translations');
-    await knex.schema.dropTableIfExists('article_sentences');
 }

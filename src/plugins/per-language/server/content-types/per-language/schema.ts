@@ -40,6 +40,10 @@ export default {
             type: 'string',
             required: false,
         },
+        difficulty_data: {
+            type: 'json',
+            required: false,
+        },
         published: {
             type: 'boolean',
             default: false,

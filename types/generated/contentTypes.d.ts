@@ -615,6 +615,7 @@ export interface PluginPerLanguagePerLanguage extends Schema.CollectionType {
     per_language_text: Attribute.Text & Attribute.Required;
     processed_data: Attribute.JSON;
     display_skill: Attribute.String;
+    difficulty_data: Attribute.JSON;
     published: Attribute.Boolean & Attribute.DefaultTo<false>;
     access_tier: Attribute.String;
     createdAt: Attribute.DateTime;
@@ -627,6 +628,128 @@ export interface PluginPerLanguagePerLanguage extends Schema.CollectionType {
       Attribute.Private;
     updatedBy: Attribute.Relation<
       'plugin::per-language.per-language',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
+export interface PluginChineseArticleProcessorArticleSentence
+  extends Schema.CollectionType {
+  collectionName: 'article_sentences';
+  info: {
+    singularName: 'article-sentence';
+    pluralName: 'article-sentences';
+    displayName: 'Article Sentence';
+    description: 'Individual sentences from articles for processing';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    article_id: Attribute.Integer & Attribute.Required;
+    sentence_text: Attribute.RichText & Attribute.Required;
+    sentence_order: Attribute.Integer & Attribute.Required;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'plugin::chinese-article-processor.article-sentence',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'plugin::chinese-article-processor.article-sentence',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
+export interface PluginChineseArticleProcessorSentenceTranslation
+  extends Schema.CollectionType {
+  collectionName: 'sentence_translations';
+  info: {
+    singularName: 'sentence-translation';
+    pluralName: 'sentence-translations';
+    displayName: 'Sentence Translation';
+    description: 'Translations of individual sentences';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    sentence_id: Attribute.Integer & Attribute.Required;
+    translation_language: Attribute.String & Attribute.Required;
+    translation_text: Attribute.RichText & Attribute.Required;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'plugin::chinese-article-processor.sentence-translation',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'plugin::chinese-article-processor.sentence-translation',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
+export interface PluginChineseArticleProcessorSentenceGrammarRule
+  extends Schema.CollectionType {
+  collectionName: 'sentence_grammar_rules';
+  info: {
+    singularName: 'sentence-grammar-rule';
+    pluralName: 'sentence-grammar-rules';
+    displayName: 'Sentence Grammar Rule';
+    description: 'Grammar rules for individual sentences';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    sentence_id: Attribute.Integer & Attribute.Required;
+    rule: Attribute.String & Attribute.Required;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'plugin::chinese-article-processor.sentence-grammar-rule',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'plugin::chinese-article-processor.sentence-grammar-rule',
       'oneToOne',
       'admin::user'
     > &
@@ -847,8 +970,8 @@ export interface ApiArticleArticle extends Schema.CollectionType {
     Title: Attribute.String & Attribute.Required & Attribute.Unique;
     Date: Attribute.Date;
     Cover: Attribute.Media<'images'> & Attribute.Required;
-    Base: Attribute.Text & Attribute.Required;
-    Translation: Attribute.String &
+    Base: Attribute.RichText & Attribute.Required;
+    Translation: Attribute.Text &
       Attribute.CustomField<'plugin::translator.translator'>;
     SelectCategory: Attribute.JSON &
       Attribute.CustomField<
@@ -969,6 +1092,9 @@ declare module '@strapi/types' {
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::per-language.per-language': PluginPerLanguagePerLanguage;
+      'plugin::chinese-article-processor.article-sentence': PluginChineseArticleProcessorArticleSentence;
+      'plugin::chinese-article-processor.sentence-translation': PluginChineseArticleProcessorSentenceTranslation;
+      'plugin::chinese-article-processor.sentence-grammar-rule': PluginChineseArticleProcessorSentenceGrammarRule;
       'plugin::i18n.locale': PluginI18NLocale;
       'plugin::users-permissions.permission': PluginUsersPermissionsPermission;
       'plugin::users-permissions.role': PluginUsersPermissionsRole;

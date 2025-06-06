@@ -406,6 +406,97 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             await trx.commit();
             strapi.log.info(`Successfully saved grammar data for article ID: ${articleId}`);
 
+            // **BETTER APPROACH: Update per_languages table directly**
+            try {
+                console.log(`[Grammar Service] 🎯 Updating per_languages table directly with complete data...`);
+
+                // Get the current article data to preserve existing HSK and other data
+                const currentArticle = await strapi.entityService?.findOne('api::article.article', articleId, {});
+
+                if (currentArticle) {
+                    // Get existing processed data or initialize
+                    const existingProcessed = currentArticle.chinese_processor || currentArticle.ChineseProcessor || {};
+
+                    // Create the complete grammar data structure
+                    const completeGrammarData = {
+                        ...existingProcessed, // Preserve HSK and other existing data
+                        grammar: {
+                            sentences: sentences.map(sentence => ({
+                                sentence: sentence.sentence,
+                                rules: sentence.rules || [],
+                                translation: sentence.translation || '', // For backward compatibility
+                                translations: sentence.translations || []
+                            }))
+                        }
+                    };
+
+                    console.log(`[Grammar Service] 📝 Complete data structure:`, JSON.stringify(completeGrammarData, null, 2));
+
+                    // **1. Update articles table (for backward compatibility)**
+                    await strapi.entityService?.update('api::article.article', articleId, {
+                        data: {
+                            chinese_processor: completeGrammarData
+                        } as any
+                    });
+
+                    // **2. DIRECTLY update per_languages table**
+                    const perLanguagePlugin = strapi.plugin('per-language');
+                    const contentService = perLanguagePlugin?.service('contentService');
+
+                    if (contentService) {
+                        // Check if per_language entry exists
+                        const existingContent = await contentService.getLanguageContent(articleId, 'zh');
+
+                        if (existingContent) {
+                            // Extract difficulty data for performance
+                            const difficultyData = completeGrammarData.hsk ? {
+                                hsk: {
+                                    distribution: completeGrammarData.hsk.distribution,
+                                    selectedLevel: completeGrammarData.hsk.selectedLevel,
+                                    calculatedLevel: completeGrammarData.hsk.calculatedLevel
+                                }
+                            } : null;
+
+                            // Extract display skill for UI
+                            const displaySkill = completeGrammarData.hsk?.selectedLevel ?
+                                `HSK ${completeGrammarData.hsk.selectedLevel}` :
+                                (completeGrammarData.hsk?.calculatedLevel ? `HSK ${completeGrammarData.hsk.calculatedLevel}` : null);
+
+                            console.log(`[Grammar Service] 🚀 Directly updating per_languages with complete data...`);
+                            console.log(`[Grammar Service] 📊 Difficulty data:`, JSON.stringify(difficultyData, null, 2));
+                            console.log(`[Grammar Service] 🏷️ Display skill:`, displaySkill);
+
+                            // Direct update using the enhanced method
+                            if (contentService.updateCompleteProcessedData) {
+                                await contentService.updateCompleteProcessedData(
+                                    existingContent.id,
+                                    completeGrammarData,  // processed_data: Complete metadata
+                                    difficultyData,       // difficulty_data: Extracted difficulty  
+                                    displaySkill         // display_skill: UI display
+                                );
+                                console.log(`[Grammar Service] ✅ Successfully updated per_languages directly with complete data`);
+                            } else {
+                                console.log(`[Grammar Service] ⚠️ updateCompleteProcessedData method not available, using fallback`);
+                                await contentService.updateProcessedData(existingContent.id, completeGrammarData, displaySkill);
+                            }
+                        } else {
+                            console.log(`[Grammar Service] ⚠️ No per_language entry found for article ${articleId}`);
+                        }
+                    } else {
+                        console.log(`[Grammar Service] ⚠️ per-language service not available`);
+                    }
+
+                    console.log(`[Grammar Service] ✅ Complete update finished`);
+                } else {
+                    console.log(`[Grammar Service] ⚠️ Article ${articleId} not found for update`);
+                }
+            } catch (updateError) {
+                // Log error but don't fail the entire operation since sentence tables were saved successfully
+                const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
+                console.error(`[Grammar Service] ❌ Error updating processed data: ${errorMessage}`);
+                console.log(`[Grammar Service] ℹ️ Sentence tables were saved successfully despite update error`);
+            }
+
             return { success: true };
         } catch (error) {
             await trx.rollback();

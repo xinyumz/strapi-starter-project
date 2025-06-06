@@ -1,47 +1,15 @@
-// Path: /src/plugins/chinese-article-processor/server/bootstrap.ts
+// src/plugins/chinese-article-processor/server/bootstrap.ts
 
 import { Strapi } from '@strapi/strapi';
-import { up as setupChineseArticleDatabase } from './migrations/setup-chinese-article-database';
 
 export default async ({ strapi }: { strapi: Strapi }) => {
   try {
-    // Check if DB connection is available
-    if (!strapi.db || !strapi.db.connection) {
-      strapi.log.error('Database connection not available');
-      return;
-    }
+    strapi.log.info('[Chinese Article Processor] Plugin loaded successfully');
 
-    const knex = strapi.db.connection;
+    // No migration needed - sentence tables are now proper Strapi content types
+    // defined in src/plugins/chinese-article-processor/server/content-types/
 
-    // Check if migration tracking table exists
-    const hasTrackingTable = await knex.schema.hasTable('chinese_article_processor_migrations');
-
-    if (!hasTrackingTable) {
-      // Create migration tracking table if it doesn't exist
-      await knex.schema.createTable('chinese_article_processor_migrations', (table) => {
-        table.increments('id').primary();
-        table.string('name', 255).notNullable();
-        table.datetime('executed_at').defaultTo(knex.fn.now());
-      });
-      strapi.log.info('Created migration tracking table');
-    }
-
-    // Check if our database setup has been run
-    const hasSetupRun = await knex('chinese_article_processor_migrations')
-      .where('name', 'setup-chinese-article-database')
-      .first();
-
-    if (!hasSetupRun) {
-      // Run the setup
-      await setupChineseArticleDatabase(knex);
-      await knex('chinese_article_processor_migrations').insert({
-        name: 'setup-chinese-article-database',
-        executed_at: knex.fn.now()
-      });
-      strapi.log.info('Chinese article database tables set up successfully');
-    }
   } catch (error) {
-    strapi.log.error('Error setting up Chinese article database:', error);
-    console.error(error);
+    strapi.log.error('[Chinese Article Processor] Error in bootstrap:', error);
   }
 };

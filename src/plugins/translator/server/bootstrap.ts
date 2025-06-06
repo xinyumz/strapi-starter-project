@@ -125,113 +125,155 @@ export default async ({ strapi }: { strapi: Strapi }) => {
 
 async function syncProcessedDataToPerLanguage(articleId: number, processedData: any, strapi: Strapi) {
   try {
-    console.log(`[syncProcessedData] Syncing processed data for article ${articleId}`);
+    console.log(`\n=== [syncProcessedData] DIAGNOSTIC START for article ${articleId} ===`);
+    console.log(`[syncProcessedData] Raw processed data type:`, typeof processedData);
     console.log(`[syncProcessedData] Raw processed data:`, JSON.stringify(processedData, null, 2));
 
     const perLanguagePlugin = strapi.plugin('per-language');
     const contentService = perLanguagePlugin?.service('contentService');
 
     if (!contentService) {
-      console.log('[syncProcessedData] per-language service not available');
+      console.log('[syncProcessedData] ❌ per-language service not available');
       return;
     }
 
     // Check if per_language entry exists
     const existingContent = await contentService.getLanguageContent(articleId, 'zh');
 
-    if (existingContent) {
-      let convertedData = processedData;
-      let displaySkill: string | null = null;
-
-      // **NEW: Smart validation - check if data is complete**
-      const isAdminFormat = processedData && typeof processedData === 'object' && processedData.hsk && processedData.grammar;
-      const isApiFormat = Array.isArray(processedData);
-
-      if (isAdminFormat) {
-        console.log('[syncProcessedData] Detected admin format data');
-
-        // **NEW: Check if grammar processing is complete**
-        const hasCompleteSentences = processedData.grammar &&
-          processedData.grammar.sentences &&
-          Array.isArray(processedData.grammar.sentences) &&
-          processedData.grammar.sentences.length > 0;
-
-        if (!hasCompleteSentences) {
-          console.log('[syncProcessedData] Grammar processing incomplete, skipping conversion');
-          console.log('[syncProcessedData] Will wait for complete data in next update');
-
-          // Still update display_skill if HSK is available
-          if (processedData.hsk) {
-            if (processedData.hsk.selectedLevel) {
-              displaySkill = `HSK ${processedData.hsk.selectedLevel}`;
-            } else if (processedData.hsk.calculatedLevel) {
-              displaySkill = `HSK ${processedData.hsk.calculatedLevel}`;
-            }
-
-            if (displaySkill) {
-              console.log('[syncProcessedData] Updating display_skill only:', displaySkill);
-              await contentService.updateProcessedData(existingContent.id, existingContent.processed_data, displaySkill);
-            }
-          }
-          return; // Exit early, don't update processed_data yet
-        }
-
-        console.log('[syncProcessedData] Converting complete admin format to API format');
-
-        // Extract HSK info for display_skill
-        if (processedData.hsk && processedData.hsk.selectedLevel) {
-          displaySkill = `HSK ${processedData.hsk.selectedLevel}`;
-        } else if (processedData.hsk && processedData.hsk.calculatedLevel) {
-          displaySkill = `HSK ${processedData.hsk.calculatedLevel}`;
-        }
-
-        // Convert to the API format (array of sentence objects)
-        convertedData = processedData.grammar.sentences.map((sentence: any) => ({
-          chinese: sentence.sentence,
-          grammarRules: sentence.rules || [],
-          translations: sentence.translations ?
-            sentence.translations.reduce((acc: any, trans: any) => {
-              acc[trans.language] = trans.text;
-              return acc;
-            }, {}) :
-            { en: sentence.translation }
-        }));
-      }
-      else if (isApiFormat) {
-        console.log('[syncProcessedData] Data already in API format');
-        convertedData = processedData;
-
-        // Try to extract HSK level from the original article if available
-        try {
-          const article = await strapi.entityService?.findOne('api::article.article', articleId, {});
-          const chineseProcessorField = article?.chinese_processor || article?.ChineseProcessor;
-          if (chineseProcessorField && chineseProcessorField.hsk) {
-            if (chineseProcessorField.hsk.selectedLevel) {
-              displaySkill = `HSK ${chineseProcessorField.hsk.selectedLevel}`;
-            } else if (chineseProcessorField.hsk.calculatedLevel) {
-              displaySkill = `HSK ${chineseProcessorField.hsk.calculatedLevel}`;
-            }
-          }
-        } catch (error) {
-          console.log('[syncProcessedData] Could not extract HSK level from article:', error);
-        }
-      }
-      else {
-        console.log('[syncProcessedData] Unknown data format, skipping sync');
-        return;
-      }
-
-      console.log('[syncProcessedData] Final converted data:', JSON.stringify(convertedData, null, 2));
-      console.log('[syncProcessedData] Display skill:', displaySkill);
-
-      // Update existing entry with converted processed data
-      await contentService.updateProcessedData(existingContent.id, convertedData, displaySkill);
-      console.log(`[syncProcessedData] Successfully updated processed data and display_skill for article ${articleId}`);
-    } else {
-      console.log(`[syncProcessedData] No per_language entry found for article ${articleId}, skipping processed data sync`);
+    if (!existingContent) {
+      console.log(`[syncProcessedData] ❌ No per_language entry found for article ${articleId}, skipping processed data sync`);
+      return;
     }
+
+    console.log(`[syncProcessedData] ✅ Found existing per_language content with ID: ${existingContent.id}`);
+
+    // **DETAILED VALIDATION DIAGNOSTICS**
+    console.log(`\n--- VALIDATION DIAGNOSTICS ---`);
+
+    // Check basic structure
+    const isObject = processedData && typeof processedData === 'object';
+    console.log(`[syncProcessedData] Is object: ${isObject}`);
+
+    const hasHsk = isObject && processedData.hsk;
+    console.log(`[syncProcessedData] Has HSK: ${hasHsk}`);
+    if (hasHsk) {
+      console.log(`[syncProcessedData] HSK data:`, JSON.stringify(processedData.hsk, null, 2));
+    }
+
+    const hasGrammar = isObject && processedData.grammar;
+    console.log(`[syncProcessedData] Has grammar: ${hasGrammar}`);
+    if (hasGrammar) {
+      console.log(`[syncProcessedData] Grammar structure:`, {
+        hasSentences: !!processedData.grammar.sentences,
+        sentencesIsArray: Array.isArray(processedData.grammar.sentences),
+        sentencesLength: processedData.grammar.sentences ? processedData.grammar.sentences.length : 0
+      });
+    }
+
+    const isAdminFormat = isObject && hasHsk && hasGrammar;
+    console.log(`[syncProcessedData] Is admin format: ${isAdminFormat}`);
+
+    // Check sentence completeness
+    let hasCompleteSentences = false;
+    if (isAdminFormat && processedData.grammar.sentences) {
+      const sentences = processedData.grammar.sentences;
+      console.log(`[syncProcessedData] Checking ${sentences.length} sentences...`);
+
+      for (let i = 0; i < sentences.length; i++) {
+        const sentence = sentences[i];
+        console.log(`[syncProcessedData] Sentence ${i}:`, {
+          hasSentence: !!sentence.sentence,
+          hasRules: !!sentence.rules,
+          rulesLength: sentence.rules ? sentence.rules.length : 0,
+          sentence: sentence.sentence ? sentence.sentence.substring(0, 50) + '...' : 'MISSING'
+        });
+      }
+
+      hasCompleteSentences = sentences.length > 0 &&
+        sentences.every((s: any) => s.sentence && s.rules && s.rules.length >= 0); // Allow empty rules
+
+      console.log(`[syncProcessedData] Has complete sentences: ${hasCompleteSentences}`);
+    }
+
+    // Check if method exists
+    const hasNewMethod = typeof contentService.updateCompleteProcessedData === 'function';
+    console.log(`[syncProcessedData] Has updateCompleteProcessedData method: ${hasNewMethod}`);
+
+    console.log(`--- END VALIDATION DIAGNOSTICS ---\n`);
+
+    // **RELAXED VALIDATION - Let's see what happens if we proceed anyway**
+    if (!hasCompleteSentences) {
+      console.log('[syncProcessedData] ⚠️  Data appears incomplete, but proceeding anyway for diagnostics');
+
+      // Still try to update display_skill if HSK is available
+      if (processedData.hsk?.selectedLevel) {
+        const displaySkill = `HSK ${processedData.hsk.selectedLevel}`;
+        console.log('[syncProcessedData] 🔄 Updating display_skill only:', displaySkill);
+        try {
+          await contentService.updateProcessedData(existingContent.id, existingContent.processed_data, displaySkill);
+          console.log('[syncProcessedData] ✅ Successfully updated display_skill');
+        } catch (error) {
+          console.log('[syncProcessedData] ❌ Error updating display_skill:', error);
+        }
+      }
+
+      // FOR DIAGNOSTICS: Also try the complete update even if validation fails
+      console.log('[syncProcessedData] 🧪 DIAGNOSTIC: Attempting complete update anyway...');
+    }
+
+    // **ALWAYS ATTEMPT COMPLETE UPDATE FOR DIAGNOSTICS**
+    console.log('[syncProcessedData] 🔄 Proceeding with complete data preservation');
+
+    // 2. Complete data preservation (100% preservation)
+    const completeProcessedData = processedData; // Full metadata
+
+    // 3. Extract difficulty data for performance
+    const difficultyData = processedData.hsk ? {
+      hsk: {
+        distribution: processedData.hsk.distribution,
+        selectedLevel: processedData.hsk.selectedLevel,
+        calculatedLevel: processedData.hsk.calculatedLevel
+      }
+    } : null;
+
+    console.log('[syncProcessedData] 📊 Extracted difficulty data:', JSON.stringify(difficultyData, null, 2));
+
+    // 4. Extract display skill for UI
+    const displaySkill = processedData.hsk?.selectedLevel ?
+      `HSK ${processedData.hsk.selectedLevel}` :
+      (processedData.hsk?.calculatedLevel ? `HSK ${processedData.hsk.calculatedLevel}` : null);
+
+    console.log('[syncProcessedData] 🏷️  Extracted display skill:', displaySkill);
+
+    // 5. Update all three fields using the new method
+    if (hasNewMethod) {
+      console.log('[syncProcessedData] 🚀 Using updateCompleteProcessedData method');
+      try {
+        await contentService.updateCompleteProcessedData(
+          existingContent.id,
+          completeProcessedData,  // processed_data: Complete metadata
+          difficultyData,         // difficulty_data: Extracted difficulty  
+          displaySkill           // display_skill: UI display
+        );
+        console.log(`[syncProcessedData] ✅ Successfully updated all three data fields for article ${articleId}`);
+      } catch (error) {
+        console.log(`[syncProcessedData] ❌ Error with updateCompleteProcessedData:`, error);
+      }
+    } else {
+      // Fallback to old method if new method not available yet
+      console.log('[syncProcessedData] 🔄 Using fallback updateProcessedData method');
+      try {
+        await contentService.updateProcessedData(existingContent.id, completeProcessedData, displaySkill);
+        console.log(`[syncProcessedData] ✅ Fallback update successful`);
+      } catch (error) {
+        console.log(`[syncProcessedData] ❌ Error with fallback method:`, error);
+      }
+    }
+
+    console.log(`=== [syncProcessedData] DIAGNOSTIC END for article ${articleId} ===\n`);
+
   } catch (error) {
-    console.error('[syncProcessedData] Error syncing processed data:', error);
+    console.error('[syncProcessedData] ❌ CRITICAL ERROR:', error);
   }
 }
 /**

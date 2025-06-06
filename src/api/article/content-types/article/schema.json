@@ -29,7 +29,7 @@
       ]
     },
     "Base": {
-      "type": "text",
+      "type": "richtext",
       "required": true
     },
     "Translation": {
