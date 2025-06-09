@@ -84,14 +84,14 @@ export default ({ strapi }: { strapi: Strapi }) => {
           return ctx.notFound(`Article ${articleId} not found`);
         }
 
-        if (!article.translation) {
+        if (!(article as any).Translation || (article as any).translation) {
           return ctx.badRequest(`Article ${articleId} has no translation`);
         }
 
         console.log(`[syncExistingArticle] Article found:`, {
           id: article.id,
-          hasTranslation: !!article.translation,
-          translationLength: article.translation.length
+          hasTranslation: !!(article as any).Translation || (article as any).translation,
+          translationLength: (article as any).Translation || (article as any).translation.length
         });
 
         // Try to use the per-language service directly
@@ -109,7 +109,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         const result = await contentService.upsertLanguageContent(
           article.id,
           'zh',
-          article.translation
+          (article as any).Translation || (article as any).translation
         );
 
         ctx.body = {

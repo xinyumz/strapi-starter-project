@@ -6,6 +6,6 @@ export default ({ strapi }: { strapi: Strapi }) => {
   strapi.customFields.register({
     name: 'translator',
     plugin: 'translator',
-    type: 'text',  // Changed from 'string' to 'text' for long content
+    type: 'richtext',
   });
 };

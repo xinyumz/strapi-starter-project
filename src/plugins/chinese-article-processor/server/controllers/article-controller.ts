@@ -253,7 +253,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.badRequest('Article not found');
             }
 
-            const chineseProcessor = article.chinese_processor || article.ChineseProcessor;
+            const chineseProcessor = (article as any).chinese_processor || (article as any).ChineseProcessor;
 
             if (!chineseProcessor) {
                 return ctx.badRequest('No processed data found in article');

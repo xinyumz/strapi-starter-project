@@ -1,6 +1,9 @@
-// Updated ChineseArticleProcessor component with batch processing toggle
+// src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/index.tsx
+
 import React, { useState, useEffect } from 'react';
 import {
+    Box,
+    Alert,
     HeaderLayout,
     ContentLayout,
     Layout,
@@ -23,6 +26,11 @@ import { SentenceProcessingSection } from './components/sentence-processing';
 // Hooks - Import from the hooks directory
 import { useLoadingState } from '../../hooks';
 import { useHSKManagement, useArticleProcessor, useGrammarManagement, useTranslationManagement } from './hooks';
+
+// Components for data migration
+import { DataSourceIndicator } from '../../components/common/DataSourceIndicator';
+import { useDataSourceInfo } from '../../hooks/useDataSourceInfo';
+
 
 /**
  * Main component for processing Chinese articles
@@ -151,6 +159,18 @@ const ChineseArticleProcessor = () => {
         onError: handleError
     });
 
+    //data source indicator for migration
+    const {
+        dataSourceInfo,
+        isUsingModernSystem,
+        statusMessage,
+        getDataSourceInfo
+    } = useDataSourceInfo({
+        articleId,
+        onSuccess: handleSuccess,
+        onError: handleError
+    });
+
     // Get query parameters on component mount - only run once
     useEffect(() => {
         if (isInitialized) return;
@@ -173,6 +193,32 @@ const ChineseArticleProcessor = () => {
             });
         }
     }, []);  // Empty dependency array - only run once
+
+    // Get query parameters on component mount - only run once
+    useEffect(() => {
+        if (isInitialized) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('articleId');
+        const engine = params.get('engine') || 'both';
+
+        if (id) {
+            setArticleId(id);
+            handleEngineChange(engine as any);
+
+            // Load data in a specific order
+            Promise.all([
+                loadArticleInfo(id),
+                loadArticleData(id),
+                loadHSKData(id)
+            ]).then(() => {
+                setIsInitialized(true);
+                // ✅ Add data source info loading here
+                getDataSourceInfo(id);
+            });
+        }
+    }, []);  // Empty dependency array - only run once
+
 
     // Load article information with proper authentication
     const loadArticleInfo = async (articleId: string) => {
@@ -270,6 +316,19 @@ const ChineseArticleProcessor = () => {
                     <LoadingOverlay isLoading={true} message="Loading data..." />
                 ) : (
                     <>
+                        {/* Data Source Indicator */}
+                        {articleId && (
+                            <Box marginBottom={4}>
+                                <DataSourceIndicator
+                                    articleId={articleId}
+                                    showDetails={true}
+                                    onTransition={() => {
+                                        // Refresh data source info after transition
+                                        getDataSourceInfo(articleId);
+                                    }}
+                                />
+                            </Box>
+                        )}
                         <AlertMessages
                             error={error}
                             success={success}
@@ -277,6 +336,17 @@ const ChineseArticleProcessor = () => {
                             onErrorDismiss={handleErrorDismiss}
                             onSuccessDismiss={handleSuccessDismiss}
                         />
+
+                        {/* Show modern system success message */}
+                        {isUsingModernSystem && (
+                            <Box marginBottom={4}>
+                                <Alert
+                                    variant="success"
+                                    title="Modern System Active"
+                                    message="This article is using the optimized multi-language architecture for better performance and scalability."
+                                />
+                            </Box>
+                        )}
 
                         {/* HSK Level Analysis Section */}
                         <HSKAnalysisSection

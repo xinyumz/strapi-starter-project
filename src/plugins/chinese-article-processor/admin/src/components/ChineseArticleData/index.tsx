@@ -1,4 +1,5 @@
-// ChineseArticleData component
+// ChineseArticleData component - Updated to use per_languages table
+
 import React, { useEffect, useState } from 'react';
 import {
     Button,
@@ -11,7 +12,8 @@ import {
     AccordionToggle,
     AccordionContent,
     Badge,
-    Flex
+    Flex,
+    Alert
 } from '@strapi/design-system';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
@@ -36,11 +38,17 @@ interface ProcessorData {
     };
 }
 
+interface DataSourceInfo {
+    source: 'per_languages' | 'articles' | 'none';
+    isModern: boolean;
+}
+
 const ChineseArticleData = (props: any) => {
     const { initialData, modifiedData } = useCMEditViewDataManager();
     const [isExpanded, setIsExpanded] = useState(false);
     const [processorData, setProcessorData] = useState<ProcessorData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [dataSource, setDataSource] = useState<DataSourceInfo>({ source: 'none', isModern: false });
 
     // Get the article ID directly from initialData
     const getArticleId = (): string | null => {
@@ -55,71 +63,105 @@ const ChineseArticleData = (props: any) => {
         }
     }, [initialData.id]);
 
-    // Load the processor data from the API
+    // Load the processor data from per_languages table first, then fallback to articles
     const loadProcessorData = async (articleId: string) => {
         setIsLoading(true);
         try {
-            console.log(`Loading processor data for article ID: ${articleId}`);
-            const response = await fetch(`/api/articles/${articleId}?populate=*`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
+            console.log(`[ChineseArticleData] Loading processor data for article ID: ${articleId}`);
 
-            if (response.ok) {
-                const articleData = await response.json();
+            // PRIMARY: Try to get data from per_languages table
+            let processorValue = null;
+            let sourceInfo: DataSourceInfo = { source: 'none', isModern: false };
 
-                const chineseProcessor = articleData.data?.attributes?.ChineseProcessor;
-                console.log('Raw ChineseProcessor data:', chineseProcessor);
+            try {
+                console.log(`[ChineseArticleData] Trying per_languages table first...`);
+                const perLanguageResponse = await fetch(`/per-language/article/${articleId}/processing-data?language=zh`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
 
-                if (chineseProcessor && chineseProcessor !== "") {
-                    let processorValue;
-                    try {
-                        // Parse if it's a string
-                        if (typeof chineseProcessor === 'string') {
-                            processorValue = JSON.parse(chineseProcessor);
-                        } else {
-                            processorValue = chineseProcessor;
-                        }
+                if (perLanguageResponse.ok) {
+                    const perLanguageData = await perLanguageResponse.json();
+                    console.log(`[ChineseArticleData] per_languages response:`, perLanguageData);
 
-                        console.log('Parsed processor data:', processorValue);
+                    if (perLanguageData.data?.processedData?.data) {
+                        processorValue = perLanguageData.data.processedData.data;
+                        sourceInfo = { source: 'per_languages', isModern: true };
+                        console.log(`[ChineseArticleData] ✅ Using data from per_languages table`);
+                    }
+                }
+            } catch (perLanguageError) {
+                console.log(`[ChineseArticleData] per_languages table access failed:`, perLanguageError);
+            }
 
-                        // Check if we need to retrieve grammar data separately
-                        if (!processorValue.grammar || !processorValue.grammar.sentences) {
-                            // Try to fetch grammar data directly from API
-                            console.log('No grammar data in processor, fetching separately');
-                            const grammarResponse = await fetch(`/${pluginId}/grammar/article/${articleId}`);
+            // FALLBACK: If no data from per_languages, try articles table
+            if (!processorValue) {
+                console.log(`[ChineseArticleData] 🔄 Falling back to articles table...`);
+                try {
+                    const response = await fetch(`/api/articles/${articleId}?populate=*`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
 
-                            if (grammarResponse.ok) {
-                                const grammarData = await grammarResponse.json();
-                                console.log('Fetched grammar data:', grammarData);
+                    if (response.ok) {
+                        const articleData = await response.json();
+                        const chineseProcessor = articleData.data?.attributes?.ChineseProcessor;
+                        console.log(`[ChineseArticleData] Legacy ChineseProcessor data:`, chineseProcessor);
 
-                                if (grammarData && grammarData.data && grammarData.data.sentences) {
-                                    // Add grammar data to processor value
-                                    processorValue.grammar = {
-                                        sentences: grammarData.data.sentences
-                                    };
+                        if (chineseProcessor && chineseProcessor !== "") {
+                            try {
+                                // Parse if it's a string
+                                if (typeof chineseProcessor === 'string') {
+                                    processorValue = JSON.parse(chineseProcessor);
+                                } else {
+                                    processorValue = chineseProcessor;
                                 }
+                                sourceInfo = { source: 'articles', isModern: false };
+                                console.log(`[ChineseArticleData] ⚠️ Using legacy data from articles table`);
+                            } catch (parseError) {
+                                console.error('[ChineseArticleData] Error parsing legacy ChineseProcessor data:', parseError);
                             }
                         }
-
-                        setProcessorData(processorValue);
-                    } catch (parseError) {
-                        console.error('Error parsing ChineseProcessor data:', parseError);
-                        setProcessorData(null);
                     }
-                } else {
-                    console.log('No ChineseProcessor data found');
-                    setProcessorData(null);
+                } catch (articlesError) {
+                    console.error('[ChineseArticleData] Articles table access failed:', articlesError);
                 }
-            } else {
-                console.error(`Error fetching article data: ${response.status} ${response.statusText}`);
-                setProcessorData(null);
             }
+
+            // If we have processor data but no grammar, try to fetch grammar separately
+            if (processorValue && (!processorValue.grammar || !processorValue.grammar.sentences)) {
+                console.log('[ChineseArticleData] No grammar data found, fetching separately...');
+                try {
+                    const grammarResponse = await fetch(`/${pluginId}/grammar/article/${articleId}`);
+                    if (grammarResponse.ok) {
+                        const grammarData = await grammarResponse.json();
+                        console.log('[ChineseArticleData] Fetched grammar data:', grammarData);
+
+                        if (grammarData && grammarData.data && grammarData.data.sentences) {
+                            processorValue.grammar = {
+                                sentences: grammarData.data.sentences
+                            };
+                        }
+                    }
+                } catch (grammarError) {
+                    console.error('[ChineseArticleData] Error fetching grammar data:', grammarError);
+                }
+            }
+
+            setProcessorData(processorValue);
+            setDataSource(sourceInfo);
+
+            console.log(`[ChineseArticleData] Final data source:`, sourceInfo);
+            console.log(`[ChineseArticleData] Processed data:`, processorValue);
+
         } catch (error) {
-            console.error('Error loading processor data:', error);
+            console.error('[ChineseArticleData] Error loading processor data:', error);
             setProcessorData(null);
+            setDataSource({ source: 'none', isModern: false });
         } finally {
             setIsLoading(false);
         }
@@ -171,6 +213,32 @@ const ChineseArticleData = (props: any) => {
         return processorData.grammar.sentences.reduce(
             (total, sentence) => total + (sentence.rules?.length || 0),
             0
+        );
+    };
+
+    // Render data source indicator
+    const renderDataSourceIndicator = () => {
+        if (dataSource.source === 'none') return null;
+
+        return (
+            <Box paddingBottom={3}>
+                <Flex alignItems="center" gap={2}>
+                    <Typography variant="pi" color="neutral600">Data source:</Typography>
+                    <Badge backgroundColor={dataSource.isModern ? 'success' : 'warning'}>
+                        {dataSource.isModern ? 'Modern System' : 'Legacy System'}
+                    </Badge>
+                    {dataSource.source === 'per_languages' && (
+                        <Typography variant="pi" color="success600">
+                            (per_languages table)
+                        </Typography>
+                    )}
+                    {dataSource.source === 'articles' && (
+                        <Typography variant="pi" color="warning600">
+                            (articles table)
+                        </Typography>
+                    )}
+                </Flex>
+            </Box>
         );
     };
 
@@ -229,7 +297,6 @@ const ChineseArticleData = (props: any) => {
                         <AccordionContent>
                             <Box paddingLeft={7} paddingRight={7} paddingTop={5} paddingBottom={5} background="neutral100">
                                 {processorData?.grammar?.sentences?.map((sentence, sentenceIndex) => (
-
                                     <Box
                                         key={`sentence-${sentenceIndex}`}
                                         paddingTop={1}
@@ -260,7 +327,6 @@ const ChineseArticleData = (props: any) => {
                                             ))}
                                         </Box>
                                     </Box>
-
                                 ))}
                             </Box>
                         </AccordionContent>
@@ -274,6 +340,20 @@ const ChineseArticleData = (props: any) => {
         <Box padding={4} background="neutral100" hasRadius>
             <Typography variant="delta">Chinese Language Tools</Typography>
             <Divider />
+
+            {/* Data Source Indicator */}
+            {renderDataSourceIndicator()}
+
+            {/* Show warning if using legacy system */}
+            {dataSource.source === 'articles' && (
+                <Box paddingBottom={3}>
+                    <Alert
+                        variant="warning"
+                        title="Legacy Data Source"
+                        message="This data is from the legacy system. Consider processing the article to update to the modern system."
+                    />
+                </Box>
+            )}
 
             {isLoading ? (
                 <Box paddingTop={4} paddingBottom={4} textAlign="center">

@@ -33,7 +33,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                     const entityService = getEntityService();
                     console.log(`[TranslationService] Fetching article ${articleId} with entityService`);
                     const article: any = await entityService.findOne('api::article.article', articleId, {
-                        populate: { '*': true }  // Try to populate all fields
+                        populate: '*' as any  // Try to populate all fields
                     });
 
                     if (article) {
@@ -142,16 +142,16 @@ export default ({ strapi }: { strapi: Strapi }) => {
                     // Fallback to the article's translation field
                     const entityService = getEntityService();
                     const article = await entityService.findOne('api::article.article', articleId, {
-                        populate: ['*']
+                        populate: '*' as any
                     });
 
-                    if (!article || !article.translation) {
+                    if (!article || !(article as any).Translation || (article as any).translation) {
                         console.log(`[TranslationService] No fallback translation found in article`);
                         throw new ApplicationError(`No content found for article ${articleId} in language ${languageCode}`);
                     }
 
                     console.log(`[TranslationService] Using fallback translation from article`);
-                    return article.translation;
+                    return (article as any).Translation || (article as any).translation;
                 }
 
                 console.log(`[TranslationService] Found content in per_language table`);

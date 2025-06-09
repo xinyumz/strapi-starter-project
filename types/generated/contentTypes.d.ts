@@ -971,7 +971,7 @@ export interface ApiArticleArticle extends Schema.CollectionType {
     Date: Attribute.Date;
     Cover: Attribute.Media<'images'> & Attribute.Required;
     Base: Attribute.RichText & Attribute.Required;
-    Translation: Attribute.Text &
+    Translation: Attribute.RichText &
       Attribute.CustomField<'plugin::translator.translator'>;
     SelectCategory: Attribute.JSON &
       Attribute.CustomField<

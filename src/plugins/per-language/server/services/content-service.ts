@@ -33,7 +33,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                     }
                 });
 
-                if (existingContent && existingContent.length > 0) {
+                if (existingContent && Array.isArray(existingContent) && existingContent.length > 0) {
                     // Update existing content
                     const updated = await entityService.update(
                         'plugin::per-language.per-language',
@@ -81,7 +81,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                     }
                 });
 
-                if (!existingContent || existingContent.length === 0) {
+                if (!existingContent || (Array.isArray(existingContent) && existingContent.length === 0)) {
                     console.log(`[ContentService] No content found in per_language table`);
                     return null;
                 }
@@ -263,8 +263,8 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 console.log(`[ContentService] Falling back to articles table for processed data`);
                 const article = await strapi.entityService?.findOne('api::article.article', articleId, {});
 
-                if (article && (article.chinese_processor || article.ChineseProcessor)) {
-                    const processedData = article.chinese_processor || article.ChineseProcessor;
+                if (article && ((article as any).chinese_processor || (article as any).ChineseProcessor)) {
+                    const processedData = (article as any).chinese_processor || (article as any).ChineseProcessor;
                     return {
                         data: processedData,
                         source: 'articles'

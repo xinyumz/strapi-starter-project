@@ -124,9 +124,9 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 const entityService = getEntityService();
                 const count = await entityService.count('plugin::per-language.per-language', {
                     filters: {
-                        article: articleId,
+                        article_id: articleId,
                         language: languageCode
-                    },
+                    }
                 });
 
                 return count > 0;

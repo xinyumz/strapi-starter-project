@@ -415,7 +415,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                 if (currentArticle) {
                     // Get existing processed data or initialize
-                    const existingProcessed = currentArticle.chinese_processor || currentArticle.ChineseProcessor || {};
+                    const existingProcessed = (currentArticle as any).chinese_processor || (currentArticle as any).ChineseProcessor || {};
 
                     // Create the complete grammar data structure
                     const completeGrammarData = {
