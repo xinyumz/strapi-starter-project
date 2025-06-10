@@ -1,1 +1,23 @@
-{}
+{
+    "plugin.name": "Per-language Processing",
+    "plugin.description": "Manage translations and language-specific processing for articles",
+    "language-processor.label": "Language Processing",
+    "language-processor.description": "Manage translations and language processing for this article",
+    "language-processor.options.base.title": "Base settings",
+    "language-processor.options.required": "Required field",
+    "language-processor.options.required.description": "You won't be able to create an entry if this field is empty",
+    "language-processor.options.advanced.title": "Settings",
+    "language-processor.options.private": "Private field",
+    "language-processor.options.private.description": "This field will not show up in the generated API",
+    "language-processor.translate": "Translate",
+    "language-processor.process": "Process",
+    "language-processor.published": "Published",
+    "language-processor.draft": "Draft",
+    "language-processor.access-tier": "Access Tier",
+    "language-processor.add-language": "Add New Language",
+    "language-processor.select-language": "Select Language",
+    "language-processor.translate-create": "Translate & Create",
+    "language-processor.no-processors": "No supported language processors available",
+    "language-processor.save-first": "Save the article first to enable language processing",
+    "language-processor.loading": "Loading language options..."
+}

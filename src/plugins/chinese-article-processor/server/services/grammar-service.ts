@@ -12,10 +12,6 @@ const { ApplicationError } = errors;
 export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Processes sentences in batches for more efficient grammar rule generation
-     * @param {string[]} sentences - Array of individual sentences to process
-     * @param {string} engineChoice - Parser engine choice
-     * @param {BatchGrammarOptions} options - Configuration options for batch processing
-     * @returns {Promise<GrammarRule[]>} - Combined grammar rules
      */
     async generateRulesBatch(
         sentences: string[],
@@ -26,7 +22,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             batchSize = 5,
             maxRetries = 3,
             retryDelay = 1000,
-            concurrentRequests = 1 // Default to 1 for safer processing
+            concurrentRequests = 1
         } = options;
 
         strapi.log.info(`Generating grammar rules in batches: ${sentences.length} sentences with engine: ${engineChoice}`);
@@ -36,7 +32,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             return [];
         }
 
-        // Process sentences in batches
         const allRules: GrammarRule[] = [];
         const batches: string[][] = [];
 
@@ -47,14 +42,13 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
         strapi.log.info(`Split ${sentences.length} sentences into ${batches.length} batches of max ${batchSize} sentences`);
 
-        // Process each batch sequentially (safer approach)
+        // Process each batch sequentially
         for (let i = 0; i < batches.length; i++) {
             const batchSentences = batches[i];
             const batchNumber = i + 1;
 
             strapi.log.info(`Processing batch ${batchNumber}/${batches.length} with ${batchSentences.length} sentences`);
 
-            // Process each batch sentence individually (most reliable approach)
             const batchResults: GrammarRule[] = [];
 
             for (let j = 0; j < batchSentences.length; j++) {
@@ -67,7 +61,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                 while (retryCount < maxRetries && !success) {
                     try {
-                        // Process each sentence individually
                         sentenceRules = await this.generateRules(sentence, engineChoice);
                         success = true;
                     } catch (error) {
@@ -77,14 +70,12 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                         if (retryCount >= maxRetries) {
                             strapi.log.error(`Failed to process sentence ${j + 1} after ${maxRetries} attempts`);
-                            // Add an empty rule to maintain order
                             sentenceRules = [{
                                 sentence,
                                 rules: [],
                                 translations: []
                             }];
                         } else {
-                            // Wait before retrying
                             await new Promise(resolve => setTimeout(resolve, retryDelay));
                         }
                     }
@@ -92,7 +83,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                 batchResults.push(...sentenceRules);
 
-                // Small delay between sentences to avoid overwhelming the API
                 if (j < batchSentences.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                 }
@@ -100,7 +90,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             allRules.push(...batchResults);
 
-            // Add delay between batches to avoid rate limiting
             if (i < batches.length - 1) {
                 strapi.log.info(`Waiting ${retryDelay}ms before processing next batch`);
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -111,7 +100,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         return allRules;
     },
 
-    // Generate grammar rules from external API (no changes needed)
+    // Generate grammar rules from external API
     async generateRules(text: string, engineChoice: 'stanford' | 'jieba' | 'both' = 'both'): Promise<GrammarRule[]> {
         try {
             strapi.log.info(`Generating grammar rules with engine: ${engineChoice}`);
@@ -184,7 +173,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             // Get grammar rules for all sentences
             const sentenceIds = sentences.map((s: any) => s.sentence_id);
 
-            // Get grammar rules for all sentences from the new table
             const grammarRules = await strapi.db.connection('sentence_grammar_rules')
                 .whereIn('sentence_id', sentenceIds)
                 .select('sentence_id', 'rule');
@@ -218,14 +206,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             // Format sentences with their rules and translations
             const formattedSentences: GrammarRule[] = sentences.map(sentence => {
-                // Get rules for this sentence
                 const rules = rulesBySentence[sentence.sentence_id] || [];
-
-                // Get English translation for backward compatibility
                 const translations = translationsBySentence[sentence.sentence_id] || {};
                 const englishTranslation = translations['en'] || '';
 
-                // Format translations array
                 const translationsArray = Object.entries(translations).map(([language, text]) => ({
                     language,
                     text
@@ -234,7 +218,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return {
                     sentence: sentence.sentence_text,
                     rules: rules,
-                    translation: englishTranslation, // For backward compatibility
+                    translation: englishTranslation,
                     translations: translationsArray
                 };
             });
@@ -254,7 +238,14 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // Save grammar data for an article to the normalized database
+    /**
+     * CORRECTED: Save grammar data with complete HSK data preservation
+     * REQUIREMENTS:
+     * 1. Gets existing processed data from per_languages table ONLY
+     * 2. Merges grammar with existing HSK data (or works without HSK data)
+     * 3. Saves complete merged data to per_languages table ONLY
+     * 4. HSK and grammar operations are completely separate
+     */
     async saveArticleGrammar(articleId: number, sentences: GrammarRule[]): Promise<{ success: boolean, error?: string }> {
         if (!strapi.db || !strapi.db.connection) {
             return {
@@ -290,30 +281,25 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         const trx = await strapi.db.connection.transaction();
 
         try {
-            // First delete existing data
-            // Get all sentence IDs for this article
+            // Save to sentence tables (existing logic)
             const existingSentences = await trx
                 .select('id')
                 .from('article_sentences')
                 .where('article_id', articleId);
 
             const sentenceIds = existingSentences.map(s => s.id);
-
             strapi.log.info(`Found ${sentenceIds.length} existing sentences to delete`);
 
-            // Delete translations and grammar rules for these sentences
             if (sentenceIds.length > 0) {
                 await trx('sentence_translations')
                     .whereIn('sentence_id', sentenceIds)
                     .delete();
 
-                // Delete grammar rules for these sentences
                 await trx('sentence_grammar_rules')
                     .whereIn('sentence_id', sentenceIds)
                     .delete();
             }
 
-            // Delete sentences
             await trx('article_sentences')
                 .where('article_id', articleId)
                 .delete();
@@ -328,11 +314,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 }
 
                 try {
-                    // Safely get sentence text, ensuring it's a string
                     const sentenceText = typeof sentence.sentence === 'string' ?
                         sentence.sentence : String(sentence.sentence);
 
-                    // Insert sentence
                     const [sentenceId] = await trx('article_sentences')
                         .insert({
                             article_id: articleId,
@@ -342,7 +326,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                             updated_at: trx.fn.now()
                         });
 
-                    // Insert grammar rules
                     if (sentence.rules && Array.isArray(sentence.rules) && sentence.rules.length > 0) {
                         const rulesToInsert = sentence.rules.map(rule => ({
                             sentence_id: sentenceId,
@@ -354,8 +337,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                         await trx('sentence_grammar_rules').insert(rulesToInsert);
                     }
 
-                    // Insert translations
-                    // Handle legacy translation field (as English)
                     if (sentence.translation) {
                         const englishText = typeof sentence.translation === 'string' ?
                             sentence.translation : String(sentence.translation);
@@ -369,17 +350,14 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                         });
                     }
 
-                    // Handle new translations format if available
                     if (sentence.translations && Array.isArray(sentence.translations)) {
                         const translationsToInsert = sentence.translations
                             .filter(trans => {
-                                // Skip empty translations or those already handled by legacy field
                                 if (!trans || !trans.text || !trans.language) return false;
                                 if (trans.language === 'en' && sentence.translation) return false;
                                 return true;
                             })
                             .map(trans => {
-                                // Ensure text is a string
                                 const translationText = typeof trans.text === 'string' ?
                                     trans.text : String(trans.text);
 
@@ -397,7 +375,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                         }
                     }
                 } catch (insertError) {
-                    // Log the specific error for this sentence but continue with others
                     const errorMessage = insertError instanceof Error ? insertError.message : 'Unknown error';
                     strapi.log.error(`Error inserting sentence ${i}: ${errorMessage}`);
                 }
@@ -406,94 +383,95 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             await trx.commit();
             strapi.log.info(`Successfully saved grammar data for article ID: ${articleId}`);
 
-            // **BETTER APPROACH: Update per_languages table directly**
+            // **CORRECTED: Update per_languages table ONLY with HSK preservation**
             try {
-                console.log(`[Grammar Service] 🎯 Updating per_languages table directly with complete data...`);
+                console.log(`[Grammar Service] 🎯 Updating per_languages table with HSK preservation...`);
 
-                // Get the current article data to preserve existing HSK and other data
-                const currentArticle = await strapi.entityService?.findOne('api::article.article', articleId, {});
+                // STEP 1: Get existing processed data from per_languages table ONLY
+                const perLanguagePlugin = strapi.plugin('per-language');
+                const contentService = perLanguagePlugin?.service('contentService');
 
-                if (currentArticle) {
-                    // Get existing processed data or initialize
-                    const existingProcessed = (currentArticle as any).chinese_processor || (currentArticle as any).ChineseProcessor || {};
-
-                    // Create the complete grammar data structure
-                    const completeGrammarData = {
-                        ...existingProcessed, // Preserve HSK and other existing data
-                        grammar: {
-                            sentences: sentences.map(sentence => ({
-                                sentence: sentence.sentence,
-                                rules: sentence.rules || [],
-                                translation: sentence.translation || '', // For backward compatibility
-                                translations: sentence.translations || []
-                            }))
-                        }
-                    };
-
-                    console.log(`[Grammar Service] 📝 Complete data structure:`, JSON.stringify(completeGrammarData, null, 2));
-
-                    // **1. Update articles table (for backward compatibility)**
-                    await strapi.entityService?.update('api::article.article', articleId, {
-                        data: {
-                            chinese_processor: completeGrammarData
-                        } as any
-                    });
-
-                    // **2. DIRECTLY update per_languages table**
-                    const perLanguagePlugin = strapi.plugin('per-language');
-                    const contentService = perLanguagePlugin?.service('contentService');
-
-                    if (contentService) {
-                        // Check if per_language entry exists
-                        const existingContent = await contentService.getLanguageContent(articleId, 'zh');
-
-                        if (existingContent) {
-                            // Extract difficulty data for performance
-                            const difficultyData = completeGrammarData.hsk ? {
-                                hsk: {
-                                    distribution: completeGrammarData.hsk.distribution,
-                                    selectedLevel: completeGrammarData.hsk.selectedLevel,
-                                    calculatedLevel: completeGrammarData.hsk.calculatedLevel
-                                }
-                            } : null;
-
-                            // Extract display skill for UI
-                            const displaySkill = completeGrammarData.hsk?.selectedLevel ?
-                                `HSK ${completeGrammarData.hsk.selectedLevel}` :
-                                (completeGrammarData.hsk?.calculatedLevel ? `HSK ${completeGrammarData.hsk.calculatedLevel}` : null);
-
-                            console.log(`[Grammar Service] 🚀 Directly updating per_languages with complete data...`);
-                            console.log(`[Grammar Service] 📊 Difficulty data:`, JSON.stringify(difficultyData, null, 2));
-                            console.log(`[Grammar Service] 🏷️ Display skill:`, displaySkill);
-
-                            // Direct update using the enhanced method
-                            if (contentService.updateCompleteProcessedData) {
-                                await contentService.updateCompleteProcessedData(
-                                    existingContent.id,
-                                    completeGrammarData,  // processed_data: Complete metadata
-                                    difficultyData,       // difficulty_data: Extracted difficulty  
-                                    displaySkill         // display_skill: UI display
-                                );
-                                console.log(`[Grammar Service] ✅ Successfully updated per_languages directly with complete data`);
-                            } else {
-                                console.log(`[Grammar Service] ⚠️ updateCompleteProcessedData method not available, using fallback`);
-                                await contentService.updateProcessedData(existingContent.id, completeGrammarData, displaySkill);
-                            }
-                        } else {
-                            console.log(`[Grammar Service] ⚠️ No per_language entry found for article ${articleId}`);
-                        }
-                    } else {
-                        console.log(`[Grammar Service] ⚠️ per-language service not available`);
-                    }
-
-                    console.log(`[Grammar Service] ✅ Complete update finished`);
-                } else {
-                    console.log(`[Grammar Service] ⚠️ Article ${articleId} not found for update`);
+                if (!contentService) {
+                    console.log(`[Grammar Service] ⚠️ per-language service not available`);
+                    return { success: true }; // Still return success since sentence tables were saved
                 }
+
+                const existingContent = await contentService.getLanguageContent(articleId, 'zh');
+
+                if (!existingContent) {
+                    console.log(`[Grammar Service] ⚠️ No per_language entry found for article ${articleId}`);
+                    return { success: true }; // Still return success since sentence tables were saved
+                }
+
+                // STEP 2: Get existing processed data (including HSK data if it exists)
+                const existingProcessedData = existingContent.processed_data || {};
+                console.log(`[Grammar Service] 📋 Existing processed data keys:`, Object.keys(existingProcessedData));
+
+                // STEP 3: Create new grammar data structure
+                const newGrammarData = {
+                    sentences: sentences.map(sentence => ({
+                        sentence: sentence.sentence,
+                        rules: sentence.rules || [],
+                        translation: sentence.translation || '',
+                        translations: sentence.translations || []
+                    }))
+                };
+
+                // STEP 4: Merge grammar with existing data (preserve HSK if it exists)
+                const completeData = {
+                    ...existingProcessedData,  // Preserve existing HSK and other data (if any)
+                    grammar: newGrammarData    // Update only grammar data
+                };
+
+                console.log(`[Grammar Service] 📊 Complete merged data structure:`, {
+                    hasHSK: !!completeData.hsk,
+                    hasGrammar: !!completeData.grammar,
+                    grammarSentencesCount: completeData.grammar?.sentences?.length || 0,
+                    hskData: completeData.hsk ? {
+                        calculatedLevel: completeData.hsk.calculatedLevel,
+                        selectedLevel: completeData.hsk.selectedLevel,
+                        hasDistribution: !!completeData.hsk.distribution
+                    } : 'No HSK data found (this is fine)'
+                });
+
+                // STEP 5: Extract difficulty data for performance optimization (only if HSK exists)
+                const difficultyData = completeData.hsk ? {
+                    hsk: {
+                        distribution: completeData.hsk.distribution,
+                        selectedLevel: completeData.hsk.selectedLevel,
+                        calculatedLevel: completeData.hsk.calculatedLevel
+                    }
+                } : null;
+
+                // STEP 6: Extract display skill for UI (only if HSK exists)
+                const displaySkill = completeData.hsk?.selectedLevel ?
+                    `HSK ${completeData.hsk.selectedLevel}` :
+                    (completeData.hsk?.calculatedLevel ? `HSK ${completeData.hsk.calculatedLevel}` : null);
+
+                console.log(`[Grammar Service] 🚀 Updating per_languages table with preserved HSK data...`);
+                console.log(`[Grammar Service] 📊 Difficulty data:`, difficultyData || 'No HSK data to preserve');
+                console.log(`[Grammar Service] 🏷️ Display skill:`, displaySkill || 'No HSK display skill');
+
+                // STEP 7: Update per_languages table ONLY
+                if (contentService.updateCompleteProcessedData) {
+                    await contentService.updateCompleteProcessedData(
+                        existingContent.id,
+                        completeData,       // processed_data: Complete metadata with preserved HSK
+                        difficultyData,     // difficulty_data: Extracted difficulty (null if no HSK)
+                        displaySkill       // display_skill: UI display (null if no HSK)
+                    );
+                    console.log(`[Grammar Service] ✅ Successfully updated per_languages table with complete data preservation`);
+                } else {
+                    console.log(`[Grammar Service] ⚠️ updateCompleteProcessedData method not available, using fallback`);
+                    await contentService.updateProcessedData(existingContent.id, completeData, displaySkill);
+                    console.log(`[Grammar Service] ✅ Updated per_languages table using fallback method`);
+                }
+
+                console.log(`[Grammar Service] ✅ Grammar update with HSK preservation completed`);
             } catch (updateError) {
                 // Log error but don't fail the entire operation since sentence tables were saved successfully
                 const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
-                console.error(`[Grammar Service] ❌ Error updating processed data: ${errorMessage}`);
+                console.error(`[Grammar Service] ❌ Error updating per_languages table: ${errorMessage}`);
                 console.log(`[Grammar Service] ℹ️ Sentence tables were saved successfully despite update error`);
             }
 

@@ -7,39 +7,29 @@ const { ApplicationError } = errors;
 
 export default ({ strapi }: { strapi: Strapi }) => ({
     /**
-     * Get article content with per_languages as primary source
-     * Simple fallback to articles table during transition
+     * CORRECTED: Get article content from per_languages table ONLY
      */
     async getArticleContent(articleId: number, language: string = 'zh'): Promise<string> {
         try {
             console.log(`[ProcessService] Getting content for article ${articleId} in ${language}`);
 
-            // PRIMARY SOURCE: per_languages table
-            if (strapi.plugin('per-language')?.service('contentService')) {
-                try {
-                    const perLanguageContent = await strapi.plugin('per-language')
-                        .service('contentService')
-                        .getLanguageContent(articleId, language);
-
-                    if (perLanguageContent && perLanguageContent.per_language_text) {
-                        console.log(`[ProcessService] ✅ Using content from per_languages table`);
-                        return perLanguageContent.per_language_text;
-                    }
-                } catch (err) {
-                    console.log('[ProcessService] per_language table access failed, using fallback:', err);
-                }
+            if (!strapi.plugin('per-language')?.service('contentService')) {
+                throw new ApplicationError('per-language service not available');
             }
 
-            // FALLBACK: articles table (during transition period)
-            console.log(`[ProcessService] 🔄 Using fallback content from articles table`);
-            const article = await this.getArticleFromLegacyTable(articleId);
-            const content = article?.translation || article?.Translation;
+            const perLanguageContent = await strapi.plugin('per-language')
+                .service('contentService')
+                .getLanguageContent(articleId, language);
 
-            if (!content) {
-                throw new ApplicationError(`No content found for article ${articleId}`);
+            if (perLanguageContent && perLanguageContent.per_language_text) {
+                console.log(`[ProcessService] ✅ Using content from per_languages table`);
+                return perLanguageContent.per_language_text;
             }
 
-            return content;
+            throw new ApplicationError(
+                `No content found for article ${articleId} in language ${language}. ` +
+                `Please ensure the content is translated and saved in the per_languages table first.`
+            );
         } catch (error) {
             console.error('[ProcessService] Error getting article content:', error);
             throw error;
@@ -47,34 +37,59 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Get processed data with per_languages as primary source
+     * CORRECTED: Get content from per_languages table ONLY
+     */
+    async getContentFromAnySource(articleId: number, language: string = 'zh'): Promise<{ content: string, source: string }> {
+        try {
+            console.log(`[ProcessService] Getting content from per_languages table for article ${articleId}`);
+
+            if (!strapi.plugin('per-language')?.service('contentService')) {
+                throw new ApplicationError('per-language service not available');
+            }
+
+            const perLanguageContent = await strapi.plugin('per-language')
+                .service('contentService')
+                .getLanguageContent(articleId, language);
+
+            if (perLanguageContent?.per_language_text) {
+                return {
+                    content: perLanguageContent.per_language_text,
+                    source: 'per_languages'
+                };
+            }
+
+            throw new ApplicationError(
+                `No content found for article ${articleId} in language ${language}. ` +
+                `Please ensure the content is translated and saved in the per_languages table first.`
+            );
+        } catch (error) {
+            console.error('[ProcessService] Error getting content from per_languages table:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * CORRECTED: Get processed data from per_languages table ONLY
      */
     async getProcessedData(articleId: number, language: string = 'zh'): Promise<any> {
         try {
             console.log(`[ProcessService] Getting processed data for article ${articleId} in ${language}`);
 
-            // PRIMARY SOURCE: per_languages table
-            if (strapi.plugin('per-language')?.service('contentService')) {
-                try {
-                    const perLanguageContent = await strapi.plugin('per-language')
-                        .service('contentService')
-                        .getLanguageContent(articleId, language);
-
-                    if (perLanguageContent && perLanguageContent.processed_data) {
-                        console.log(`[ProcessService] ✅ Using processed data from per_languages table`);
-                        return perLanguageContent.processed_data;
-                    }
-                } catch (err) {
-                    console.log('[ProcessService] per_language processed data access failed, using fallback:', err);
-                }
+            if (!strapi.plugin('per-language')?.service('contentService')) {
+                throw new ApplicationError('per-language service not available');
             }
 
-            // FALLBACK: articles table
-            console.log(`[ProcessService] 🔄 Using fallback processed data from articles table`);
-            const article = await this.getArticleFromLegacyTable(articleId);
-            const processedData = article?.chinese_processor || article?.ChineseProcessor;
+            const perLanguageContent = await strapi.plugin('per-language')
+                .service('contentService')
+                .getLanguageContent(articleId, language);
 
-            return processedData || null;
+            if (perLanguageContent && perLanguageContent.processed_data) {
+                console.log(`[ProcessService] ✅ Using processed data from per_languages table`);
+                return perLanguageContent.processed_data;
+            }
+
+            console.log(`[ProcessService] No processed data found in per_languages table`);
+            return null;
         } catch (error) {
             console.error('[ProcessService] Error getting processed data:', error);
             throw error;
@@ -82,8 +97,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Save processed data - Always save to per_languages as primary target
-     * Keep articles table sync during transition for safety
+     * CORRECTED: Save processed data to per_languages table ONLY
+     * Enhanced with complete data preservation
      */
     async saveProcessedData(
         articleId: number,
@@ -94,55 +109,39 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             console.log(`[ProcessService] Saving processed data for article ${articleId}`);
 
-            // PRIMARY TARGET: per_languages table
-            if (strapi.plugin('per-language')?.service('contentService')) {
-                const contentService = strapi.plugin('per-language').service('contentService');
-
-                // Get or create per_language entry
-                let existingContent = await contentService.getLanguageContent(articleId, language);
-
-                // If no per_language entry exists, create one with content from articles table
-                if (!existingContent) {
-                    console.log(`[ProcessService] Creating per_language entry for article ${articleId}`);
-                    const article = await this.getArticleFromLegacyTable(articleId);
-                    const legacyContent = article?.translation || article?.Translation;
-
-                    if (legacyContent) {
-                        await contentService.upsertLanguageContent(articleId, language, legacyContent);
-                        existingContent = await contentService.getLanguageContent(articleId, language);
-                    }
-                }
-
-                if (existingContent) {
-                    // Extract difficulty data for performance optimization
-                    const difficultyData = this.extractDifficultyData(processedData);
-
-                    // Save using complete data preservation method
-                    if (contentService.updateCompleteProcessedData) {
-                        await contentService.updateCompleteProcessedData(
-                            existingContent.id,
-                            processedData,      // processed_data: Complete metadata
-                            difficultyData,     // difficulty_data: Extracted difficulty  
-                            displaySkill       // display_skill: UI display
-                        );
-                        console.log(`[ProcessService] ✅ Saved to per_languages table`);
-                    } else {
-                        // Fallback method
-                        await contentService.updateProcessedData(existingContent.id, processedData, displaySkill);
-                        console.log(`[ProcessService] ✅ Saved to per_languages table (fallback method)`);
-                    }
-                } else {
-                    console.log(`[ProcessService] ⚠️ Could not create per_language entry`);
-                }
+            if (!strapi.plugin('per-language')?.service('contentService')) {
+                throw new ApplicationError('per-language service not available');
             }
 
-            // TRANSITION SAFETY: Also save to articles table during transition period
-            const articleData = { chinese_processor: processedData } as any;
-            await strapi.entityService?.update('api::article.article', articleId, {
-                data: articleData
-            });
-            console.log(`[ProcessService] ✅ Also saved to articles table for transition safety`);
+            const contentService = strapi.plugin('per-language').service('contentService');
 
+            // Get existing per_language entry
+            let existingContent = await contentService.getLanguageContent(articleId, language);
+
+            if (!existingContent) {
+                throw new ApplicationError(
+                    `No per_language entry found for article ${articleId} in language ${language}. ` +
+                    `Please ensure the content is translated and saved first.`
+                );
+            }
+
+            // Extract difficulty data for performance optimization
+            const difficultyData = this.extractDifficultyData(processedData);
+
+            // Save using complete data preservation method
+            if (contentService.updateCompleteProcessedData) {
+                await contentService.updateCompleteProcessedData(
+                    existingContent.id,
+                    processedData,      // processed_data: Complete metadata
+                    difficultyData,     // difficulty_data: Extracted difficulty  
+                    displaySkill       // display_skill: UI display
+                );
+                console.log(`[ProcessService] ✅ Saved to per_languages table`);
+            } else {
+                // Fallback method
+                await contentService.updateProcessedData(existingContent.id, processedData, displaySkill);
+                console.log(`[ProcessService] ✅ Saved to per_languages table (fallback method)`);
+            }
         } catch (error) {
             console.error('[ProcessService] Error saving processed data:', error);
             throw error;
@@ -150,7 +149,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Complete article processing workflow
+     * CORRECTED: Complete article processing workflow using per_languages table ONLY
+     * This is used by the complete processing endpoint (process-v2)
      */
     async processArticleComplete(
         articleId: number,
@@ -160,10 +160,16 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             console.log(`[ProcessService] Complete processing for article ${articleId}`);
 
-            // 1. Get content (per_languages first)
-            const content = await this.getArticleContent(articleId, language);
+            // 1. Get content from per_languages table ONLY
+            const { content, source } = await this.getContentFromAnySource(articleId, language);
+            console.log(`[ProcessService] Found content from source: ${source}`);
 
-            // 2. Process using existing article service
+            // 2. Validate content before processing
+            if (!content || content.trim().length === 0) {
+                throw new ApplicationError('Translation text is required for processing');
+            }
+
+            // 3. Process using existing article service
             const articleService = strapi.plugin('chinese-article-processor').service('articleService');
             const processedArticle = await articleService.processArticle(
                 content,
@@ -172,10 +178,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 {} // Default batch options
             );
 
-            // 3. Save processed data (per_languages primary)
+            // 4. Save processed data (per_languages ONLY)
             await this.saveProcessedData(articleId, language, processedArticle);
 
-            // 4. Save to sentence tables as well
+            // 5. Save to sentence tables as well
             await articleService.saveProcessedArticle(articleId, processedArticle);
 
             console.log(`[ProcessService] ✅ Complete processing finished for article ${articleId}`);
@@ -188,7 +194,38 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Get data source information for transparency
+     * CORRECTED: Enhanced compatibility method for Chinese processor UI
+     */
+    async getDataForChineseProcessor(articleId: number, language: string = 'zh') {
+        try {
+            const { content, source } = await this.getContentFromAnySource(articleId, language);
+            const processedData = await this.getProcessedData(articleId, language);
+
+            return {
+                articleId,
+                language,
+                content: {
+                    text: content,
+                    source: source
+                },
+                processedData: {
+                    data: processedData,
+                    hasData: !!processedData
+                },
+                compatibility: {
+                    canProcess: !!content && content.trim().length > 0,
+                    dataSource: source,
+                    isModern: source === 'per_languages'
+                }
+            };
+        } catch (error) {
+            console.error('[ProcessService] Error getting data for Chinese processor:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * CORRECTED: Get data source information for transparency
      */
     async getDataSourceInfo(articleId: number, language: string = 'zh') {
         try {
@@ -207,7 +244,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     isModern: processedSource === 'per_languages'
                 },
                 overallStatus: (contentSource === 'per_languages' && processedSource === 'per_languages')
-                    ? 'modern' : 'transition'
+                    ? 'modern' : (contentSource === 'none' || processedSource === 'none')
+                        ? 'missing' : 'unknown'
             };
         } catch (error) {
             console.error('[ProcessService] Error getting data source info:', error);
@@ -222,44 +260,20 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Helper: Get article from legacy table with error handling
+     * CORRECTED: Check where content is coming from - per_languages ONLY
      */
-    async getArticleFromLegacyTable(articleId: number) {
+    async checkContentSource(articleId: number, language: string): Promise<'per_languages' | 'none'> {
         try {
-            return await strapi.entityService?.findOne('api::article.article', articleId, {
-                populate: '*'
-            });
-        } catch (entityError) {
-            console.log('[ProcessService] EntityService failed, trying direct query:', entityError);
-            if (strapi.db) {
-                return await strapi.db.query('api::article.article').findOne({
-                    where: { id: articleId }
-                });
-            }
-            throw entityError;
-        }
-    },
-
-    /**
-     * Helper: Check where content is coming from
-     */
-    async checkContentSource(articleId: number, language: string): Promise<'per_languages' | 'articles' | 'none'> {
-        try {
-            // Check per_languages first
-            if (strapi.plugin('per-language')?.service('contentService')) {
-                const perLanguageContent = await strapi.plugin('per-language')
-                    .service('contentService')
-                    .getLanguageContent(articleId, language);
-
-                if (perLanguageContent?.per_language_text) {
-                    return 'per_languages';
-                }
+            if (!strapi.plugin('per-language')?.service('contentService')) {
+                return 'none';
             }
 
-            // Check articles table
-            const article = await this.getArticleFromLegacyTable(articleId);
-            if (article?.translation || article?.Translation) {
-                return 'articles';
+            const perLanguageContent = await strapi.plugin('per-language')
+                .service('contentService')
+                .getLanguageContent(articleId, language);
+
+            if (perLanguageContent?.per_language_text) {
+                return 'per_languages';
             }
 
             return 'none';
@@ -269,25 +283,20 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Helper: Check where processed data is coming from
+     * CORRECTED: Check where processed data is coming from - per_languages ONLY
      */
-    async checkProcessedDataSource(articleId: number, language: string): Promise<'per_languages' | 'articles' | 'none'> {
+    async checkProcessedDataSource(articleId: number, language: string): Promise<'per_languages' | 'none'> {
         try {
-            // Check per_languages first
-            if (strapi.plugin('per-language')?.service('contentService')) {
-                const perLanguageContent = await strapi.plugin('per-language')
-                    .service('contentService')
-                    .getLanguageContent(articleId, language);
-
-                if (perLanguageContent?.processed_data) {
-                    return 'per_languages';
-                }
+            if (!strapi.plugin('per-language')?.service('contentService')) {
+                return 'none';
             }
 
-            // Check articles table
-            const article = await this.getArticleFromLegacyTable(articleId);
-            if (article?.chinese_processor || article?.ChineseProcessor) {
-                return 'articles';
+            const perLanguageContent = await strapi.plugin('per-language')
+                .service('contentService')
+                .getLanguageContent(articleId, language);
+
+            if (perLanguageContent?.processed_data) {
+                return 'per_languages';
             }
 
             return 'none';
@@ -310,22 +319,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 selectedLevel: processedData.hsk.selectedLevel,
                 calculatedLevel: processedData.hsk.calculatedLevel
             }
-        };
-    },
-
-    /**
-     * Legacy compatibility: Keep existing method signatures
-     */
-    async getProcessedDataWithFallback(
-        articleId: number,
-        language: string = 'zh'
-    ): Promise<{ data: any, source: 'per_languages' | 'articles' }> {
-        const data = await this.getProcessedData(articleId, language);
-        const source = await this.checkProcessedDataSource(articleId, language);
-
-        return {
-            data,
-            source: source === 'none' ? 'articles' : source
         };
     }
 });

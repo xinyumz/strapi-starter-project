@@ -1,4 +1,4 @@
-// ChineseArticleData component - Updated to use per_languages table
+// ChineseArticleData component - Fixed to work with LanguageProcessor field
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -49,19 +49,46 @@ const ChineseArticleData = (props: any) => {
     const [processorData, setProcessorData] = useState<ProcessorData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [dataSource, setDataSource] = useState<DataSourceInfo>({ source: 'none', isModern: false });
+    const [translationContent, setTranslationContent] = useState<string>('');
 
     // Get the article ID directly from initialData
     const getArticleId = (): string | null => {
         return initialData?.id ? String(initialData.id) : null;
     };
 
-    // Load processor data when component mounts or when initialData changes
+    // Get translation content from the new LanguageProcessor field
+    const getTranslationContent = (): string => {
+        // Try to get from LanguageProcessor field first (new system)
+        const languageProcessorContent = modifiedData?.LanguageProcessor || modifiedData?.languageProcessor;
+
+        // Fallback to legacy Translation field
+        const legacyTranslation = modifiedData?.Translation || modifiedData?.translation;
+
+        const content = languageProcessorContent || legacyTranslation || '';
+
+        console.log('[ChineseArticleData] Translation content source:', {
+            fromLanguageProcessor: !!languageProcessorContent,
+            fromLegacyTranslation: !!legacyTranslation,
+            hasContent: !!content,
+            contentLength: content.length
+        });
+
+        return content;
+    };
+
+    // Load processor data when component mounts or when data changes
     useEffect(() => {
         const articleId = getArticleId();
         if (articleId) {
             loadProcessorData(articleId);
         }
     }, [initialData.id]);
+
+    // Update translation content when modifiedData changes
+    useEffect(() => {
+        const content = getTranslationContent();
+        setTranslationContent(content);
+    }, [modifiedData.LanguageProcessor, modifiedData.languageProcessor, modifiedData.Translation, modifiedData.translation]);
 
     // Load the processor data from per_languages table first, then fallback to articles
     const loadProcessorData = async (articleId: string) => {
@@ -167,7 +194,7 @@ const ChineseArticleData = (props: any) => {
         }
     };
 
-    // Direct handler for opening the Chinese processor
+    // FIXED: Updated handler for opening the Chinese processor
     const handleOpenProcessor = () => {
         const articleId = getArticleId();
         if (!articleId) {
@@ -175,10 +202,19 @@ const ChineseArticleData = (props: any) => {
             return;
         }
 
-        if (!modifiedData.Translation) {
-            alert("Translation text is required");
+        // FIXED: Check for content from the new field structure
+        const translationText = getTranslationContent();
+
+        if (!translationText || translationText.trim().length === 0) {
+            alert("Translation text is required. Please translate the content first using the Language Processor field.");
             return;
         }
+
+        console.log('[ChineseArticleData] Opening processor with translation content:', {
+            hasContent: !!translationText,
+            contentLength: translationText.length,
+            preview: translationText.substring(0, 50) + '...'
+        });
 
         // Open in a new tab/window
         const queryParams = new URLSearchParams({ articleId }).toString();
@@ -238,6 +274,27 @@ const ChineseArticleData = (props: any) => {
                         </Typography>
                     )}
                 </Flex>
+            </Box>
+        );
+    };
+
+    // Render content status
+    const renderContentStatus = () => {
+        const hasContent = translationContent && translationContent.trim().length > 0;
+
+        return (
+            <Box paddingBottom={3}>
+                <Flex alignItems="center" gap={2}>
+                    <Typography variant="pi" color="neutral600">Translation content:</Typography>
+                    <Badge backgroundColor={hasContent ? 'success' : 'danger'}>
+                        {hasContent ? `✅ Ready (${translationContent.length} chars)` : '❌ Missing'}
+                    </Badge>
+                </Flex>
+                {!hasContent && (
+                    <Typography variant="pi" color="danger600" paddingTop={1}>
+                        Please use the Language Processor field to translate content first.
+                    </Typography>
+                )}
             </Box>
         );
     };
@@ -344,6 +401,9 @@ const ChineseArticleData = (props: any) => {
             {/* Data Source Indicator */}
             {renderDataSourceIndicator()}
 
+            {/* Content Status */}
+            {renderContentStatus()}
+
             {/* Show warning if using legacy system */}
             {dataSource.source === 'articles' && (
                 <Box paddingBottom={3}>
@@ -370,7 +430,12 @@ const ChineseArticleData = (props: any) => {
             )}
 
             <Flex gap={2}>
-                <Button onClick={handleOpenProcessor}>Process Chinese Article</Button>
+                <Button
+                    onClick={handleOpenProcessor}
+                    disabled={!translationContent || translationContent.trim().length === 0}
+                >
+                    Process Chinese Article
+                </Button>
                 <Button onClick={handleForceRefresh} variant="secondary">Refresh Data</Button>
             </Flex>
         </Box>

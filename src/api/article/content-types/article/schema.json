@@ -32,10 +32,6 @@
       "type": "richtext",
       "required": true
     },
-    "Translation": {
-      "type": "customField",
-      "customField": "plugin::translator.translator"
-    },
     "SelectCategory": {
       "type": "customField",
       "options": {
@@ -51,19 +47,9 @@
       "target": "api::category.category",
       "mappedBy": "article"
     },
-    "AccessTier": {
-      "type": "enumeration",
-      "enum": [
-        "Free",
-        "Login",
-        "Premium"
-      ],
-      "required": false,
-      "default": "Free"
-    },
-    "ChineseProcessor": {
+    "LanguageProcessor": {
       "type": "customField",
-      "customField": "plugin::chinese-article-processor.chinese-language-tools"
+      "customField": "plugin::per-language.language-processor"
     }
   }
 }

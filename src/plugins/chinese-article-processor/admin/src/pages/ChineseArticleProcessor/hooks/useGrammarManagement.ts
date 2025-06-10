@@ -1,4 +1,4 @@
-// hooks/useGrammarManagement.ts - Updated with batch processing support
+// hooks/useGrammarManagement.ts
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useFetchClient } from '@strapi/helper-plugin';
@@ -29,7 +29,8 @@ interface UseGrammarManagementProps {
 }
 
 /**
- * Custom hook for managing grammar rules
+ * FIXED: Custom hook for managing grammar rules
+ * CRITICAL FIX: Corrected per_languages content ID retrieval
  */
 const useGrammarManagement = ({
   articleId,
@@ -71,6 +72,34 @@ const useGrammarManagement = ({
 
   // Get Strapi's fetch client
   const { get, post } = useFetchClient();
+
+  /**
+   * Get translation content from per_languages table ONLY
+   */
+  const getTranslationContent = useCallback(async (articleId: string): Promise<string | null> => {
+    try {
+      console.log(`[GrammarManagement] Getting translation content for article ${articleId}`);
+
+      const perLanguageResponse = await fetch(`/per-language/article/${articleId}/content?language=zh`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (perLanguageResponse.ok) {
+        const perLanguageData = await perLanguageResponse.json();
+        if (perLanguageData.data?.per_language_text) {
+          console.log(`[GrammarManagement] ✅ Found content in per_languages table`);
+          return perLanguageData.data.per_language_text;
+        }
+      }
+
+      console.log(`[GrammarManagement] ❌ No translation content found in per_languages table`);
+      throw new Error('No translated content found. Please translate the content first using the Language Processor field.');
+    } catch (error) {
+      console.error(`[GrammarManagement] Error getting translation content:`, error);
+      throw error;
+    }
+  }, []);
 
   // Selection management functions
   const toggleRuleSelection = useCallback((sentenceIndex: number, ruleIndex: number) => {
@@ -165,7 +194,7 @@ const useGrammarManagement = ({
   }, []);
 
   /**
-   * Generate grammar rules for an article
+   * FIXED: Generate grammar rules for an article with correct error handling
    */
   const generateGrammarRules = useCallback(async () => {
     if (!articleId) {
@@ -178,20 +207,11 @@ const useGrammarManagement = ({
 
     try {
       console.log('Starting grammar rule generation...');
-      // First, get the translation text from the article
-      const articleResponse = await get(
-        `/content-manager/collection-types/api::article.article/${articleId}`
-      );
 
-      if (!articleResponse.data) {
-        throw new Error(ERROR_MESSAGES.RETRIEVE_ARTICLE_FAILED);
-      }
+      // Get translation content from per_languages table ONLY
+      const translationText = await getTranslationContent(articleId);
 
-      const translationText = articleResponse.data.Translation;
-
-      if (!translationText) {
-        throw new Error(ERROR_MESSAGES.TRANSLATION_REQUIRED);
-      }
+      console.log('Found translation content, preserving existing translations...');
 
       // First get the current translations to preserve them
       const currentTranslations = new Map<string, any[]>();
@@ -257,7 +277,7 @@ const useGrammarManagement = ({
         return sentence;
       });
 
-      // Save to grammar plugin database
+      // Save to grammar plugin database (this will preserve HSK data automatically)
       console.log("Saving grammar data to plugin database...");
       const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
         data: {
@@ -269,20 +289,28 @@ const useGrammarManagement = ({
         throw new Error(ERROR_MESSAGES.GRAMMAR_SAVE_FAILED);
       }
 
-      // Also save to the article's ChineseProcessor field
-      console.log("Saving grammar data to article's ChineseProcessor field...");
+      // Also save to per_languages table with HSK preservation
+      console.log("Saving grammar data to per_languages table with HSK preservation...");
       await updateArticleWithProcessorData(articleId, updatedSentences);
 
       setSentences(updatedSentences);
       saveOriginalSentences();
 
-      console.log("Grammar rules generated and saved successfully");
+      console.log("Grammar rules generated and saved successfully with HSK data preserved");
       finishProcessing();
-      onSuccess(STATUS_MESSAGES.GRAMMAR_GENERATED);
+      onSuccess('Grammar rules generated successfully');
     } catch (err) {
       console.error("Error in grammar rule generation:", err);
       setProcessingError();
-      onError(err instanceof Error ? err.message : ERROR_MESSAGES.GRAMMAR_GENERATION_FAILED);
+
+      // Enhanced error messages for per_languages issues
+      if (err instanceof Error && err.message.includes('per_language')) {
+        onError('No translated content found. Please translate the content first using the Language Processor field.');
+      } else if (err instanceof Error && err.message.includes('content ID')) {
+        onError('Failed to access language data. Please ensure the content is properly translated.');
+      } else {
+        onError(err instanceof Error ? err.message : ERROR_MESSAGES.GRAMMAR_GENERATION_FAILED);
+      }
     }
   }, [
     articleId,
@@ -291,7 +319,6 @@ const useGrammarManagement = ({
     useBatch,
     batchOptions,
     sentences,
-    get,
     post,
     setSentences,
     saveOriginalSentences,
@@ -301,7 +328,8 @@ const useGrammarManagement = ({
     setProcessingError,
     onSuccess,
     onError,
-    updateArticleWithProcessorData
+    updateArticleWithProcessorData,
+    getTranslationContent
   ]);
 
   /**
@@ -313,7 +341,7 @@ const useGrammarManagement = ({
   }, []);
 
   /**
-   * Delete a single rule after confirmation
+   * FIXED: Delete a single rule after confirmation with proper error handling
    */
   const handleDeleteRuleConfirmed = useCallback(async () => {
     if (!ruleToDelete) return;
@@ -352,19 +380,27 @@ const useGrammarManagement = ({
             throw new Error(ERROR_MESSAGES.UPDATE_GRAMMAR_FAILED);
           }
 
-          // Also save to the article's ChineseProcessor field
+          // Also save to per_languages table with HSK preservation
           await updateArticleWithProcessorData(articleId, updatedSentences);
 
           saveOriginalSentences();
 
           finishProcessing();
-          onSuccess(STATUS_MESSAGES.RULE_DELETED);
+          onSuccess('Grammar rule deleted successfully');
         }
       }
     } catch (err) {
       console.error("Error deleting rule:", err);
       setProcessingError();
-      onError(err instanceof Error ? err.message : ERROR_MESSAGES.DELETE_RULE_FAILED);
+
+      // Enhanced error messages for per_languages issues
+      if (err instanceof Error && err.message.includes('per_language')) {
+        onError('Failed to save changes. Please ensure the content is translated first.');
+      } else if (err instanceof Error && err.message.includes('content ID')) {
+        onError('Failed to access language data. Please ensure the content is properly translated.');
+      } else {
+        onError(err instanceof Error ? err.message : ERROR_MESSAGES.DELETE_RULE_FAILED);
+      }
     } finally {
       setIsDeleteModalVisible(false);
       setRuleToDelete(null);
@@ -387,8 +423,8 @@ const useGrammarManagement = ({
   ]);
 
   /**
-  * Bulk delete selected rules after confirmation
-  */
+   * FIXED: Bulk delete selected rules after confirmation with proper error handling
+   */
   const handleBulkDeleteConfirmed = useCallback(async () => {
     // Use the ref to get the most current selection
     const currentSelection = selectedRulesRef.current;
@@ -433,7 +469,7 @@ const useGrammarManagement = ({
         throw new Error(ERROR_MESSAGES.UPDATE_GRAMMAR_FAILED);
       }
 
-      // Also save to the article's ChineseProcessor field
+      // Also save to per_languages table with HSK preservation
       await updateArticleWithProcessorData(articleId, updatedSentences);
 
       // Update the sentences state
@@ -448,7 +484,15 @@ const useGrammarManagement = ({
     } catch (err) {
       console.error("Error bulk deleting rules:", err);
       setProcessingError();
-      onError(err instanceof Error ? err.message : ERROR_MESSAGES.BULK_DELETE_FAILED);
+
+      // Enhanced error messages for per_languages issues
+      if (err instanceof Error && err.message.includes('per_language')) {
+        onError('Failed to save changes. Please ensure the content is translated first.');
+      } else if (err instanceof Error && err.message.includes('content ID')) {
+        onError('Failed to access language data. Please ensure the content is properly translated.');
+      } else {
+        onError(err instanceof Error ? err.message : ERROR_MESSAGES.BULK_DELETE_FAILED);
+      }
     }
   }, [
     articleId,
@@ -467,8 +511,8 @@ const useGrammarManagement = ({
   ]);
 
   /**
-  * Handle engine choice change
-  */
+   * Handle engine choice change
+   */
   const handleEngineChange = useCallback((engine: GrammarEngineChoice) => {
     setEngineChoice(engine);
   }, []);

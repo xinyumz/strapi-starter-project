@@ -1,5 +1,4 @@
 // src/plugins/per-language/server/controllers/migration-controller.ts
-// Fixed TypeScript type issues
 
 import { Strapi } from '@strapi/strapi';
 
@@ -39,10 +38,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.badRequest('Process service not available');
             }
 
-            // Get basic article info with type assertion
+            // Get basic article info - REMOVED AccessTier field reference
             const article = await strapi.entityService?.findOne('api::article.article', parseInt(articleId), {
-                fields: ['id', 'Title', 'Date', 'AccessTier']
-            }) as any; // Type assertion for flexibility
+                fields: ['id', 'Title', 'Date']
+            }) as any;
 
             if (!article) {
                 return ctx.notFound(`Article ${articleId} not found`);
@@ -78,12 +77,26 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 console.error('Error getting data source info:', error);
             }
 
+            // Get access tier from per_languages table instead
+            let accessTier = 'Free'; // default
+            try {
+                const contentService = strapi.plugin('per-language')?.service('contentService');
+                if (contentService) {
+                    const perLanguageContent = await contentService.getLanguageContent(parseInt(articleId), language);
+                    if (perLanguageContent && perLanguageContent.access_tier) {
+                        accessTier = perLanguageContent.access_tier;
+                    }
+                }
+            } catch (error) {
+                console.error('Error getting access tier from per_languages:', error);
+            }
+
             const response = {
                 articleInfo: {
                     id: parseInt(articleId),
                     title: article.Title || `Article #${articleId}`,
                     date: article.Date,
-                    accessTier: article.AccessTier
+                    accessTier: accessTier // Now from per_languages table
                 },
                 content: {
                     text: content,
@@ -100,7 +113,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 },
                 _meta: {
                     timestamp: new Date().toISOString(),
-                    apiVersion: 'v2-simplified'
+                    apiVersion: 'v2-post-cleanup'
                 }
             };
 
@@ -148,7 +161,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
      */
     async createPerLanguageEntry(ctx: any) {
         const { articleId } = ctx.params;
-        const { language = 'zh' } = ctx.request.body;
+        const { language = 'zh', accessTier = 'Free' } = ctx.request.body;
 
         if (!articleId) {
             return ctx.badRequest('Article ID is required');
@@ -174,35 +187,32 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.notFound(`Article ${articleId} not found`);
             }
 
-            // Handle both field name variations
+            // Handle both field name variations (legacy support)
             const content = article.Translation || article.translation;
             if (!content) {
                 return ctx.badRequest('No content found in articles table to use');
             }
 
-            // Create per_language entry
+            // Create per_language entry with specified access tier
             const result = await contentService.upsertLanguageContent(
                 parseInt(articleId),
                 language,
                 content
             );
 
-            // Copy access tier if available
-            const accessTierValue = article.AccessTier || article.access_tier;
-            if (accessTierValue) {
-                try {
-                    await strapi.entityService?.update(
-                        'plugin::per-language.per-language',
-                        result.id,
-                        {
-                            data: {
-                                access_tier: accessTierValue
-                            } as any // Type assertion for flexibility during transition
-                        }
-                    );
-                } catch (updateError) {
-                    console.warn('Could not update access_tier, but entry was created successfully:', updateError);
-                }
+            // Set access tier
+            try {
+                await strapi.entityService?.update(
+                    'plugin::per-language.per-language',
+                    result.id,
+                    {
+                        data: {
+                            access_tier: accessTier
+                        } as any
+                    }
+                );
+            } catch (updateError) {
+                console.warn('Could not update access_tier, but entry was created successfully:', updateError);
             }
 
             const response = {
@@ -211,6 +221,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 language: language,
                 perLanguageId: result.id,
                 contentLength: content.length,
+                accessTier: accessTier,
                 timestamp: new Date().toISOString()
             };
 
@@ -233,7 +244,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             console.log(`[Migration API] Getting system overview`);
 
-            // Get articles with type assertion
+            // Get articles - no AccessTier field
             const articles = await strapi.entityService?.findMany('api::article.article', {
                 fields: ['id', 'Title'],
                 limit: parseInt(limit as string)

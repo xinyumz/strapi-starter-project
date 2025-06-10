@@ -971,8 +971,6 @@ export interface ApiArticleArticle extends Schema.CollectionType {
     Date: Attribute.Date;
     Cover: Attribute.Media<'images'> & Attribute.Required;
     Base: Attribute.RichText & Attribute.Required;
-    Translation: Attribute.RichText &
-      Attribute.CustomField<'plugin::translator.translator'>;
     SelectCategory: Attribute.JSON &
       Attribute.CustomField<
         'plugin::categorizer.categorizer',
@@ -987,10 +985,8 @@ export interface ApiArticleArticle extends Schema.CollectionType {
       'oneToMany',
       'api::category.category'
     >;
-    AccessTier: Attribute.Enumeration<['Free', 'Login', 'Premium']> &
-      Attribute.DefaultTo<'Free'>;
-    ChineseProcessor: Attribute.JSON &
-      Attribute.CustomField<'plugin::chinese-article-processor.chinese-language-tools'>;
+    LanguageProcessor: Attribute.RichText &
+      Attribute.CustomField<'plugin::per-language.language-processor'>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
