@@ -83,7 +83,7 @@ export default [
         }
     },
 
-    // NEW content management routes for Phase 5.1 fixes
+    // content management routes for Phase 5.1 fixes
     {
         method: 'PUT',
         path: '/article/:id/content',
@@ -136,7 +136,7 @@ export default [
         }
     },
 
-    // NEW enhanced translation route for Phase 5.1 fixes
+    // enhanced translation route for Phase 5.1 fixes
     {
         method: 'POST',
         path: '/translate-enhanced',
@@ -145,6 +145,28 @@ export default [
             policies: [],
             auth: false,
             description: 'Enhanced translate with manual content support'
+        }
+    },
+
+    {
+        method: 'PUT',
+        path: '/content/:contentId/access-tier',
+        handler: 'content.updateAccessTier',
+        config: {
+            auth: false,
+            policies: [],
+            description: 'Update access tier for language content'
+        }
+    },
+
+    {
+        method: 'GET',
+        path: '/article/:articleId/language/:language/refresh',
+        handler: 'perLanguage.refreshLanguageData',
+        config: {
+            auth: false,
+            policies: [],
+            description: 'Refresh data for a specific language'
         }
     }
 ];

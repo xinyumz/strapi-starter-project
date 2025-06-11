@@ -1,0 +1,901 @@
+// src/plugins/per-language/admin/src/components/ProcessedDataDisplay.tsx
+// Clean version with improved two-line card layout
+
+import React, { useState, useEffect } from 'react';
+import {
+    Box,
+    Button,
+    Card,
+    CardBody,
+    CardHeader,
+    Flex,
+    Typography,
+    Badge,
+    Select,
+    Option,
+    ToggleCheckbox,
+    Grid,
+    GridItem,
+    Divider,
+    Alert,
+    Stack,
+    EmptyStateLayout,
+    Accordion,
+    AccordionToggle,
+    AccordionContent,
+    Tag
+} from '@strapi/design-system';
+import {
+    Refresh,
+    Play,
+    Eye,
+    EyeStriked,
+    Crown,
+    Gift,
+    CheckCircle,
+    ExclamationMarkCircle,
+    Cross
+} from '@strapi/icons';
+import { useFetchClient } from '@strapi/helper-plugin';
+
+interface ProcessedDataDisplayProps {
+    articleId: string;
+    onRefresh?: () => void;
+}
+
+interface LanguageData {
+    id: number;
+    language: string;
+    per_language_text: string;
+    processed_data: ProcessedData;
+    difficulty_data: any;
+    display_skill: string;
+    published: boolean;
+    access_tier: string;
+    created_at: string;
+    updated_at: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+interface ProcessedData {
+    hsk?: HSKData;
+    grammar?: GrammarData;
+}
+
+interface HSKData {
+    calculatedLevel: number;
+    selectedLevel: number;
+    distribution: number[];
+}
+
+interface GrammarData {
+    sentences: GrammarSentence[];
+}
+
+interface GrammarSentence {
+    sentence: string;
+    translation: string;
+    rules: string[];
+    translations?: Translation[];
+}
+
+interface Translation {
+    text: string;
+    language: string;
+}
+
+interface LanguageProcessor {
+    code: string;
+    name: string;
+    hasProcessor: boolean;
+    processorUrl?: string;
+    difficultyLabel: string;
+}
+
+const SUPPORTED_LANGUAGES: LanguageProcessor[] = [
+    {
+        code: 'zh',
+        name: 'Chinese (中文)',
+        hasProcessor: true,
+        processorUrl: '/admin/plugins/chinese-article-processor/chinese-processor',
+        difficultyLabel: 'HSK'
+    },
+    {
+        code: 'es',
+        name: 'Spanish (Español)',
+        hasProcessor: false,
+        difficultyLabel: 'CEFR'
+    },
+    {
+        code: 'fr',
+        name: 'French (Français)',
+        hasProcessor: false,
+        difficultyLabel: 'CEFR'
+    },
+    {
+        code: 'de',
+        name: 'German (Deutsch)',
+        hasProcessor: false,
+        difficultyLabel: 'CEFR'
+    },
+    {
+        code: 'ja',
+        name: 'Japanese (日本語)',
+        hasProcessor: false,
+        difficultyLabel: 'JLPT'
+    },
+    {
+        code: 'pt',
+        name: 'Portuguese (Português)',
+        hasProcessor: false,
+        difficultyLabel: 'CEFR'
+    }
+];
+
+const ACCESS_TIERS = [
+    { value: 'Free', label: 'Free', icon: Gift },
+    { value: 'Login', label: 'Login Required', icon: CheckCircle },
+    { value: 'Premium', label: 'Premium', icon: Crown }
+];
+
+export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
+    articleId,
+    onRefresh
+}) => {
+    const [languageData, setLanguageData] = useState<LanguageData[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
+    const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+    const { get, put } = useFetchClient();
+
+    const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
+    const [bulkPublishState, setBulkPublishState] = useState<boolean>(false);
+
+    console.log('[ProcessedDataDisplay] Component initialized with articleId:', articleId);
+    console.log('[ProcessedDataDisplay] Current languageData:', languageData);
+
+    useEffect(() => {
+        if (articleId) {
+            loadLanguageData();
+        }
+    }, [articleId]);
+
+    const loadLanguageData = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            console.log('[ProcessedDataDisplay] Loading language data for article:', articleId);
+
+            const response = await get(`/per-language/article/${articleId}/languages`);
+
+            console.log('[ProcessedDataDisplay] Raw API Response:', response);
+            console.log('[ProcessedDataDisplay] response.data:', response.data);
+
+            let data = [];
+            if (response.data && response.data.data && Array.isArray(response.data.data)) {
+                data = response.data.data;
+                console.log('[ProcessedDataDisplay] Extracted data from response.data.data:', data);
+            } else if (response.data && Array.isArray(response.data)) {
+                data = response.data;
+                console.log('[ProcessedDataDisplay] Used response.data directly:', data);
+            } else {
+                console.log('[ProcessedDataDisplay] Could not find array data in response');
+            }
+
+            console.log('[ProcessedDataDisplay] Final languageData:', data);
+            console.log('[ProcessedDataDisplay] Is array?', Array.isArray(data));
+            console.log('[ProcessedDataDisplay] Length:', data.length);
+            if (data.length > 0) {
+                console.log('[ProcessedDataDisplay] First item keys:', Object.keys(data[0]));
+                console.log('[ProcessedDataDisplay] First item id:', data[0].id);
+                console.log('[ProcessedDataDisplay] First item language:', data[0].language);
+            }
+
+            setLanguageData(data);
+
+        } catch (err: any) {
+            console.error('[ProcessedDataDisplay] Error loading language data:', err);
+            setError(err.message || 'Failed to load language data');
+            setLanguageData([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRefresh = async () => {
+        await loadLanguageData();
+        if (onRefresh) {
+            onRefresh();
+        }
+    };
+
+    const handleLanguageRefresh = async (languageId: number, languageCode: string) => {
+        try {
+            setIsUpdating(prev => ({ ...prev, [`refresh_${languageId}`]: true }));
+
+            const response = await get(`/per-language/article/${articleId}/language/${languageCode}/refresh`);
+
+            // Update just this language in the state
+            setLanguageData(prev =>
+                prev.map(lang =>
+                    lang.id === languageId
+                        ? { ...lang, ...response.data }
+                        : lang
+                )
+            );
+        } catch (error) {
+            console.error('Error refreshing language:', error);
+        } finally {
+            setIsUpdating(prev => ({ ...prev, [`refresh_${languageId}`]: false }));
+        }
+    };
+
+    const handlePublishToggle = async (languageId: number, currentPublished: boolean) => {
+        try {
+            setIsUpdating(prev => ({ ...prev, [`publish_${languageId}`]: true }));
+
+            await put(`/per-language/content/${languageId}/publish`, {
+                published: !currentPublished
+            });
+
+            setLanguageData(prev => {
+                if (!Array.isArray(prev)) return [];
+                return prev.map(lang =>
+                    lang.id === languageId
+                        ? { ...lang, published: !currentPublished }
+                        : lang
+                );
+            });
+        } catch (err: any) {
+            console.error('[ProcessedDataDisplay] Error updating publish status:', err);
+            console.error('[ProcessedDataDisplay] Error response:', err.response?.data);
+            setError(err.message || 'Failed to update publish status');
+        } finally {
+            setIsUpdating(prev => ({ ...prev, [`publish_${languageId}`]: false }));
+        }
+    };
+
+    const handleAccessTierChange = async (languageId: number, newTier: string) => {
+        try {
+            setIsUpdating(prev => ({ ...prev, [`tier_${languageId}`]: true }));
+
+            await put(`/per-language/content/${languageId}/access-tier`, {
+                access_tier: newTier
+            });
+
+            setLanguageData(prev => {
+                if (!Array.isArray(prev)) return [];
+                return prev.map(lang =>
+                    lang.id === languageId
+                        ? { ...lang, access_tier: newTier }
+                        : lang
+                );
+            });
+        } catch (err: any) {
+            console.error('[ProcessedDataDisplay] Error updating access tier:', err);
+            console.error('[ProcessedDataDisplay] Error response:', err.response?.data);
+            setError(err.message || 'Failed to update access tier');
+        } finally {
+            setIsUpdating(prev => ({ ...prev, [`tier_${languageId}`]: false }));
+        }
+    };
+
+    const handleOpenProcessor = (language: string) => {
+        const processor = SUPPORTED_LANGUAGES.find(l => l.code === language);
+
+        if (processor?.hasProcessor && processor.processorUrl) {
+            const processorUrl = `${processor.processorUrl}?articleId=${articleId}`;
+            window.open(processorUrl, '_blank');
+        }
+    };
+
+    const getLanguageInfo = (languageCode: string) => {
+        console.log('[ProcessedDataDisplay] getLanguageInfo called with:', languageCode, typeof languageCode);
+
+        if (!languageCode || typeof languageCode !== 'string') {
+            console.warn('[ProcessedDataDisplay] Invalid language code:', languageCode);
+            return {
+                code: 'unknown',
+                name: 'Unknown Language',
+                hasProcessor: false,
+                difficultyLabel: 'Level'
+            };
+        }
+
+        const found = SUPPORTED_LANGUAGES.find(l => l.code === languageCode);
+        if (found) {
+            return found;
+        }
+
+        return {
+            code: languageCode,
+            name: languageCode.toUpperCase(),
+            hasProcessor: false,
+            difficultyLabel: 'Level'
+        };
+    };
+
+    const getStatusBadge = (lang: LanguageData, processor: LanguageProcessor) => {
+        try {
+            const hasContent = lang.per_language_text && lang.per_language_text.trim().length > 0;
+            const hasProcessedData = lang.processed_data && Object.keys(lang.processed_data).length > 0;
+
+            if (!hasContent) {
+                return <Badge backgroundColor="neutral200" textColor="neutral700">No Content</Badge>;
+            }
+
+            if (!processor.hasProcessor) {
+                return <Badge backgroundColor="warning200" textColor="warning700">Processor Coming Soon</Badge>;
+            }
+
+            if (hasProcessedData) {
+                return <Badge backgroundColor="success200" textColor="success700">✅ Processed</Badge>;
+            }
+
+            return <Badge backgroundColor="primary200" textColor="primary700">Content Ready</Badge>;
+        } catch (error) {
+            console.error('[ProcessedDataDisplay] Error in getStatusBadge:', error);
+            return <Badge backgroundColor="neutral200">Unknown</Badge>;
+        }
+    };
+
+    const getMetricsDisplay = (lang: LanguageData, processor: LanguageProcessor) => {
+        try {
+            const hasContent = lang.per_language_text && lang.per_language_text.trim().length > 0;
+            const hasProcessedData = lang.processed_data && typeof lang.processed_data === 'object' && Object.keys(lang.processed_data).length > 0;
+
+            return (
+                <Flex gap={4} alignItems="center" wrap="wrap" justifyContent="flex-start">
+                    <Flex gap={2} alignItems="center">
+                        <Typography variant="pi" textColor="neutral600">Content:</Typography>
+                        <Badge backgroundColor={hasContent ? "success200" : "neutral200"} textColor={hasContent ? "success700" : "neutral700"}>
+                            {hasContent ? 'Available' : 'None'}
+                        </Badge>
+                    </Flex>
+
+                    {hasProcessedData && (
+                        <>
+                            {lang.display_skill && (
+                                <Flex gap={2} alignItems="center">
+                                    <Typography variant="pi" textColor="neutral600">{processor.difficultyLabel}:</Typography>
+                                    <Badge backgroundColor="primary200" textColor="primary700">{lang.display_skill}</Badge>
+                                </Flex>
+                            )}
+
+                            {lang.processed_data.grammar?.sentences && (
+                                <>
+                                    <Flex gap={2} alignItems="center">
+                                        <Typography variant="pi" textColor="neutral600">Grammar Rules:</Typography>
+                                        <Badge backgroundColor="success200" textColor="success700">
+                                            {lang.processed_data.grammar.sentences.reduce((total: number, sentence: GrammarSentence) =>
+                                                total + (sentence.rules?.length || 0), 0
+                                            )} rules
+                                        </Badge>
+                                    </Flex>
+
+                                    <Flex gap={2} alignItems="center">
+                                        <Typography variant="pi" textColor="neutral600">Sentences:</Typography>
+                                        <Badge backgroundColor="neutral200" textColor="neutral700">
+                                            {lang.processed_data.grammar.sentences.length} processed
+                                        </Badge>
+                                    </Flex>
+                                </>
+                            )}
+                        </>
+                    )}
+                </Flex>
+            );
+        } catch (error) {
+            console.error('[ProcessedDataDisplay] Error in getMetricsDisplay:', error);
+            return (
+                <Typography variant="pi" color="danger600">
+                    Error displaying metrics
+                </Typography>
+            );
+        }
+    };
+
+    const handleBulkPublish = async (publish: boolean) => {
+        try {
+            if (!Array.isArray(languageData)) return;
+
+            const targetLanguages = languageData.filter(lang => lang.published !== publish);
+
+            for (const lang of targetLanguages) {
+                await handlePublishToggle(lang.id, lang.published);
+            }
+        } catch (error) {
+            console.error('Error in bulk publish:', error);
+        }
+    };
+
+    const handleBulkAccessTier = async (tier: string) => {
+        try {
+            if (!Array.isArray(languageData)) return;
+
+            const targetLanguages = languageData.filter(lang => lang.access_tier !== tier);
+
+            for (const lang of targetLanguages) {
+                await handleAccessTierChange(lang.id, tier);
+            }
+        } catch (error) {
+            console.error('Error in bulk access tier update:', error);
+        }
+    };
+
+    const toggleCardExpansion = (languageId: number) => {
+        setExpandedCards(prev => ({
+            ...prev,
+            [languageId]: !prev[languageId]
+        }));
+    };
+
+    const renderGrammarRules = (lang: LanguageData, processor: LanguageProcessor) => {
+        if (!lang.processed_data?.grammar?.sentences) {
+            return (
+                <Typography variant="pi" color="neutral600">
+                    No grammar rules available
+                </Typography>
+            );
+        }
+
+        const sentences = lang.processed_data.grammar.sentences;
+        const totalRules = sentences.reduce((total, sentence) => total + (sentence.rules?.length || 0), 0);
+
+        if (totalRules === 0) {
+            return (
+                <Typography variant="pi" color="neutral600">
+                    No grammar rules generated
+                </Typography>
+            );
+        }
+
+
+        return (
+            <Box>
+                <Flex gap={2} alignItems="center" paddingBottom={2}>
+                    <Typography variant="epsilon" fontWeight="bold">Grammar Analysis</Typography>
+                    <Badge backgroundColor="primary200" textColor="primary700">{totalRules} rules</Badge>
+                </Flex>
+
+                <Stack spacing={3}>
+                    {sentences.slice(0, 3).map((sentence: GrammarSentence, index: number) => (
+                        <Box key={index} padding={2} background="neutral100" borderRadius="4px">
+                            <Typography variant="pi" fontWeight="bold" color="primary600">
+                                {sentence.sentence}
+                            </Typography>
+                            <Typography variant="pi" color="neutral700" paddingTop={1}>
+                                {sentence.translation}
+                            </Typography>
+                            {sentence.rules && sentence.rules.length > 0 && (
+                                <Box paddingTop={1}>
+                                    {sentence.rules.slice(0, 2).map((rule: string, ruleIndex: number) => (
+                                        <Typography key={ruleIndex} variant="pi" color="neutral600" paddingLeft={2}>
+                                            • {rule}
+                                        </Typography>
+                                    ))}
+                                    {sentence.rules.length > 2 && (
+                                        <Typography variant="pi" color="neutral500" paddingLeft={2}>
+                                            ... and {sentence.rules.length - 2} more rules
+                                        </Typography>
+                                    )}
+                                </Box>
+                            )}
+                        </Box>
+                    ))}
+
+                    {sentences.length > 3 && (
+                        <Typography variant="pi" color="neutral500" textAlign="center">
+                            ... and {sentences.length - 3} more sentences
+                        </Typography>
+                    )}
+                </Stack>
+            </Box>
+        );
+    };
+
+    const renderTranslationData = (lang: LanguageData, processor: LanguageProcessor) => {
+        if (!lang.processed_data?.grammar?.sentences) {
+            return (
+                <Typography variant="pi" color="neutral600">
+                    No translation data available
+                </Typography>
+            );
+        }
+
+        const sentences = lang.processed_data.grammar.sentences;
+        const hasMultilingualTranslations = sentences.some((s: GrammarSentence) => s.translations && s.translations.length > 1);
+
+        return (
+            <Box>
+                <Typography variant="epsilon" fontWeight="bold" paddingBottom={2}>
+                    Translation Analysis
+                </Typography>
+
+                <Stack spacing={2}>
+                    {sentences.slice(0, 2).map((sentence: GrammarSentence, index: number) => (
+                        <Box key={index} padding={2} background="neutral100" borderRadius="4px">
+                            <Typography variant="pi" fontWeight="bold" color="primary600">
+                                {sentence.sentence}
+                            </Typography>
+                            <Typography variant="pi" color="neutral700" paddingTop={1}>
+                                Primary: {sentence.translation}
+                            </Typography>
+
+                            {sentence.translations && sentence.translations.length > 1 && (
+                                <Box paddingTop={1}>
+                                    {sentence.translations.slice(0, 2).map((trans: Translation, transIndex: number) => (
+                                        <Flex key={transIndex} gap={2} alignItems="center" paddingTop={1}>
+                                            <Badge size="S" backgroundColor="secondary200">
+                                                {trans.language?.toUpperCase() || 'EN'}
+                                            </Badge>
+                                            <Typography variant="pi" color="neutral600">
+                                                {trans.text}
+                                            </Typography>
+                                        </Flex>
+                                    ))}
+                                </Box>
+                            )}
+                        </Box>
+                    ))}
+
+                    {sentences.length > 2 && (
+                        <Typography variant="pi" color="neutral500" textAlign="center">
+                            ... and {sentences.length - 2} more sentences
+                        </Typography>
+                    )}
+
+                    {hasMultilingualTranslations && (
+                        <Flex gap={1} paddingTop={2}>
+                            <Typography variant="pi" color="neutral600">Available in:</Typography>
+                            {[...new Set(sentences.flatMap((s: GrammarSentence) => s.translations?.map((t: Translation) => t.language) || []))].map((lang: string) => (
+                                <Badge key={lang} size="S" backgroundColor="secondary200">
+                                    {lang?.toUpperCase()}
+                                </Badge>
+                            ))}
+                        </Flex>
+                    )}
+                </Stack>
+            </Box>
+        );
+    };
+
+    if (isLoading) {
+        return (
+            <Box padding={4}>
+                <Typography>Loading language data...</Typography>
+            </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Box padding={4}>
+                <Alert variant="danger" title="Error" message={error} />
+                <Button onClick={handleRefresh} marginTop={2}>
+                    Try Again
+                </Button>
+            </Box>
+        );
+    }
+
+    if (!Array.isArray(languageData) || languageData.length === 0) {
+        return (
+            <Box padding={4}>
+                <EmptyStateLayout
+                    icon={ExclamationMarkCircle}
+                    content="No language content found for this article. Use the Language Processor field in the article editor to create translated content."
+                    action={
+                        <Button onClick={handleRefresh} startIcon={<Refresh />}>
+                            Refresh
+                        </Button>
+                    }
+                />
+            </Box>
+        );
+    }
+
+    console.log('[ProcessedDataDisplay] About to render with languageData:', languageData);
+    const handleOpenLanguageCard = async (languageCode: string) => {
+        try {
+            // Find if this language already exists in languageData
+            const existingLang = languageData.find(lang => lang.language === languageCode);
+            if (existingLang) {
+                // Add to visible cards if not already visible
+                setVisibleCards(prev => new Set([...prev, existingLang.id]));
+            } else {
+                // Create a placeholder card for languages without data yet
+                const newLangData = {
+                    id: Date.now(), // Temporary ID
+                    language: languageCode,
+                    per_language_text: '',
+                    processed_data: {},
+                    difficulty_data: {},
+                    display_skill: '',
+                    published: false,
+                    access_tier: 'Free',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+
+                setLanguageData(prev => [...prev, newLangData]);
+                setVisibleCards(prev => new Set([...prev, newLangData.id]));
+            }
+        } catch (error) {
+            console.error('Error opening language card:', error);
+        }
+    };
+
+    const handleBulkPublishToggle = async (checked: boolean) => {
+        setBulkPublishState(checked);
+        await handleBulkPublish(checked);
+    };
+
+    const handleCloseCard = (languageId: number) => {
+        // Instead of managing visible cards, just filter out this card
+        setLanguageData(prev => prev.filter(lang => lang.id !== languageId));
+    };
+
+    return (
+        <Box>
+            {/* Header with bulk controls */}
+            <Card marginBottom={4}>
+                <CardBody>
+                    <Box width="100%" padding={4}>
+                        <Stack spacing={4}>
+                            {/* Line 1: Open Language Card */}
+                            <Flex justifyContent="space-between" alignItems="center">
+                                <Flex gap={3} alignItems="center">
+                                    <Typography variant="pi" fontWeight="bold">Open Language Card:</Typography>
+                                    <Select placeholder="Select language to view" size="S" onChange={(value: string) => handleOpenLanguageCard(value)}>
+                                        <Option value="zh">Chinese (中文) ⚙️</Option>
+                                        <Option value="es">Spanish (Español) 🚧</Option>
+                                        <Option value="fr">French (Français) 🚧</Option>
+                                        <Option value="de">German (Deutsch) 🚧</Option>
+                                        <Option value="ja">Japanese (日本語) 🚧</Option>
+                                        <Option value="pt">Portuguese (Português) 🚧</Option>
+                                    </Select>
+                                </Flex>
+                                <Button
+                                    startIcon={<Refresh />}
+                                    variant="tertiary"
+                                    onClick={handleRefresh}
+                                    size="S"
+                                >
+                                    Refresh All
+                                </Button>
+                            </Flex>
+
+
+                            {/* Line 2: Streamlined Bulk Actions */}
+                            <Flex gap={4} alignItems="center" wrap="wrap">
+                                <Typography variant="pi" fontWeight="bold">Bulk Actions:</Typography>
+
+                                <Flex gap={2} alignItems="center" wrap="nowrap">
+                                    <Typography variant="pi" style={{ whiteSpace: 'nowrap' }}>Publish All:</Typography>
+                                    <ToggleCheckbox
+                                        checked={bulkPublishState}
+                                        onChange={(checked: boolean) => handleBulkPublishToggle(checked)}
+                                    />
+                                </Flex>
+
+                                <Flex gap={2} alignItems="center">
+                                    <Typography variant="pi">Set All:</Typography>
+                                    <Select size="S" onChange={(value: string) => handleBulkAccessTier(value)}>
+                                        <Option value="Free">Free</Option>
+                                        <Option value="Login">Login Required</Option>
+                                        <Option value="Premium">Premium</Option>
+                                    </Select>
+                                </Flex>
+                            </Flex>
+                        </Stack>
+                    </Box>
+                </CardBody>
+            </Card>
+
+            {/* Language cards - Full width with clean two-line layout */}
+            <Stack spacing={4}>
+                {languageData
+                    .filter(lang => visibleCards.size === 0 || visibleCards.has(lang.id))
+                    .map((lang, index) => {
+                        console.log('[ProcessedDataDisplay] Rendering language card for:', lang);
+
+                        try {
+                            if (!lang || typeof lang !== 'object') {
+                                console.error('[ProcessedDataDisplay] Invalid language object:', lang);
+                                return (
+                                    <Card key={`invalid-${index}`}>
+                                        <CardBody>
+                                            <Typography variant="pi" color="danger600">
+                                                Invalid language data at index {index}
+                                            </Typography>
+                                        </CardBody>
+                                    </Card>
+                                );
+                            }
+
+                            const processor = getLanguageInfo(lang.language);
+                            const TierIcon = ACCESS_TIERS.find(t => t.value === lang.access_tier)?.icon || Gift;
+
+                            return (
+                                <Card key={`lang-${lang.id}-${lang.language}-${index}`}>
+                                    <CardHeader>
+                                        <Flex justifyContent="space-between" alignItems="center" width="100%" padding={5}>
+                                            <Typography variant="epsilon" fontWeight="semiBold" color="neutral800">
+                                                {processor.name}
+                                            </Typography>
+                                            <Button
+                                                variant="ghost"
+                                                size="S"
+                                                onClick={() => handleCloseCard(lang.id)}
+                                                style={{
+                                                    border: 'none',
+                                                    padding: '4px',
+                                                    minWidth: 'auto',
+                                                    height: 'auto'
+                                                }}
+                                            >
+                                                ✕
+                                            </Button>
+                                        </Flex>
+                                    </CardHeader>
+                                    <CardBody>
+                                        <Box width="100%" padding={4}>
+                                            <Stack spacing={4}>
+                                                {/* Line 2: Status badges left, processor and refresh button right */}
+                                                <Flex justifyContent="space-between" alignItems="center">
+                                                    <Flex gap={3} alignItems="center">
+                                                        {processor.hasProcessor && (
+                                                            <Badge backgroundColor="success200" textColor="success700">
+                                                                Processor Available
+                                                            </Badge>
+                                                        )}
+                                                        {getStatusBadge(lang, processor)}
+                                                    </Flex>
+
+                                                    <Flex gap={2} alignItems="center">
+                                                        <Button
+                                                            variant="tertiary"
+                                                            startIcon={<Refresh />}
+                                                            onClick={() => handleLanguageRefresh(lang.id, lang.language)}
+                                                            disabled={isUpdating[`refresh_${lang.id}`]}
+                                                            size="S"
+                                                        >
+                                                            Refresh
+                                                        </Button>
+                                                        <Button
+                                                            variant={processor.hasProcessor ? "default" : "secondary"}
+                                                            startIcon={<Play />}
+                                                            onClick={() => handleOpenProcessor(lang.language)}
+                                                            disabled={!processor.hasProcessor}
+                                                        >
+                                                            Open Processor
+                                                        </Button>
+                                                    </Flex>
+                                                </Flex>
+
+                                                {/* Line 3: Access tier and publish toggle left, update left */}
+                                                <Flex justifyContent="space-between" alignItems="center">
+                                                    <Flex gap={4} alignItems="center">
+                                                        <Flex gap={2} alignItems="center">
+                                                            <TierIcon width="16px" height="16px" />
+                                                            <Typography variant="pi" textColor="neutral600">Access Tier:</Typography>
+                                                            <Select
+                                                                value={lang.access_tier || 'Free'}
+                                                                onChange={(value: string) => handleAccessTierChange(lang.id, value)}
+                                                                disabled={isUpdating[`tier_${lang.id}`]}
+                                                                size="S"
+                                                            >
+                                                                {ACCESS_TIERS.map(tier => (
+                                                                    <Option key={tier.value} value={tier.value}>
+                                                                        {tier.label}
+                                                                    </Option>
+                                                                ))}
+                                                            </Select>
+                                                        </Flex>
+
+                                                        <Flex gap={2} alignItems="center">
+                                                            {lang.published ? <Eye width="16px" height="16px" /> : <EyeStriked width="16px" height="16px" />}
+                                                            <ToggleCheckbox
+                                                                checked={lang.published || false}
+                                                                onChange={() => handlePublishToggle(lang.id, lang.published)}
+                                                                disabled={isUpdating[`publish_${lang.id}`]}
+                                                            />
+                                                            <Typography variant="pi" fontWeight="semiBold">
+                                                                {lang.published ? 'Published' : 'Draft'}
+                                                            </Typography>
+                                                        </Flex>
+                                                    </Flex>
+
+                                                    <Typography variant="pi" textColor="neutral500">
+                                                        Last updated: {new Date(lang.updatedAt || lang.updated_at).toLocaleDateString()}
+                                                    </Typography>
+                                                </Flex>
+
+                                                {/* Metrics row */}
+                                                {getMetricsDisplay(lang, processor)}
+
+                                                {/* Expandable Details Section */}
+                                                {lang.processed_data && (
+                                                    <>
+                                                        <Divider />
+                                                        <Box width="100%">
+                                                            <Button
+                                                                variant="tertiary"
+                                                                size="S"
+                                                                onClick={() => toggleCardExpansion(lang.id)}
+                                                                fullWidth
+                                                            >
+                                                                {expandedCards[lang.id] ? 'Hide Grammar & Translation Details' : 'Show Grammar & Translation Details'}
+                                                            </Button>
+                                                        </Box>
+
+                                                        {expandedCards[lang.id] && (
+                                                            <Box padding={4} background="neutral50" borderRadius="4px">
+                                                                <Grid gap={6}>
+                                                                    <GridItem col={6}>
+                                                                        {/* HSK Level Details for Chinese */}
+                                                                        {processor.code === 'zh' && lang.processed_data.hsk && (
+                                                                            <Box paddingBottom={4}>
+                                                                                <Typography variant="epsilon" fontWeight="bold" paddingBottom={3}>
+                                                                                    HSK Analysis
+                                                                                </Typography>
+                                                                                <Flex gap={3} alignItems="center">
+                                                                                    <Flex gap={1} alignItems="center">
+                                                                                        <Typography variant="pi">Calculated:</Typography>
+                                                                                        <Tag backgroundColor="primary100" textColor="primary700">
+                                                                                            HSK {lang.processed_data.hsk.calculatedLevel}
+                                                                                        </Tag>
+                                                                                    </Flex>
+                                                                                    <Flex gap={1} alignItems="center">
+                                                                                        <Typography variant="pi">Selected:</Typography>
+                                                                                        <Tag backgroundColor="success100" textColor="success700">
+                                                                                            HSK {lang.processed_data.hsk.selectedLevel}
+                                                                                        </Tag>
+                                                                                    </Flex>
+                                                                                </Flex>
+                                                                            </Box>
+                                                                        )}
+
+                                                                        {/* Grammar Rules Section */}
+                                                                        {renderGrammarRules(lang, processor)}
+                                                                    </GridItem>
+
+                                                                    <GridItem col={6}>
+                                                                        {/* Translation Data Section */}
+                                                                        {renderTranslationData(lang, processor)}
+                                                                    </GridItem>
+                                                                </Grid>
+                                                            </Box>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </Stack>
+                                        </Box>
+                                    </CardBody>
+                                </Card>
+                            );
+                        } catch (error) {
+                            console.error('[ProcessedDataDisplay] Error rendering language card:', error, lang);
+                            return (
+                                <Card key={`error-${index}`}>
+                                    <CardBody>
+                                        <Typography variant="pi" color="danger600">
+                                            Error rendering language: {lang?.language || 'Unknown'}
+                                        </Typography>
+                                        <Typography variant="pi" color="neutral600" style={{ marginTop: '8px' }}>
+                                            Debug info: {JSON.stringify(lang)}
+                                        </Typography>
+                                    </CardBody>
+                                </Card>
+                            );
+                        }
+                    })}
+            </Stack>
+        </Box >
+    );
+};

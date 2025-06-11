@@ -302,5 +302,36 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             console.error('[PerLanguage] Error updating processed data:', error);
             ctx.throw(500, `Failed to update processed data: ${error.message}`);
         }
+    },
+    /**
+ * Update access tier for language content
+ */
+    async updateAccessTier(ctx: Context) {
+        try {
+            const { contentId } = ctx.params;
+            const { access_tier } = ctx.request.body;
+
+            console.log('[PerLanguage] Updating access tier:', {
+                contentId,
+                access_tier
+            });
+
+            if (!contentId || !access_tier) {
+                return ctx.badRequest('Content ID and access tier are required');
+            }
+
+            const contentService = strapi.plugin('per-language').service('contentService');
+            const result = await contentService.updateAccessTier(parseInt(contentId), access_tier);
+
+            console.log('[PerLanguage] ✅ Access tier updated successfully');
+
+            ctx.body = {
+                data: result,
+                message: 'Access tier updated successfully'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error updating access tier:', error);
+            ctx.throw(500, `Failed to update access tier: ${error.message}`);
+        }
     }
 });

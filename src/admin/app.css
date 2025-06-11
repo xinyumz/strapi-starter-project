@@ -1,0 +1,12 @@
+/* Apply to all CodeMirror editors (Markdown fields) */
+.CodeMirror {
+    min-height: 150px !important;
+    max-height: 300px !important;
+    height: 200px !important;
+    /* You can adjust this */
+}
+
+/* Optional: Scroll support inside the editor */
+.CodeMirror-scroll {
+    overflow-y: auto !important;
+}

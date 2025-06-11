@@ -1,3 +1,4 @@
+// Comprehensive version with integrated ProcessedDataDisplay
 // src/plugins/per-language/admin/src/components/LanguageProcessorField.tsx
 
 import React, { useState } from 'react';
@@ -10,10 +11,13 @@ import {
     Typography,
     Box,
     Flex,
-    Badge
+    Badge,
+    Divider,
+    Wysiwyg
 } from '@strapi/design-system';
 import { useIntl } from 'react-intl';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
+import { ProcessedDataDisplay } from './ProcessedDataDisplay';
 
 interface LanguageProcessorFieldProps {
     name: string;
@@ -33,8 +37,8 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     const { formatMessage } = useIntl();
     const [targetLanguage, setTargetLanguage] = useState('zh');
     const [isTranslating, setIsTranslating] = useState(false);
-    const [lastTranslatedLanguage, setLastTranslatedLanguage] = useState<string>('');
     const [isSyncing, setIsSyncing] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
     const { modifiedData } = useCMEditViewDataManager();
 
     // Add ref for debouncing manual edits
@@ -116,8 +120,8 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                 await syncToPerLanguages(translatedText, articleId, targetLanguage);
             }
 
-            // Track which language was last translated to enable processing
-            setLastTranslatedLanguage(targetLanguage);
+            // Refresh the ProcessedDataDisplay
+            setRefreshKey(prev => prev + 1);
 
         } catch (error: any) {
             console.error('Translation error:', error);
@@ -212,6 +216,8 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
             if (articleId && newValue.trim()) {
                 console.log('[LanguageProcessorField] Debounced sync triggered for manual edit');
                 await syncToPerLanguages(newValue, articleId, targetLanguage);
+                // Refresh the ProcessedDataDisplay
+                setRefreshKey(prev => prev + 1);
             }
         }, 1000); // Wait 1 second after user stops typing
     };
@@ -246,104 +252,130 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
         }
     };
 
-    return (
-        <Stack spacing={4}>
-            {/* Translated Content Field */}
-            <Textarea
-                label={formatMessage(intlLabel)}
-                name={name}
-                onChange={handleManualEdit}
-                value={value}
-                required={required}
-                hint="Translated content will appear here after translation. You can also edit manually."
-            />
+    const handleRefresh = () => {
+        setRefreshKey(prev => prev + 1);
+    };
 
-            {/* Language Selection and Translation */}
+    return (
+        <Stack spacing={6}>
+            {/* Quick Translation Section */}
             <Box>
-                <Typography variant="pi" fontWeight="bold" paddingBottom={2}>
-                    Translation Controls
+                <Typography variant="delta" paddingBottom={3}>
+                    Quick Translation
                 </Typography>
 
-                <Stack spacing={3}>
-                    <Select
-                        label="Target Language"
-                        value={targetLanguage}
-                        onChange={(value: string) => {
-                            setTargetLanguage(value);
-                            setLastTranslatedLanguage(''); // Reset process state when language changes
-                        }}
-                    >
-                        {languages.map((lang) => (
-                            <Option key={lang.code} value={lang.code}>
-                                {lang.name} {lang.hasProcessor ? '⚙️' : '🚧'}
-                            </Option>
-                        ))}
-                    </Select>
+                <Stack spacing={4}>
+                    {/* Translated Content Field */}
+                    <Textarea
+                        label={formatMessage(intlLabel)}
+                        name={name}
+                        onChange={handleManualEdit}
+                        value={value}
+                        required={required}
+                        style={{ minHeight: '200px' }}
+                        hint="Translated content will appear here after translation. You can also edit manually."
+                    />
 
-                    <Flex gap={3}>
-                        <Button
-                            onClick={handleTranslate}
-                            disabled={isTranslating}
-                            loading={isTranslating}
-                        >
-                            {isTranslating ? 'Translating...' : `Translate to ${selectedLanguageInfo?.name}`}
-                        </Button>
+                    {/* Language Selection and Translation */}
+                    <Box>
+                        <Typography variant="pi" fontWeight="bold" paddingBottom={2}>
+                            Translation Controls
+                        </Typography>
 
-                        <Button
-                            variant="secondary"
-                            onClick={handleProcess}
-                            disabled={!canProcess}
-                        >
-                            {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
-                        </Button>
-                    </Flex>
+                        <Stack spacing={3}>
+                            <Select
+                                label="Target Language"
+                                value={targetLanguage}
+                                onChange={(value: string) => {
+                                    setTargetLanguage(value);
+                                }}
+                            >
+                                {languages.map((lang) => (
+                                    <Option key={lang.code} value={lang.code}>
+                                        {lang.name} {lang.hasProcessor ? '⚙️' : '🚧'}
+                                    </Option>
+                                ))}
+                            </Select>
+
+                            <Flex gap={3}>
+                                <Button
+                                    onClick={handleTranslate}
+                                    disabled={isTranslating}
+                                    loading={isTranslating}
+                                >
+                                    {isTranslating ? 'Translating...' : `Translate to ${selectedLanguageInfo?.name}`}
+                                </Button>
+
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleProcess}
+                                    disabled={!canProcess}
+                                >
+                                    {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
+                                </Button>
+                            </Flex>
+                        </Stack>
+                    </Box>
+
+                    {/* Status Indicators */}
+                    <Box padding={3} background="neutral100" borderRadius="4px">
+                        <Typography variant="pi" fontWeight="bold" paddingBottom={2}>
+                            Quick Status
+                        </Typography>
+
+                        <Flex gap={2} flexWrap="wrap">
+                            <Badge active={hasContent}>
+                                {hasContent ? '✅ Content Available' : '⭕ No Content'}
+                            </Badge>
+
+                            <Badge active={canProcess}>
+                                {canProcess ? '✅ Ready to Process' : '⭕ Add Content First'}
+                            </Badge>
+
+                            <Badge active={selectedLanguageInfo?.hasProcessor}>
+                                {selectedLanguageInfo?.hasProcessor ? '⚙️ Processor Available' : '🚧 Under Development'}
+                            </Badge>
+
+                            {isSyncing && (
+                                <Badge backgroundColor="warning">
+                                    🔄 Syncing...
+                                </Badge>
+                            )}
+                        </Flex>
+                    </Box>
                 </Stack>
             </Box>
 
-            {/* Status Indicators */}
-            <Box padding={3} background="neutral100" borderRadius="4px">
-                <Typography variant="pi" fontWeight="bold" paddingBottom={2}>
-                    Status
-                </Typography>
+            <Divider />
 
-                <Flex gap={2} flexWrap="wrap">
-                    <Badge active={hasContent}>
-                        {hasContent ? '✅ Content Available' : '⭕ No Content'}
-                    </Badge>
-
-                    <Badge active={canProcess}>
-                        {canProcess ? '✅ Ready to Process' : '⭕ Add Content First'}
-                    </Badge>
-
-                    <Badge active={selectedLanguageInfo?.hasProcessor}>
-                        {selectedLanguageInfo?.hasProcessor ? '⚙️ Processor Available' : '🚧 Under Development'}
-                    </Badge>
-
-                    {isSyncing && (
-                        <Badge backgroundColor="warning">
-                            🔄 Syncing...
-                        </Badge>
-                    )}
+            {/* Multi-Language Processing Center */}
+            <Box>
+                <Flex justifyContent="flex-start" alignItems="center" paddingBottom={3}>
+                    <Typography variant="delta">
+                        Multi-Language Processing Center
+                    </Typography>
                 </Flex>
 
-                <Typography variant="pi" color="neutral600" paddingTop={2}>
-                    Content can be translated automatically or edited manually. All changes sync to the database automatically.
-                </Typography>
-            </Box>
+                <Box paddingBottom={4}>
+                    <Typography variant="pi" color="neutral600">
+                        Manage translation status, processing, publishing, and access controls for all languages from this centralized interface.
+                    </Typography>
+                </Box>
 
-            {/* Help Text */}
-            <Box padding={3} background="primary100" borderRadius="4px">
-                <Typography variant="pi">
-                    <strong>Workflow:</strong>
-                    <br />
-                    1. Select target language from dropdown
-                    <br />
-                    2. Click "Translate" to automatically fill content OR edit manually
-                    <br />
-                    3. Click "Process Content" to open the language processor
-                    <br />
-                    4. Complete processing in the dedicated processor interface
-                </Typography>
+                {/* Integrated ProcessedDataDisplay */}
+                {modifiedData.id ? (
+                    <ProcessedDataDisplay
+                        key={refreshKey} // Force refresh when key changes
+                        articleId={modifiedData.id}
+                        onRefresh={handleRefresh}
+                    />
+                ) : (
+                    <Box padding={4} background="neutral100" borderRadius="4px">
+                        <Typography variant="pi" color="neutral600">
+                            Please save the article first to enable multi-language processing.
+                        </Typography>
+                    </Box>
+                )}
             </Box>
         </Stack>
     );

@@ -179,5 +179,20 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             ctx.throw(500, `Failed to delete language content: ${errorMessage}`);
         }
+    },
+
+    //langauge-specific refresh
+    async refreshLanguageData(ctx) {
+        const { articleId, language } = ctx.params;
+
+        try {
+            const languageService = strapi.plugin('per-language').service('languageService');
+            const refreshedData = await languageService.getLanguageContent(parseInt(articleId), language);
+
+            ctx.body = { data: refreshedData };
+        } catch (error) {
+            ctx.throw(500, `Failed to refresh language data: ${error.message}`);
+        }
     }
+
 });

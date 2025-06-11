@@ -276,6 +276,30 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 console.error('Error getting processed data with fallback:', error);
                 throw error;
             }
+        },
+        /**
+ * Update access tier for language content
+ */
+        async updateAccessTier(contentId: number, accessTier: string): Promise<PerLanguageContentType> {
+            try {
+                const entityService = getEntityService();
+                const updated = await entityService.update(
+                    'plugin::per-language.per-language',
+                    contentId,
+                    {
+                        data: {
+                            access_tier: accessTier,
+                            updated_at: new Date()
+                        } as any
+                    }
+                );
+
+                return updated as PerLanguageContentType;
+            } catch (error) {
+                console.error('Error updating access tier:', error);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                throw new ApplicationError(`Failed to update access tier: ${errorMessage}`);
+            }
         }
     };
 };
