@@ -1,4 +1,3 @@
-// Comprehensive version with integrated ProcessedDataDisplay
 // src/plugins/per-language/admin/src/components/LanguageProcessorField.tsx
 
 import React, { useState } from 'react';
@@ -258,71 +257,15 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
 
     return (
         <Stack spacing={6}>
-            {/* Quick Translation Section */}
+            {/* FIXED: Reorganized Translation Section */}
             <Box>
                 <Typography variant="delta" paddingBottom={3}>
-                    Quick Translation
+                    Translation
                 </Typography>
 
                 <Stack spacing={4}>
-                    {/* Translated Content Field */}
-                    <Textarea
-                        label={formatMessage(intlLabel)}
-                        name={name}
-                        onChange={handleManualEdit}
-                        value={value}
-                        required={required}
-                        style={{ minHeight: '200px' }}
-                        hint="Translated content will appear here after translation. You can also edit manually."
-                    />
-
-                    {/* Language Selection and Translation */}
-                    <Box>
-                        <Typography variant="pi" fontWeight="bold" paddingBottom={2}>
-                            Translation Controls
-                        </Typography>
-
-                        <Stack spacing={3}>
-                            <Select
-                                label="Target Language"
-                                value={targetLanguage}
-                                onChange={(value: string) => {
-                                    setTargetLanguage(value);
-                                }}
-                            >
-                                {languages.map((lang) => (
-                                    <Option key={lang.code} value={lang.code}>
-                                        {lang.name} {lang.hasProcessor ? '⚙️' : '🚧'}
-                                    </Option>
-                                ))}
-                            </Select>
-
-                            <Flex gap={3}>
-                                <Button
-                                    onClick={handleTranslate}
-                                    disabled={isTranslating}
-                                    loading={isTranslating}
-                                >
-                                    {isTranslating ? 'Translating...' : `Translate to ${selectedLanguageInfo?.name}`}
-                                </Button>
-
-                                <Button
-                                    variant="secondary"
-                                    onClick={handleProcess}
-                                    disabled={!canProcess}
-                                >
-                                    {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
-                                </Button>
-                            </Flex>
-                        </Stack>
-                    </Box>
-
-                    {/* Status Indicators */}
+                    {/* FIXED: Status indicators moved to top, no label */}
                     <Box padding={3} background="neutral100" borderRadius="4px">
-                        <Typography variant="pi" fontWeight="bold" paddingBottom={2}>
-                            Quick Status
-                        </Typography>
-
                         <Flex gap={2} flexWrap="wrap">
                             <Badge active={hasContent}>
                                 {hasContent ? '✅ Content Available' : '⭕ No Content'}
@@ -343,12 +286,57 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                             )}
                         </Flex>
                     </Box>
+
+                    {/* FIXED: Language selection with updated label */}
+                    <Select
+                        label="Select Target Language"
+                        value={targetLanguage}
+                        onChange={(value: string) => {
+                            setTargetLanguage(value);
+                        }}
+                    >
+                        {languages.map((lang) => (
+                            <Option key={lang.code} value={lang.code}>
+                                {lang.name} {lang.hasProcessor ? '⚙️' : '🚧'}
+                            </Option>
+                        ))}
+                    </Select>
+
+                    {/* FIXED: Translate button moved up */}
+                    <Flex gap={3}>
+                        <Button
+                            onClick={handleTranslate}
+                            disabled={isTranslating}
+                            loading={isTranslating}
+                        >
+                            {isTranslating ? 'Translating...' : `Translate to ${selectedLanguageInfo?.name}`}
+                        </Button>
+
+                        <Button
+                            variant="secondary"
+                            onClick={handleProcess}
+                            disabled={!canProcess}
+                        >
+                            {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
+                        </Button>
+                    </Flex>
+
+                    {/* FIXED: Translation text area moved below controls */}
+                    <Textarea
+                        label={formatMessage(intlLabel)}
+                        name={name}
+                        onChange={handleManualEdit}
+                        value={value}
+                        required={required}
+                        style={{ minHeight: '200px' }}
+                        hint="Translated content will appear here after translation. You can also edit manually."
+                    />
                 </Stack>
             </Box>
 
             <Divider />
 
-            {/* Multi-Language Processing Center */}
+            {/* Multi-Language Processing Center - unchanged */}
             <Box>
                 <Flex justifyContent="flex-start" alignItems="center" paddingBottom={3}>
                     <Typography variant="delta">

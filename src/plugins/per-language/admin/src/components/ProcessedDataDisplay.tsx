@@ -1,3 +1,4 @@
+// FIXED VERSION: ProcessedDataDisplay with proper access_tier handling
 // src/plugins/per-language/admin/src/components/ProcessedDataDisplay.tsx
 
 import React, { useState, useEffect } from 'react';
@@ -46,7 +47,7 @@ interface LanguageData {
     difficulty_data: any;
     display_skill: string;
     published: boolean;
-    access_tier: string;
+    access_tier: string | null; // FIXED: Allow null values
     created_at: string;
     updated_at: string;
     createdAt?: string;
@@ -128,10 +129,12 @@ const SUPPORTED_LANGUAGES: LanguageProcessor[] = [
     }
 ];
 
+// FIXED: Updated access tiers to handle null state properly
 const ACCESS_TIERS = [
-    { value: 'Free', label: 'Free', icon: Gift },
-    { value: 'Login', label: 'Login Required', icon: CheckCircle },
-    { value: 'Premium', label: 'Premium', icon: Crown }
+    { value: '', label: 'Select Access Tier', icon: ExclamationMarkCircle, disabled: true }, // Placeholder option
+    { value: 'Free', label: 'Free', icon: Gift, disabled: false },
+    { value: 'Login', label: 'Login Required', icon: CheckCircle, disabled: false },
+    { value: 'Premium', label: 'Premium', icon: Crown, disabled: false }
 ];
 
 export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
@@ -145,6 +148,10 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
     const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
     const [bulkPublishState, setBulkPublishState] = useState<boolean>(false);
+
+    // FIXED: Move useState hooks to component level to avoid re-render issues
+    const [showAllGrammar, setShowAllGrammar] = useState<Record<number, boolean>>({});
+    const [showAllTranslations, setShowAllTranslations] = useState<Record<number, boolean>>({});
 
     const { get, put } = useFetchClient();
 
@@ -232,7 +239,13 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         }
     };
 
+    // FIXED: Updated access tier change handler to handle null values properly
     const handleAccessTierChange = async (languageId: number, newTier: string) => {
+        // Don't allow selection of the placeholder option
+        if (newTier === '') {
+            return;
+        }
+
         try {
             setIsUpdating(prev => ({ ...prev, [`tier_${languageId}`]: true }));
 
@@ -412,8 +425,12 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
             );
         }
 
-        const sentences = lang.processed_data.grammar.sentences;
-        const totalRules = sentences.reduce((total, sentence) => total + (sentence.rules?.length || 0), 0);
+        // FILTER: Only show sentences that have grammar rules
+        const sentencesWithRules = lang.processed_data.grammar.sentences.filter(
+            (sentence: GrammarSentence) => sentence.rules && sentence.rules.length > 0
+        );
+
+        const totalRules = sentencesWithRules.reduce((total, sentence) => total + (sentence.rules?.length || 0), 0);
 
         if (totalRules === 0) {
             return (
@@ -423,6 +440,18 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
             );
         }
 
+        const defaultShowCount = 2; // Show fewer by default for grammar
+        const isExpanded = showAllGrammar[lang.id] || false;
+        const displaySentences = isExpanded ? sentencesWithRules : sentencesWithRules.slice(0, defaultShowCount);
+        const hasMore = sentencesWithRules.length > defaultShowCount;
+
+        const toggleGrammarExpansion = () => {
+            setShowAllGrammar(prev => ({
+                ...prev,
+                [lang.id]: !prev[lang.id]
+            }));
+        };
+
         return (
             <Box>
                 <Flex gap={2} alignItems="center" paddingBottom={2}>
@@ -431,35 +460,37 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 </Flex>
 
                 <Stack spacing={3}>
-                    {sentences.slice(0, 3).map((sentence: GrammarSentence, index: number) => (
+                    {displaySentences.map((sentence: GrammarSentence, index: number) => (
                         <Box key={index} padding={2} background="neutral100" borderRadius="4px">
-                            <Typography variant="pi" fontWeight="bold" color="primary600">
+                            <Typography variant="pi" fontWeight="bold" color="primary600" paddingBottom={2}>
                                 {sentence.sentence}
                             </Typography>
-                            <Typography variant="pi" color="neutral700" paddingTop={1}>
-                                {sentence.translation}
-                            </Typography>
                             {sentence.rules && sentence.rules.length > 0 && (
-                                <Box paddingTop={1}>
-                                    {sentence.rules.slice(0, 2).map((rule: string, ruleIndex: number) => (
-                                        <Typography key={ruleIndex} variant="pi" color="neutral600" paddingLeft={2}>
+                                <Box>
+                                    {sentence.rules.map((rule: string, ruleIndex: number) => (
+                                        <Typography key={ruleIndex} variant="pi" color="neutral600" paddingLeft={2} paddingBottom={1}>
                                             • {rule}
                                         </Typography>
                                     ))}
-                                    {sentence.rules.length > 2 && (
-                                        <Typography variant="pi" color="neutral500" paddingLeft={2}>
-                                            ... and {sentence.rules.length - 2} more rules
-                                        </Typography>
-                                    )}
                                 </Box>
                             )}
                         </Box>
                     ))}
 
-                    {sentences.length > 3 && (
-                        <Typography variant="pi" color="neutral500" textAlign="center">
-                            ... and {sentences.length - 3} more sentences
-                        </Typography>
+                    {hasMore && (
+                        <Box textAlign="center" paddingTop={2}>
+                            <Button
+                                variant="ghost"
+                                size="S"
+                                onClick={toggleGrammarExpansion}
+                                style={{ color: '#4945ff', textDecoration: 'underline', background: 'none', border: 'none' }}
+                            >
+                                {isExpanded
+                                    ? `Show less...`
+                                    : `See more sentences... (${sentencesWithRules.length - defaultShowCount} more)`
+                                }
+                            </Button>
+                        </Box>
                     )}
                 </Stack>
             </Box>
@@ -478,6 +509,18 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         const sentences = lang.processed_data.grammar.sentences;
         const hasMultilingualTranslations = sentences.some((s: GrammarSentence) => s.translations && s.translations.length > 1);
 
+        const defaultShowCount = 4; // Show more by default for translation analysis (right side)
+        const isExpanded = showAllTranslations[lang.id] || false;
+        const displaySentences = isExpanded ? sentences : sentences.slice(0, defaultShowCount);
+        const hasMore = sentences.length > defaultShowCount;
+
+        const toggleTranslationExpansion = () => {
+            setShowAllTranslations(prev => ({
+                ...prev,
+                [lang.id]: !prev[lang.id]
+            }));
+        };
+
         return (
             <Box>
                 <Typography variant="epsilon" fontWeight="bold" paddingBottom={2}>
@@ -485,7 +528,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 </Typography>
 
                 <Stack spacing={2}>
-                    {sentences.slice(0, 2).map((sentence: GrammarSentence, index: number) => (
+                    {displaySentences.map((sentence: GrammarSentence, index: number) => (
                         <Box key={index} padding={2} background="neutral100" borderRadius="4px">
                             <Typography variant="pi" fontWeight="bold" color="primary600">
                                 {sentence.sentence}
@@ -511,10 +554,20 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                         </Box>
                     ))}
 
-                    {sentences.length > 2 && (
-                        <Typography variant="pi" color="neutral500" textAlign="center">
-                            ... and {sentences.length - 2} more sentences
-                        </Typography>
+                    {hasMore && (
+                        <Box textAlign="center" paddingTop={2}>
+                            <Button
+                                variant="ghost"
+                                size="S"
+                                onClick={toggleTranslationExpansion}
+                                style={{ color: '#4945ff', textDecoration: 'underline', background: 'none', border: 'none' }}
+                            >
+                                {isExpanded
+                                    ? `Show less...`
+                                    : `See more sentences... (${sentences.length - defaultShowCount} more)`
+                                }
+                            </Button>
+                        </Box>
                     )}
 
                     {hasMultilingualTranslations && (
@@ -546,7 +599,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                     difficulty_data: {},
                     display_skill: '',
                     published: false,
-                    access_tier: 'Free',
+                    access_tier: null, // FIXED: Start with null instead of 'Free'
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 };
@@ -566,6 +619,20 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
 
     const handleCloseCard = (languageId: number) => {
         setLanguageData(prev => prev.filter(lang => lang.id !== languageId));
+    };
+
+    // FIXED: Helper function to get the correct icon for access tier
+    const getAccessTierIcon = (accessTier: string | null) => {
+        if (!accessTier) {
+            return ExclamationMarkCircle; // Show warning icon for unset tier
+        }
+        const tier = ACCESS_TIERS.find(t => t.value === accessTier);
+        return tier?.icon || ExclamationMarkCircle;
+    };
+
+    // FIXED: Helper function to get display value for access tier select
+    const getAccessTierDisplayValue = (accessTier: string | null) => {
+        return accessTier || ''; // Return empty string for null to show placeholder
     };
 
     if (isLoading) {
@@ -678,7 +745,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                             }
 
                             const processor = getLanguageInfo(lang.language);
-                            const TierIcon = ACCESS_TIERS.find(t => t.value === lang.access_tier)?.icon || Gift;
+                            const TierIcon = getAccessTierIcon(lang.access_tier); // FIXED: Use helper function
 
                             return (
                                 <Card key={`lang-${lang.id}-${lang.language}-${index}`}>
@@ -714,6 +781,12 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                                             </Badge>
                                                         )}
                                                         {getStatusBadge(lang, processor)}
+                                                        {/* FIXED: Add warning badge for unset access tier */}
+                                                        {!lang.access_tier && (
+                                                            <Badge backgroundColor="warning200" textColor="warning700">
+                                                                ⚠️ Access Tier Required
+                                                            </Badge>
+                                                        )}
                                                     </Flex>
 
                                                     <Flex gap={2} alignItems="center">
@@ -743,14 +816,22 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                                         <Flex gap={2} alignItems="center">
                                                             <TierIcon width="16px" height="16px" />
                                                             <Typography variant="pi" textColor="neutral600">Access Tier:</Typography>
+                                                            {/* FIXED: Proper handling of null access tier */}
                                                             <Select
-                                                                value={lang.access_tier || 'Free'}
+                                                                value={getAccessTierDisplayValue(lang.access_tier)}
                                                                 onChange={(value: string) => handleAccessTierChange(lang.id, value)}
                                                                 disabled={isUpdating[`tier_${lang.id}`]}
                                                                 size="S"
+                                                                placeholder="Select Access Tier"
+                                                                // Add visual indicator for required field
+                                                                error={!lang.access_tier ? "Access tier is required" : undefined}
                                                             >
                                                                 {ACCESS_TIERS.map(tier => (
-                                                                    <Option key={tier.value} value={tier.value}>
+                                                                    <Option
+                                                                        key={tier.value}
+                                                                        value={tier.value}
+                                                                        disabled={tier.disabled}
+                                                                    >
                                                                         {tier.label}
                                                                     </Option>
                                                                 ))}
@@ -806,15 +887,15 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                                                                 <Flex gap={3} alignItems="center">
                                                                                     <Flex gap={1} alignItems="center">
                                                                                         <Typography variant="pi">Calculated:</Typography>
-                                                                                        <Tag backgroundColor="primary100" textColor="primary700">
+                                                                                        <Badge backgroundColor="primary200" textColor="primary700">
                                                                                             HSK {lang.processed_data.hsk.calculatedLevel}
-                                                                                        </Tag>
+                                                                                        </Badge>
                                                                                     </Flex>
                                                                                     <Flex gap={1} alignItems="center">
                                                                                         <Typography variant="pi">Selected:</Typography>
-                                                                                        <Tag backgroundColor="success100" textColor="success700">
+                                                                                        <Badge backgroundColor="success200" textColor="success700">
                                                                                             HSK {lang.processed_data.hsk.selectedLevel}
-                                                                                        </Tag>
+                                                                                        </Badge>
                                                                                     </Flex>
                                                                                 </Flex>
                                                                             </Box>
