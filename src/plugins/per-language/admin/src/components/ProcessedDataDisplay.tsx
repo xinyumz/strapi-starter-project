@@ -43,6 +43,13 @@ import {
     AccessTierSelect
 } from './shared';
 
+import {
+    BulkControls,
+    HSKAnalysis,
+    GrammarAnalysis,
+    TranslationAnalysis
+} from './processed-data';
+
 interface ProcessedDataDisplayProps {
     articleId: string;
     onRefresh?: () => void;
@@ -180,10 +187,34 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         }
     };
 
-    const handleOpenProcessor = (language: string) => {
+    const handleOpenProcessor = async (language: string) => {
         const processor = SUPPORTED_LANGUAGES.find(l => l.code === language);
 
         if (processor?.hasProcessor && processor.processorUrl) {
+            // Check if there's already content for this language
+            const existingLang = languageData.find(lang => lang.language === language);
+
+            if (!existingLang) {
+                // Create an empty entry in per_languages table first
+                try {
+                    console.log(`[ProcessedDataDisplay] Creating empty ${language} entry for article ${articleId}`);
+
+                    await put(`/per-language/article/${articleId}/content`, {
+                        language: language,
+                        content: '' // Empty content to start
+                    });
+
+                    console.log(`[ProcessedDataDisplay] ✅ Empty ${language} entry created`);
+
+                    // Refresh the data to show the new entry
+                    await loadLanguageData();
+                } catch (error) {
+                    console.error(`[ProcessedDataDisplay] Failed to create ${language} entry:`, error);
+                    alert(`Failed to initialize ${language} content. Please try translating content first.`);
+                    return;
+                }
+            }
+
             const processorUrl = `${processor.processorUrl}?articleId=${articleId}`;
             window.open(processorUrl, '_blank');
         }
@@ -327,175 +358,6 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         }));
     };
 
-    const renderGrammarRules = (lang: LanguageData, processor: LanguageProcessor) => {
-        if (!lang.processed_data?.grammar?.sentences) {
-            return (
-                <Typography variant="pi" color="neutral600">
-                    No grammar rules available
-                </Typography>
-            );
-        }
-
-        // FILTER: Only show sentences that have grammar rules
-        const sentencesWithRules = lang.processed_data.grammar.sentences.filter(
-            (sentence: GrammarSentence) => sentence.rules && sentence.rules.length > 0
-        );
-
-        const totalRules = sentencesWithRules.reduce((total, sentence) => total + (sentence.rules?.length || 0), 0);
-
-        if (totalRules === 0) {
-            return (
-                <Typography variant="pi" color="neutral600">
-                    No grammar rules generated
-                </Typography>
-            );
-        }
-
-        const defaultShowCount = 2; // Show fewer by default for grammar
-        const isExpanded = showAllGrammar[lang.id] || false;
-        const displaySentences = isExpanded ? sentencesWithRules : sentencesWithRules.slice(0, defaultShowCount);
-        const hasMore = sentencesWithRules.length > defaultShowCount;
-
-        const toggleGrammarExpansion = () => {
-            setShowAllGrammar(prev => ({
-                ...prev,
-                [lang.id]: !prev[lang.id]
-            }));
-        };
-
-        return (
-            <Box>
-                <Flex gap={2} alignItems="center" paddingBottom={2}>
-                    <Typography variant="epsilon" fontWeight="bold">Grammar Analysis</Typography>
-                    <Badge backgroundColor="primary200" textColor="primary700">{totalRules} rules</Badge>
-                </Flex>
-
-                <Stack spacing={3}>
-                    {displaySentences.map((sentence: GrammarSentence, index: number) => (
-                        <Box key={index} padding={2} background="neutral100" borderRadius="4px">
-                            <Typography variant="pi" fontWeight="bold" color="primary600" paddingBottom={2}>
-                                {sentence.sentence}
-                            </Typography>
-                            {sentence.rules && sentence.rules.length > 0 && (
-                                <Box>
-                                    {sentence.rules.map((rule: string, ruleIndex: number) => (
-                                        <Typography key={ruleIndex} variant="pi" color="neutral600" paddingLeft={2} paddingBottom={1}>
-                                            • {rule}
-                                        </Typography>
-                                    ))}
-                                </Box>
-                            )}
-                        </Box>
-                    ))}
-
-                    {hasMore && (
-                        <Box textAlign="center" paddingTop={2}>
-                            <Button
-                                variant="ghost"
-                                size="S"
-                                onClick={toggleGrammarExpansion}
-                                style={{ color: '#4945ff', textDecoration: 'underline', background: 'none', border: 'none' }}
-                            >
-                                {isExpanded
-                                    ? `Show less...`
-                                    : `See more sentences... (${sentencesWithRules.length - defaultShowCount} more)`
-                                }
-                            </Button>
-                        </Box>
-                    )}
-                </Stack>
-            </Box>
-        );
-    };
-
-    const renderTranslationData = (lang: LanguageData, processor: LanguageProcessor) => {
-        if (!lang.processed_data?.grammar?.sentences) {
-            return (
-                <Typography variant="pi" color="neutral600">
-                    No translation data available
-                </Typography>
-            );
-        }
-
-        const sentences = lang.processed_data.grammar.sentences;
-        const hasMultilingualTranslations = sentences.some((s: GrammarSentence) => s.translations && s.translations.length > 1);
-
-        const defaultShowCount = 4; // Show more by default for translation analysis (right side)
-        const isExpanded = showAllTranslations[lang.id] || false;
-        const displaySentences = isExpanded ? sentences : sentences.slice(0, defaultShowCount);
-        const hasMore = sentences.length > defaultShowCount;
-
-        const toggleTranslationExpansion = () => {
-            setShowAllTranslations(prev => ({
-                ...prev,
-                [lang.id]: !prev[lang.id]
-            }));
-        };
-
-        return (
-            <Box>
-                <Typography variant="epsilon" fontWeight="bold" paddingBottom={2}>
-                    Translation Analysis
-                </Typography>
-
-                <Stack spacing={2}>
-                    {displaySentences.map((sentence: GrammarSentence, index: number) => (
-                        <Box key={index} padding={2} background="neutral100" borderRadius="4px">
-                            <Typography variant="pi" fontWeight="bold" color="primary600">
-                                {sentence.sentence}
-                            </Typography>
-                            <Typography variant="pi" color="neutral700" paddingTop={1}>
-                                Primary: {sentence.translation}
-                            </Typography>
-
-                            {sentence.translations && sentence.translations.length > 1 && (
-                                <Box paddingTop={1}>
-                                    {sentence.translations.slice(0, 2).map((trans: Translation, transIndex: number) => (
-                                        <Flex key={transIndex} gap={2} alignItems="center" paddingTop={1}>
-                                            <Badge size="S" backgroundColor="secondary200">
-                                                {trans.language?.toUpperCase() || 'EN'}
-                                            </Badge>
-                                            <Typography variant="pi" color="neutral600">
-                                                {trans.text}
-                                            </Typography>
-                                        </Flex>
-                                    ))}
-                                </Box>
-                            )}
-                        </Box>
-                    ))}
-
-                    {hasMore && (
-                        <Box textAlign="center" paddingTop={2}>
-                            <Button
-                                variant="ghost"
-                                size="S"
-                                onClick={toggleTranslationExpansion}
-                                style={{ color: '#4945ff', textDecoration: 'underline', background: 'none', border: 'none' }}
-                            >
-                                {isExpanded
-                                    ? `Show less...`
-                                    : `See more sentences... (${sentences.length - defaultShowCount} more)`
-                                }
-                            </Button>
-                        </Box>
-                    )}
-
-                    {hasMultilingualTranslations && (
-                        <Flex gap={1} paddingTop={2}>
-                            <Typography variant="pi" color="neutral600">Available in:</Typography>
-                            {[...new Set(sentences.flatMap((s: GrammarSentence) => s.translations?.map((t: Translation) => t.language) || []))].map((lang: string) => (
-                                <Badge key={lang} size="S" backgroundColor="secondary200">
-                                    {lang?.toUpperCase()}
-                                </Badge>
-                            ))}
-                        </Flex>
-                    )}
-                </Stack>
-            </Box>
-        );
-    };
-
     const handleOpenLanguageCard = async (languageCode: string) => {
         try {
             const existingLang = languageData.find(lang => lang.language === languageCode);
@@ -584,58 +446,13 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     return (
         <Box>
             {/* Header with bulk controls */}
-            <Card marginBottom={4}>
-                <CardBody>
-                    <Box width="100%" padding={4}>
-                        <Stack spacing={4}>
-                            {/* Line 1: Open Language Card */}
-                            <Flex justifyContent="space-between" alignItems="center">
-                                <Flex gap={3} alignItems="center">
-                                    <Typography variant="pi" fontWeight="bold">Open Language Card:</Typography>
-                                    <Select placeholder="Select language to view" size="S" onChange={(value: string) => handleOpenLanguageCard(value)}>
-                                        <Option value="zh">Chinese (中文) ⚙️</Option>
-                                        <Option value="es">Spanish (Español) 🚧</Option>
-                                        <Option value="fr">French (Français) 🚧</Option>
-                                        <Option value="de">German (Deutsch) 🚧</Option>
-                                        <Option value="ja">Japanese (日本語) 🚧</Option>
-                                        <Option value="pt">Portuguese (Português) 🚧</Option>
-                                    </Select>
-                                </Flex>
-                                <Button
-                                    startIcon={<Refresh />}
-                                    variant="tertiary"
-                                    onClick={handleRefresh}
-                                    size="S"
-                                >
-                                    Refresh All
-                                </Button>
-                            </Flex>
-
-                            {/* Line 2: Streamlined Bulk Actions */}
-                            <Flex gap={4} alignItems="center" wrap="wrap">
-                                <Typography variant="pi" fontWeight="bold">Bulk Actions:</Typography>
-
-                                <Flex gap={2} alignItems="center" wrap="nowrap">
-                                    <Typography variant="pi" style={{ whiteSpace: 'nowrap' }}>Publish All:</Typography>
-                                    <ToggleCheckbox
-                                        checked={bulkPublishState}
-                                        onChange={(checked: boolean) => handleBulkPublishToggle(checked)}
-                                    />
-                                </Flex>
-
-                                <Flex gap={2} alignItems="center">
-                                    <Typography variant="pi">Set All:</Typography>
-                                    <Select size="S" onChange={(value: string) => handleBulkAccessTier(value)}>
-                                        <Option value="Free">Free</Option>
-                                        <Option value="Login">Login Required</Option>
-                                        <Option value="Premium">Premium</Option>
-                                    </Select>
-                                </Flex>
-                            </Flex>
-                        </Stack>
-                    </Box>
-                </CardBody>
-            </Card>
+            <BulkControls
+                onLanguageSelect={handleOpenLanguageCard}
+                onRefresh={handleRefresh}
+                onBulkPublish={handleBulkPublish}
+                onBulkAccessTier={handleBulkAccessTier}
+                bulkPublishState={bulkPublishState}
+            />
 
             {/* Language cards - Full width with clean two-line layout */}
             <Stack spacing={4}>
@@ -777,36 +594,39 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                                             <Box padding={4} background="neutral50" borderRadius="4px">
                                                                 <Grid gap={6}>
                                                                     <GridItem col={6}>
-                                                                        {/* HSK Level Details for Chinese */}
-                                                                        {processor.code === 'zh' && lang.processed_data.hsk && (
-                                                                            <Box paddingBottom={4}>
-                                                                                <Typography variant="epsilon" fontWeight="bold" paddingBottom={3}>
-                                                                                    HSK Analysis
-                                                                                </Typography>
-                                                                                <Flex gap={3} alignItems="center">
-                                                                                    <Flex gap={1} alignItems="center">
-                                                                                        <Typography variant="pi">Calculated:</Typography>
-                                                                                        <Badge backgroundColor="primary200" textColor="primary700">
-                                                                                            HSK {lang.processed_data.hsk.calculatedLevel}
-                                                                                        </Badge>
-                                                                                    </Flex>
-                                                                                    <Flex gap={1} alignItems="center">
-                                                                                        <Typography variant="pi">Selected:</Typography>
-                                                                                        <Badge backgroundColor="success200" textColor="success700">
-                                                                                            HSK {lang.processed_data.hsk.selectedLevel}
-                                                                                        </Badge>
-                                                                                    </Flex>
-                                                                                </Flex>
-                                                                            </Box>
+                                                                        {/* HSK Level Details */}
+                                                                        {lang.processed_data.hsk && (
+                                                                            <HSKAnalysis
+                                                                                hskData={lang.processed_data.hsk}
+                                                                                processor={processor}
+                                                                            />
                                                                         )}
 
                                                                         {/* Grammar Rules Section */}
-                                                                        {renderGrammarRules(lang, processor)}
+                                                                        <GrammarAnalysis
+                                                                            sentences={lang.processed_data.grammar?.sentences || []}
+                                                                            processor={processor}
+                                                                            languageId={lang.id}
+                                                                            isExpanded={showAllGrammar[lang.id] || false}
+                                                                            onToggleExpansion={() => setShowAllGrammar(prev => ({
+                                                                                ...prev,
+                                                                                [lang.id]: !prev[lang.id]
+                                                                            }))}
+                                                                        />
                                                                     </GridItem>
 
                                                                     <GridItem col={6}>
                                                                         {/* Translation Data Section */}
-                                                                        {renderTranslationData(lang, processor)}
+                                                                        <TranslationAnalysis
+                                                                            sentences={lang.processed_data.grammar?.sentences || []}
+                                                                            processor={processor}
+                                                                            languageId={lang.id}
+                                                                            isExpanded={showAllTranslations[lang.id] || false}
+                                                                            onToggleExpansion={() => setShowAllTranslations(prev => ({
+                                                                                ...prev,
+                                                                                [lang.id]: !prev[lang.id]
+                                                                            }))}
+                                                                        />
                                                                     </GridItem>
                                                                 </Grid>
                                                             </Box>
