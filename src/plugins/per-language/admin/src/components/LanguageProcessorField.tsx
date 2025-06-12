@@ -17,6 +17,7 @@ import {
 import { useIntl } from 'react-intl';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import { ProcessedDataDisplay } from './ProcessedDataDisplay';
+import { SUPPORTED_LANGUAGES, StatusIndicators } from './shared';
 
 interface LanguageProcessorFieldProps {
     name: string;
@@ -52,18 +53,8 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
         };
     }, []);
 
-    // Available languages with processor status
-    const languages = [
-        { code: 'zh', name: 'Chinese (中文)', hasProcessor: true },
-        { code: 'es', name: 'Spanish (Español)', hasProcessor: false },
-        { code: 'fr', name: 'French (Français)', hasProcessor: false },
-        { code: 'de', name: 'German (Deutsch)', hasProcessor: false },
-        { code: 'ja', name: 'Japanese (日本語)', hasProcessor: false },
-        { code: 'pt', name: 'Portuguese (Português)', hasProcessor: false },
-    ];
-
-    const selectedLanguageInfo = languages.find(lang => lang.code === targetLanguage);
-    const hasContent = value && value.trim().length > 0;
+    const selectedLanguageInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
+    const hasContent = Boolean(value && value.trim().length > 0);
     const canProcess = hasContent;
 
     const handleTranslate = async () => {
@@ -265,27 +256,12 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
 
                 <Stack spacing={4}>
                     {/* FIXED: Status indicators moved to top, no label */}
-                    <Box padding={3} background="neutral100" borderRadius="4px">
-                        <Flex gap={2} flexWrap="wrap">
-                            <Badge active={hasContent}>
-                                {hasContent ? '✅ Content Available' : '⭕ No Content'}
-                            </Badge>
-
-                            <Badge active={canProcess}>
-                                {canProcess ? '✅ Ready to Process' : '⭕ Add Content First'}
-                            </Badge>
-
-                            <Badge active={selectedLanguageInfo?.hasProcessor}>
-                                {selectedLanguageInfo?.hasProcessor ? '⚙️ Processor Available' : '🚧 Under Development'}
-                            </Badge>
-
-                            {isSyncing && (
-                                <Badge backgroundColor="warning">
-                                    🔄 Syncing...
-                                </Badge>
-                            )}
-                        </Flex>
-                    </Box>
+                    <StatusIndicators
+                        hasContent={hasContent}
+                        canProcess={canProcess}
+                        hasProcessor={selectedLanguageInfo?.hasProcessor || false}
+                        isSyncing={isSyncing}
+                    />
 
                     {/* FIXED: Language selection with updated label */}
                     <Select
@@ -295,7 +271,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                             setTargetLanguage(value);
                         }}
                     >
-                        {languages.map((lang) => (
+                        {SUPPORTED_LANGUAGES.map((lang) => (
                             <Option key={lang.code} value={lang.code}>
                                 {lang.name} {lang.hasProcessor ? '⚙️' : '🚧'}
                             </Option>

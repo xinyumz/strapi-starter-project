@@ -1,4 +1,3 @@
-// FIXED VERSION: ProcessedDataDisplay with proper access_tier handling
 // src/plugins/per-language/admin/src/components/ProcessedDataDisplay.tsx
 
 import React, { useState, useEffect } from 'react';
@@ -27,115 +26,27 @@ import {
     Play,
     Eye,
     EyeStriked,
-    Crown,
-    Gift,
-    CheckCircle,
     ExclamationMarkCircle
 } from '@strapi/icons';
 import { useFetchClient } from '@strapi/helper-plugin';
+
+import {
+    SUPPORTED_LANGUAGES,
+    ACCESS_TIERS,
+    LanguageData,
+    ProcessedData,
+    HSKData,
+    GrammarData,
+    GrammarSentence,
+    Translation,
+    LanguageProcessor,
+    AccessTierSelect
+} from './shared';
 
 interface ProcessedDataDisplayProps {
     articleId: string;
     onRefresh?: () => void;
 }
-
-interface LanguageData {
-    id: number;
-    language: string;
-    per_language_text: string;
-    processed_data: ProcessedData;
-    difficulty_data: any;
-    display_skill: string;
-    published: boolean;
-    access_tier: string | null; // FIXED: Allow null values
-    created_at: string;
-    updated_at: string;
-    createdAt?: string;
-    updatedAt?: string;
-}
-
-interface ProcessedData {
-    hsk?: HSKData;
-    grammar?: GrammarData;
-}
-
-interface HSKData {
-    calculatedLevel: number;
-    selectedLevel: number;
-    distribution: number[];
-}
-
-interface GrammarData {
-    sentences: GrammarSentence[];
-}
-
-interface GrammarSentence {
-    sentence: string;
-    translation: string;
-    rules: string[];
-    translations?: Translation[];
-}
-
-interface Translation {
-    text: string;
-    language: string;
-}
-
-interface LanguageProcessor {
-    code: string;
-    name: string;
-    hasProcessor: boolean;
-    processorUrl?: string;
-    difficultyLabel: string;
-}
-
-const SUPPORTED_LANGUAGES: LanguageProcessor[] = [
-    {
-        code: 'zh',
-        name: 'Chinese (中文)',
-        hasProcessor: true,
-        processorUrl: '/admin/plugins/chinese-article-processor/chinese-processor',
-        difficultyLabel: 'HSK'
-    },
-    {
-        code: 'es',
-        name: 'Spanish (Español)',
-        hasProcessor: false,
-        difficultyLabel: 'CEFR'
-    },
-    {
-        code: 'fr',
-        name: 'French (Français)',
-        hasProcessor: false,
-        difficultyLabel: 'CEFR'
-    },
-    {
-        code: 'de',
-        name: 'German (Deutsch)',
-        hasProcessor: false,
-        difficultyLabel: 'CEFR'
-    },
-    {
-        code: 'ja',
-        name: 'Japanese (日本語)',
-        hasProcessor: false,
-        difficultyLabel: 'JLPT'
-    },
-    {
-        code: 'pt',
-        name: 'Portuguese (Português)',
-        hasProcessor: false,
-        difficultyLabel: 'CEFR'
-    }
-];
-
-// FIXED: Updated access tiers to handle null state properly
-const ACCESS_TIERS = [
-    { value: '', label: 'Select Access Tier', icon: ExclamationMarkCircle, disabled: true }, // Placeholder option
-    { value: 'Free', label: 'Free', icon: Gift, disabled: false },
-    { value: 'Login', label: 'Login Required', icon: CheckCircle, disabled: false },
-    { value: 'Premium', label: 'Premium', icon: Crown, disabled: false }
-];
 
 export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     articleId,
@@ -817,25 +728,13 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                                             <TierIcon width="16px" height="16px" />
                                                             <Typography variant="pi" textColor="neutral600">Access Tier:</Typography>
                                                             {/* FIXED: Proper handling of null access tier */}
-                                                            <Select
-                                                                value={getAccessTierDisplayValue(lang.access_tier)}
+                                                            <AccessTierSelect
+                                                                value={lang.access_tier}
                                                                 onChange={(value: string) => handleAccessTierChange(lang.id, value)}
                                                                 disabled={isUpdating[`tier_${lang.id}`]}
                                                                 size="S"
-                                                                placeholder="Select Access Tier"
-                                                                // Add visual indicator for required field
                                                                 error={!lang.access_tier ? "Access tier is required" : undefined}
-                                                            >
-                                                                {ACCESS_TIERS.map(tier => (
-                                                                    <Option
-                                                                        key={tier.value}
-                                                                        value={tier.value}
-                                                                        disabled={tier.disabled}
-                                                                    >
-                                                                        {tier.label}
-                                                                    </Option>
-                                                                ))}
-                                                            </Select>
+                                                            />
                                                         </Flex>
 
                                                         <Flex gap={2} alignItems="center">
