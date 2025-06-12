@@ -4,3 +4,4 @@ export { BulkControls } from './BulkControls';
 export { HSKAnalysis } from './HSKAnalysis';
 export { GrammarAnalysis } from './GrammarAnalysis';
 export { TranslationAnalysis } from './TranslationAnalysis';
+export { LanguageCard } from './LanguageCard';
