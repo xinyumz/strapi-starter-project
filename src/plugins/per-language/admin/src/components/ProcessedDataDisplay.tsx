@@ -1,5 +1,4 @@
 // src/plugins/per-language/admin/src/components/ProcessedDataDisplay.tsx
-// Clean version with improved two-line card layout
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -20,9 +19,6 @@ import {
     Alert,
     Stack,
     EmptyStateLayout,
-    Accordion,
-    AccordionToggle,
-    AccordionContent,
     Tag
 } from '@strapi/design-system';
 import {
@@ -33,8 +29,7 @@ import {
     Crown,
     Gift,
     CheckCircle,
-    ExclamationMarkCircle,
-    Cross
+    ExclamationMarkCircle
 } from '@strapi/icons';
 import { useFetchClient } from '@strapi/helper-plugin';
 
@@ -148,14 +143,10 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({});
     const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
-
-    const { get, put } = useFetchClient();
-
     const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
     const [bulkPublishState, setBulkPublishState] = useState<boolean>(false);
 
-    console.log('[ProcessedDataDisplay] Component initialized with articleId:', articleId);
-    console.log('[ProcessedDataDisplay] Current languageData:', languageData);
+    const { get, put } = useFetchClient();
 
     useEffect(() => {
         if (articleId) {
@@ -168,37 +159,19 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
             setIsLoading(true);
             setError(null);
 
-            console.log('[ProcessedDataDisplay] Loading language data for article:', articleId);
-
             const response = await get(`/per-language/article/${articleId}/languages`);
-
-            console.log('[ProcessedDataDisplay] Raw API Response:', response);
-            console.log('[ProcessedDataDisplay] response.data:', response.data);
 
             let data = [];
             if (response.data && response.data.data && Array.isArray(response.data.data)) {
                 data = response.data.data;
-                console.log('[ProcessedDataDisplay] Extracted data from response.data.data:', data);
             } else if (response.data && Array.isArray(response.data)) {
                 data = response.data;
-                console.log('[ProcessedDataDisplay] Used response.data directly:', data);
-            } else {
-                console.log('[ProcessedDataDisplay] Could not find array data in response');
-            }
-
-            console.log('[ProcessedDataDisplay] Final languageData:', data);
-            console.log('[ProcessedDataDisplay] Is array?', Array.isArray(data));
-            console.log('[ProcessedDataDisplay] Length:', data.length);
-            if (data.length > 0) {
-                console.log('[ProcessedDataDisplay] First item keys:', Object.keys(data[0]));
-                console.log('[ProcessedDataDisplay] First item id:', data[0].id);
-                console.log('[ProcessedDataDisplay] First item language:', data[0].language);
             }
 
             setLanguageData(data);
 
         } catch (err: any) {
-            console.error('[ProcessedDataDisplay] Error loading language data:', err);
+            console.error('Error loading language data:', err);
             setError(err.message || 'Failed to load language data');
             setLanguageData([]);
         } finally {
@@ -217,18 +190,19 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         try {
             setIsUpdating(prev => ({ ...prev, [`refresh_${languageId}`]: true }));
 
-            const response = await get(`/per-language/article/${articleId}/language/${languageCode}/refresh`);
+            console.log(`[Frontend Refresh] Refreshing language ${languageCode} for article ${articleId}`);
 
-            // Update just this language in the state
-            setLanguageData(prev =>
-                prev.map(lang =>
-                    lang.id === languageId
-                        ? { ...lang, ...response.data }
-                        : lang
-                )
-            );
+            // Call the individual refresh endpoint to update backend data
+            await get(`/per-language/article/${articleId}/language/${languageCode}/refresh`);
+
+            // Then reload all language data to get the updated information
+            await loadLanguageData();
+
+            console.log(`[Frontend Refresh] ✅ Successfully refreshed language ${languageCode}`);
+
         } catch (error) {
-            console.error('Error refreshing language:', error);
+            console.error(`[Frontend Refresh] Error refreshing language ${languageCode}:`, error);
+            setError(`Failed to refresh ${languageCode} data`);
         } finally {
             setIsUpdating(prev => ({ ...prev, [`refresh_${languageId}`]: false }));
         }
@@ -251,8 +225,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 );
             });
         } catch (err: any) {
-            console.error('[ProcessedDataDisplay] Error updating publish status:', err);
-            console.error('[ProcessedDataDisplay] Error response:', err.response?.data);
+            console.error('Error updating publish status:', err);
             setError(err.message || 'Failed to update publish status');
         } finally {
             setIsUpdating(prev => ({ ...prev, [`publish_${languageId}`]: false }));
@@ -276,8 +249,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 );
             });
         } catch (err: any) {
-            console.error('[ProcessedDataDisplay] Error updating access tier:', err);
-            console.error('[ProcessedDataDisplay] Error response:', err.response?.data);
+            console.error('Error updating access tier:', err);
             setError(err.message || 'Failed to update access tier');
         } finally {
             setIsUpdating(prev => ({ ...prev, [`tier_${languageId}`]: false }));
@@ -294,10 +266,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     };
 
     const getLanguageInfo = (languageCode: string) => {
-        console.log('[ProcessedDataDisplay] getLanguageInfo called with:', languageCode, typeof languageCode);
-
         if (!languageCode || typeof languageCode !== 'string') {
-            console.warn('[ProcessedDataDisplay] Invalid language code:', languageCode);
             return {
                 code: 'unknown',
                 name: 'Unknown Language',
@@ -338,7 +307,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
 
             return <Badge backgroundColor="primary200" textColor="primary700">Content Ready</Badge>;
         } catch (error) {
-            console.error('[ProcessedDataDisplay] Error in getStatusBadge:', error);
+            console.error('Error in getStatusBadge:', error);
             return <Badge backgroundColor="neutral200">Unknown</Badge>;
         }
     };
@@ -390,7 +359,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 </Flex>
             );
         } catch (error) {
-            console.error('[ProcessedDataDisplay] Error in getMetricsDisplay:', error);
+            console.error('Error in getMetricsDisplay:', error);
             return (
                 <Typography variant="pi" color="danger600">
                     Error displaying metrics
@@ -453,7 +422,6 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 </Typography>
             );
         }
-
 
         return (
             <Box>
@@ -564,6 +532,42 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         );
     };
 
+    const handleOpenLanguageCard = async (languageCode: string) => {
+        try {
+            const existingLang = languageData.find(lang => lang.language === languageCode);
+            if (existingLang) {
+                setVisibleCards(prev => new Set([...prev, existingLang.id]));
+            } else {
+                const newLangData = {
+                    id: Date.now(),
+                    language: languageCode,
+                    per_language_text: '',
+                    processed_data: {},
+                    difficulty_data: {},
+                    display_skill: '',
+                    published: false,
+                    access_tier: 'Free',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+
+                setLanguageData(prev => [...prev, newLangData]);
+                setVisibleCards(prev => new Set([...prev, newLangData.id]));
+            }
+        } catch (error) {
+            console.error('Error opening language card:', error);
+        }
+    };
+
+    const handleBulkPublishToggle = async (checked: boolean) => {
+        setBulkPublishState(checked);
+        await handleBulkPublish(checked);
+    };
+
+    const handleCloseCard = (languageId: number) => {
+        setLanguageData(prev => prev.filter(lang => lang.id !== languageId));
+    };
+
     if (isLoading) {
         return (
             <Box padding={4}>
@@ -599,47 +603,6 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         );
     }
 
-    console.log('[ProcessedDataDisplay] About to render with languageData:', languageData);
-    const handleOpenLanguageCard = async (languageCode: string) => {
-        try {
-            // Find if this language already exists in languageData
-            const existingLang = languageData.find(lang => lang.language === languageCode);
-            if (existingLang) {
-                // Add to visible cards if not already visible
-                setVisibleCards(prev => new Set([...prev, existingLang.id]));
-            } else {
-                // Create a placeholder card for languages without data yet
-                const newLangData = {
-                    id: Date.now(), // Temporary ID
-                    language: languageCode,
-                    per_language_text: '',
-                    processed_data: {},
-                    difficulty_data: {},
-                    display_skill: '',
-                    published: false,
-                    access_tier: 'Free',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-
-                setLanguageData(prev => [...prev, newLangData]);
-                setVisibleCards(prev => new Set([...prev, newLangData.id]));
-            }
-        } catch (error) {
-            console.error('Error opening language card:', error);
-        }
-    };
-
-    const handleBulkPublishToggle = async (checked: boolean) => {
-        setBulkPublishState(checked);
-        await handleBulkPublish(checked);
-    };
-
-    const handleCloseCard = (languageId: number) => {
-        // Instead of managing visible cards, just filter out this card
-        setLanguageData(prev => prev.filter(lang => lang.id !== languageId));
-    };
-
     return (
         <Box>
             {/* Header with bulk controls */}
@@ -669,7 +632,6 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                     Refresh All
                                 </Button>
                             </Flex>
-
 
                             {/* Line 2: Streamlined Bulk Actions */}
                             <Flex gap={4} alignItems="center" wrap="wrap">
@@ -702,11 +664,8 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 {languageData
                     .filter(lang => visibleCards.size === 0 || visibleCards.has(lang.id))
                     .map((lang, index) => {
-                        console.log('[ProcessedDataDisplay] Rendering language card for:', lang);
-
                         try {
                             if (!lang || typeof lang !== 'object') {
-                                console.error('[ProcessedDataDisplay] Invalid language object:', lang);
                                 return (
                                     <Card key={`invalid-${index}`}>
                                         <CardBody>
@@ -778,7 +737,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                                     </Flex>
                                                 </Flex>
 
-                                                {/* Line 3: Access tier and publish toggle left, update left */}
+                                                {/* Line 3: Access tier and publish toggle left, update date right */}
                                                 <Flex justifyContent="space-between" alignItems="center">
                                                     <Flex gap={4} alignItems="center">
                                                         <Flex gap={2} alignItems="center">
@@ -820,7 +779,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                                 {getMetricsDisplay(lang, processor)}
 
                                                 {/* Expandable Details Section */}
-                                                {lang.processed_data && (
+                                                {lang.processed_data && Object.keys(lang.processed_data).length > 0 && (
                                                     <>
                                                         <Divider />
                                                         <Box width="100%">
@@ -880,15 +839,12 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                 </Card>
                             );
                         } catch (error) {
-                            console.error('[ProcessedDataDisplay] Error rendering language card:', error, lang);
+                            console.error('Error rendering language card:', error, lang);
                             return (
                                 <Card key={`error-${index}`}>
                                     <CardBody>
                                         <Typography variant="pi" color="danger600">
                                             Error rendering language: {lang?.language || 'Unknown'}
-                                        </Typography>
-                                        <Typography variant="pi" color="neutral600" style={{ marginTop: '8px' }}>
-                                            Debug info: {JSON.stringify(lang)}
                                         </Typography>
                                     </CardBody>
                                 </Card>
@@ -896,6 +852,6 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                         }
                     })}
             </Stack>
-        </Box >
+        </Box>
     );
 };

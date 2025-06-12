@@ -1,5 +1,4 @@
 //server/routes/index.ts
-console.log('[Translator Routes] Registering routes...');
 
 export default [
   {
@@ -9,6 +8,7 @@ export default [
     config: {
       auth: false,
       policies: [],
+      description: 'Translate text to target language'
     },
   },
   {
@@ -27,24 +27,7 @@ export default [
     handler: 'my-controller.index',
     config: {
       policies: [],
-    },
-  },
-  {
-    method: 'GET',
-    path: '/test-sync',
-    handler: 'my-controller.testSync',
-    config: {
-      policies: [],
-    },
-  },
-  {
-    method: 'GET',
-    path: '/sync-existing-article',
-    handler: 'my-controller.syncExistingArticle',
-    config: {
-      policies: [],
+      description: 'Plugin info'
     },
   }
 ];
-
-console.log('[Translator Routes] Routes defined');

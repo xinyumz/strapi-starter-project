@@ -1,4 +1,5 @@
 // server/routes/index.ts
+
 export default [
     // HSK Calculator routes
     {
@@ -11,6 +12,7 @@ export default [
             description: 'Calculate HSK level for Chinese text'
         }
     },
+
     // Grammar rules routes
     {
         method: 'POST',
@@ -42,6 +44,7 @@ export default [
             description: 'Save grammar data for an article'
         }
     },
+
     // Translation routes
     {
         method: 'POST',
@@ -63,7 +66,8 @@ export default [
             description: 'Get supported languages for translation'
         }
     },
-    // Article routes
+
+    // Article processing routes (modern only)
     {
         method: 'POST',
         path: '/process-article',
@@ -86,22 +90,12 @@ export default [
     },
     {
         method: 'POST',
-        path: '/process-from-any-source/:id',
-        handler: 'articleController.processArticleFromAnySource',
-        config: {
-            policies: [],
-            auth: false,
-            description: 'Process article using dual-source approach with fallback'
-        },
-    },
-    {
-        method: 'POST',
         path: '/process-v2/:id',
         handler: 'articleController.processArticleV2',
         config: {
             policies: [],
             auth: false,
-            description: 'Process article using dual-source approach (Phase 3)'
+            description: 'Complete article processing workflow (per_languages only)'
         }
     },
     {
@@ -111,17 +105,7 @@ export default [
         config: {
             policies: [],
             auth: false,
-            description: 'Update article processed data with dual-write support'
-        }
-    },
-    {
-        method: 'POST',
-        path: '/sync-processed-data/:id',
-        handler: 'articleController.syncProcessedDataManually',
-        config: {
-            policies: [],
-            auth: false,
-            description: 'Manually sync processed data from articles to per_languages table'
+            description: 'Update article processed data (per_languages only)'
         }
     }
 ];

@@ -1,4 +1,5 @@
-// server/controllers/article-controller.ts
+// src/plugins/chinese-article-processor/server/controllers/article-controller.ts
+
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
 import { ExtendedContext, BatchGrammarOptions } from '../services/types';
@@ -40,23 +41,22 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             // If articleId is provided, save the processed article to the database
             if (articleId) {
-                // *** NEW: Use dual-write process service ***
+                // CLEANED: Save to per_languages table only
                 const processService = strapi.plugin('chinese-article-processor').service('processService');
 
                 if (processService) {
-                    // Save to both articles.chinese_processor AND per_languages.processed_data
                     await processService.saveProcessedData(
                         Number(articleId),
                         'zh',
                         processedArticle
                     );
-                    console.log(`[Admin Processing] Saved to both articles and per_languages tables for article ${articleId}`);
+                    console.log(`[Article Processing] Saved to per_languages table for article ${articleId}`);
                 } else {
-                    // Fallback to old method if process service not available
-                    console.log(`[Admin Processing] Process service not available, using legacy save`);
+                    console.error(`[Article Processing] Process service not available`);
+                    return ctx.badRequest('Processing service not available');
                 }
 
-                // Still save to sentence tables as before
+                // Save to sentence tables as well
                 await strapi
                     .plugin('chinese-article-processor')
                     .service('articleService')
@@ -105,7 +105,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // Process article using the new dual-source approach
+    // CLEANED: Process article using per_languages table exclusively
     async processArticleFromAnySource(ctx: ExtendedContext) {
         try {
             const { id } = ctx.params;
@@ -115,14 +115,14 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // Call the process service
+            // Get the process service
             const processService = strapi.plugin('chinese-article-processor').service('processService');
 
             if (!processService) {
                 return ctx.badRequest('Process service not available');
             }
 
-            // Get content from either source
+            // Get content from per_languages table only
             const content = await processService.getArticleContent(Number(id), 'zh');
 
             // Process the content using existing article service
@@ -134,7 +134,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 {} // Use default batch options
             );
 
-            // Save processed data to both places
+            // Save processed data to per_languages table
             await processService.saveProcessedData(
                 Number(id),
                 'zh',
@@ -158,6 +158,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
+    // CLEANED: Complete processing workflow using per_languages table only
     async processArticleV2(ctx: ExtendedContext) {
         try {
             const { id } = ctx.params;
@@ -185,6 +186,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             }
         }
     },
+
+    // CLEANED: Update processed data in per_languages table only
     async updateArticleProcessedData(ctx: ExtendedContext) {
         try {
             const { id } = ctx.params;
@@ -202,26 +205,23 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.badRequest('Processed data is required');
             }
 
-            console.log(`[Admin Processing] Updating processed data for article ${id}`);
+            console.log(`[Article Processing] Updating processed data for article ${id}`);
 
-            // Use the process service to save to both locations
+            // Use the process service to save to per_languages table only
             const processService = strapi.plugin('chinese-article-processor').service('processService');
 
-            if (processService) {
-                await processService.saveProcessedData(
-                    Number(id),
-                    'zh',
-                    processedData,
-                    displaySkill
-                );
-                console.log(`[Admin Processing] Successfully saved to both articles and per_languages tables`);
-            } else {
-                console.log(`[Admin Processing] Process service not available, saving to articles table only`);
-                // Fallback: save only to articles table
-                await strapi.entityService?.update('api::article.article', Number(id), {
-                    data: { chinese_processor: processedData } as any
-                });
+            if (!processService) {
+                return ctx.badRequest('Process service not available');
             }
+
+            await processService.saveProcessedData(
+                Number(id),
+                'zh',
+                processedData,
+                displaySkill
+            );
+
+            console.log(`[Article Processing] Successfully saved to per_languages table`);
 
             ctx.body = {
                 data: { success: true, message: 'Processed data updated successfully' }
@@ -236,77 +236,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             }
         }
     },
-    async syncProcessedDataManually(ctx: ExtendedContext) {
-        try {
-            const { id } = ctx.params;
 
-            if (!id) {
-                return ctx.badRequest('Article ID is required');
-            }
-
-            console.log(`[Manual Sync] Syncing processed data for article ${id}`);
-
-            // Get the article with its processed data
-            const article = await strapi.entityService?.findOne('api::article.article', Number(id), {});
-
-            if (!article) {
-                return ctx.badRequest('Article not found');
-            }
-
-            const chineseProcessor = (article as any).chinese_processor || (article as any).ChineseProcessor;
-
-            if (!chineseProcessor) {
-                return ctx.badRequest('No processed data found in article');
-            }
-
-            // Use the process service to sync
-            const processService = strapi.plugin('chinese-article-processor').service('processService');
-
-            if (processService && processService.saveProcessedData) {
-                // For admin format, convert to API format first
-                let dataToSync = chineseProcessor;
-
-                if (chineseProcessor.grammar && chineseProcessor.grammar.sentences) {
-                    dataToSync = chineseProcessor.grammar.sentences.map((sentence: any) => ({
-                        chinese: sentence.sentence,
-                        grammarRules: sentence.rules || [],
-                        translations: sentence.translations ?
-                            sentence.translations.reduce((acc: any, trans: any) => {
-                                acc[trans.language] = trans.text;
-                                return acc;
-                            }, {}) :
-                            { en: sentence.translation }
-                    }));
-                }
-
-                // Extract display skill
-                let displaySkill = null;
-                if (chineseProcessor.hsk) {
-                    if (chineseProcessor.hsk.selectedLevel) {
-                        displaySkill = `HSK ${chineseProcessor.hsk.selectedLevel}`;
-                    } else if (chineseProcessor.hsk.calculatedLevel) {
-                        displaySkill = `HSK ${chineseProcessor.hsk.calculatedLevel}`;
-                    }
-                }
-
-                await processService.saveProcessedData(Number(id), 'zh', dataToSync, displaySkill);
-
-                ctx.body = {
-                    data: {
-                        success: true,
-                        message: 'Processed data manually synced successfully',
-                        displaySkill: displaySkill
-                    }
-                };
-            } else {
-                return ctx.badRequest('Process service not available');
-            }
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                ctx.throw(500, `Manual sync failed: ${error.message}`);
-            } else {
-                ctx.throw(500, 'Manual sync failed');
-            }
-        }
-    }
+    // REMOVED: syncProcessedDataManually method (no longer needed)
+    // This method was for migrating data from articles table to per_languages table
+    // Since we now use per_languages table exclusively, this is not needed
 });

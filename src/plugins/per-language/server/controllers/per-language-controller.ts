@@ -185,13 +185,27 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     async refreshLanguageData(ctx) {
         const { articleId, language } = ctx.params;
 
-        try {
-            const languageService = strapi.plugin('per-language').service('languageService');
-            const refreshedData = await languageService.getLanguageContent(parseInt(articleId), language);
+        if (!articleId || !language) {
+            return ctx.badRequest('Article ID and language are required');
+        }
 
+        try {
+            console.log(`[Refresh] Refreshing data for article ${articleId}, language ${language}`);
+
+            // Use contentService instead of languageService
+            const contentService = strapi.plugin('per-language').service('contentService');
+            const refreshedData = await contentService.getLanguageContent(parseInt(articleId), language);
+
+            if (!refreshedData) {
+                return ctx.notFound(`No content found for article ${articleId} in language ${language}`);
+            }
+
+            console.log(`[Refresh] Successfully refreshed data for article ${articleId}, language ${language}`);
             ctx.body = { data: refreshedData };
         } catch (error) {
-            ctx.throw(500, `Failed to refresh language data: ${error.message}`);
+            console.error(`[Refresh] Error refreshing language data:`, error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            ctx.throw(500, `Failed to refresh language data: ${errorMessage}`);
         }
     }
 
