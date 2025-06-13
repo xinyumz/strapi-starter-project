@@ -4,18 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Box,
     Button,
-    Card,
-    CardBody,
-    CardHeader,
-    Flex,
     Typography,
-    Badge,
-    Select,
-    Option,
-    ToggleCheckbox,
-    Grid,
-    GridItem,
-    Divider,
     Alert,
     Stack,
     EmptyStateLayout,
@@ -23,31 +12,17 @@ import {
 } from '@strapi/design-system';
 import {
     Refresh,
-    Play,
-    Eye,
-    EyeStriked,
     ExclamationMarkCircle
 } from '@strapi/icons';
 import { useFetchClient } from '@strapi/helper-plugin';
 
 import {
     SUPPORTED_LANGUAGES,
-    ACCESS_TIERS,
     LanguageData,
-    ProcessedData,
-    HSKData,
-    GrammarData,
-    GrammarSentence,
-    Translation,
-    LanguageProcessor,
-    AccessTierSelect
 } from './shared';
 
 import {
     BulkControls,
-    HSKAnalysis,
-    GrammarAnalysis,
-    TranslationAnalysis,
     LanguageCard
 } from './processed-data';
 

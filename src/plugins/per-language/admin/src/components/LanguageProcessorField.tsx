@@ -10,7 +10,6 @@ import {
     Typography,
     Box,
     Flex,
-    Badge,
     Divider,
     Wysiwyg
 } from '@strapi/design-system';
@@ -35,9 +34,11 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     required,
 }) => {
     const { formatMessage } = useIntl();
-    const [targetLanguage, setTargetLanguage] = useState('zh');
+    // CHANGED: No default language selection - user must choose
+    const [targetLanguage, setTargetLanguage] = useState('');
     const [isTranslating, setIsTranslating] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isCreatingRecord, setIsCreatingRecord] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const { modifiedData } = useCMEditViewDataManager();
 
@@ -55,7 +56,67 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
 
     const selectedLanguageInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
     const hasContent = Boolean(value && value.trim().length > 0);
-    const canProcess = hasContent;
+    const canProcess = Boolean(hasContent && targetLanguage); // FIXED: Convert to boolean
+    const hasSelectedLanguage = Boolean(targetLanguage); // NEW: Track if language is selected
+
+    // NEW: Function to create per_languages record when language is selected
+    const createLanguageRecord = async (articleId: string, language: string, initialContent: string = '') => {
+        setIsCreatingRecord(true);
+        try {
+            console.log('[LanguageProcessorField] Creating language record:', {
+                articleId,
+                language,
+                hasInitialContent: !!initialContent
+            });
+
+            const response = await fetch(`/per-language/article/${articleId}/content`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                },
+                body: JSON.stringify({
+                    language: language,
+                    content: initialContent || ' ' // Use space if no content to ensure record creation
+                }),
+            });
+
+            if (response.ok) {
+                console.log('[LanguageProcessorField] ✅ Language record created successfully');
+                // Refresh the ProcessedDataDisplay to show the new record
+                setRefreshKey(prev => prev + 1);
+                return true;
+            } else {
+                console.error('[LanguageProcessorField] Failed to create language record');
+                return false;
+            }
+        } catch (error) {
+            console.error('[LanguageProcessorField] Error creating language record:', error);
+            return false;
+        } finally {
+            setIsCreatingRecord(false);
+        }
+    };
+
+    // CHANGED: Enhanced language selection handler
+    const handleLanguageSelect = async (selectedLanguage: string) => {
+        const articleId = modifiedData.id;
+
+        console.log('[LanguageProcessorField] Language selected:', {
+            selectedLanguage,
+            articleId,
+            hasExistingContent: !!value
+        });
+
+        setTargetLanguage(selectedLanguage);
+
+        // If article is saved, immediately create the per_languages record
+        if (articleId && selectedLanguage) {
+            // Use existing field content if available
+            const existingContent = value || '';
+            await createLanguageRecord(articleId, selectedLanguage, existingContent);
+        }
+    };
 
     const handleTranslate = async () => {
         const sourceText = modifiedData.Base || modifiedData.base;
@@ -71,6 +132,11 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
 
         if (!sourceText) {
             alert('Base field is empty. Please add content to the Base field first.');
+            return;
+        }
+
+        if (!targetLanguage) {
+            alert('Please select a target language first.');
             return;
         }
 
@@ -121,10 +187,10 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
         }
     };
 
-    // FIXED: Separate sync function with proper error handling
+    // UPDATED: Improved sync function
     const syncToPerLanguages = async (content: string, articleId: string, language: string) => {
-        if (!content || !content.trim()) {
-            console.log('[LanguageProcessorField] No content to sync');
+        if (!language) {
+            console.log('[LanguageProcessorField] No language selected for sync');
             return;
         }
 
@@ -133,11 +199,11 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
             console.log('[LanguageProcessorField] Syncing to per_languages table:', {
                 articleId,
                 language,
-                contentLength: content.length,
-                contentPreview: content.substring(0, 50) + '...'
+                contentLength: content?.length || 0,
+                contentPreview: content ? content.substring(0, 50) + '...' : 'empty'
             });
 
-            // Primary sync endpoint
+            // Use the primary sync endpoint
             const response = await fetch(`/per-language/article/${articleId}/content`, {
                 method: 'PUT',
                 headers: {
@@ -146,7 +212,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                 },
                 body: JSON.stringify({
                     language: language,
-                    content: content
+                    content: content || ' ' // Ensure we always have some content
                 }),
             });
 
@@ -156,7 +222,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                 console.warn('[LanguageProcessorField] Primary sync failed, trying fallback method');
 
                 // Fallback: use the translate endpoint with manual flag
-                const fallbackResponse = await fetch('/per-language/translate', {
+                const fallbackResponse = await fetch('/per-language/translate-enhanced', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -165,7 +231,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                     body: JSON.stringify({
                         articleId: articleId,
                         targetLanguage: language,
-                        text: content,
+                        text: content || ' ',
                         isManualContent: true // Flag to indicate this is manual content, not auto-translated
                     }),
                 });
@@ -183,17 +249,24 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
         }
     };
 
-    // FIXED: Updated manual edit handler
+    // UPDATED: Manual edit handler now works with language selection
     const handleManualEdit = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
 
         console.log('[LanguageProcessorField] Manual edit detected:', {
             newValueLength: newValue.length,
-            targetLanguage
+            targetLanguage,
+            hasLanguageSelected: !!targetLanguage
         });
 
         // Update the form field immediately
         onChange({ target: { name, value: newValue } });
+
+        // Only sync if language is selected
+        if (!targetLanguage) {
+            console.log('[LanguageProcessorField] No language selected, skipping sync');
+            return;
+        }
 
         // Clear any existing timeout
         if (saveTimeoutRef.current) {
@@ -203,7 +276,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
         // Debounce the sync operation
         saveTimeoutRef.current = setTimeout(async () => {
             const articleId = modifiedData.id;
-            if (articleId && newValue.trim()) {
+            if (articleId && targetLanguage) {
                 console.log('[LanguageProcessorField] Debounced sync triggered for manual edit');
                 await syncToPerLanguages(newValue, articleId, targetLanguage);
                 // Refresh the ProcessedDataDisplay
@@ -220,8 +293,13 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
             return;
         }
 
+        if (!targetLanguage) {
+            alert('Please select a target language first.');
+            return;
+        }
+
         if (!hasContent) {
-            alert('Please translate content first.');
+            alert('Please add content in the selected language first.');
             return;
         }
 
@@ -233,7 +311,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
         });
 
         if (selectedLanguageInfo?.hasProcessor) {
-            // Open the Chinese processor with article ID as query parameter
+            // Open the processor with article ID as query parameter
             const processorUrl = `/admin/plugins/chinese-article-processor/chinese-processor?articleId=${articleId}`;
             window.open(processorUrl, '_blank');
         } else {
@@ -248,28 +326,30 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
 
     return (
         <Stack spacing={6}>
-            {/* FIXED: Reorganized Translation Section */}
+            {/* Translation Section */}
             <Box>
                 <Typography variant="delta" paddingBottom={3}>
                     Translation
                 </Typography>
 
                 <Stack spacing={4}>
-                    {/* FIXED: Status indicators moved to top, no label */}
-                    <StatusIndicators
-                        hasContent={hasContent}
-                        canProcess={canProcess}
-                        hasProcessor={selectedLanguageInfo?.hasProcessor || false}
-                        isSyncing={isSyncing}
-                    />
+                    {/* Status indicators - only show if language is selected */}
+                    {hasSelectedLanguage && (
+                        <StatusIndicators
+                            hasContent={hasContent}
+                            canProcess={canProcess}
+                            hasProcessor={selectedLanguageInfo?.hasProcessor || false}
+                            isSyncing={isSyncing}
+                        />
+                    )}
 
-                    {/* FIXED: Language selection with updated label */}
+                    {/* UPDATED: Language selection with placeholder and required selection */}
                     <Select
                         label="Select Target Language"
+                        placeholder="Select target language"
                         value={targetLanguage}
-                        onChange={(value: string) => {
-                            setTargetLanguage(value);
-                        }}
+                        onChange={handleLanguageSelect}
+                        required
                     >
                         {SUPPORTED_LANGUAGES.map((lang) => (
                             <Option key={lang.code} value={lang.code}>
@@ -278,41 +358,60 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                         ))}
                     </Select>
 
-                    {/* FIXED: Translate button moved up */}
-                    <Flex gap={3}>
-                        <Button
-                            onClick={handleTranslate}
-                            disabled={isTranslating}
-                            loading={isTranslating}
-                        >
-                            {isTranslating ? 'Translating...' : `Translate to ${selectedLanguageInfo?.name}`}
-                        </Button>
+                    {/* Show message if no language selected */}
+                    {!hasSelectedLanguage && (
+                        <Box padding={3} background="neutral100" borderRadius="4px">
+                            <Typography variant="pi" color="neutral600">
+                                Please select a target language to begin translation and processing.
+                            </Typography>
+                        </Box>
+                    )}
 
-                        <Button
-                            variant="secondary"
-                            onClick={handleProcess}
-                            disabled={!canProcess}
-                        >
-                            {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
-                        </Button>
-                    </Flex>
+                    {/* Controls - only show if language is selected */}
+                    {hasSelectedLanguage && (
+                        <Flex gap={3}>
+                            <Button
+                                onClick={handleTranslate}
+                                disabled={isTranslating || isCreatingRecord}
+                                loading={isTranslating}
+                            >
+                                {isTranslating ? 'Translating...' : 'Translate'}
+                            </Button>
 
-                    {/* FIXED: Translation text area moved below controls */}
-                    <Textarea
-                        label={formatMessage(intlLabel)}
-                        name={name}
-                        onChange={handleManualEdit}
-                        value={value}
-                        required={required}
-                        style={{ minHeight: '200px' }}
-                        hint="Translated content will appear here after translation. You can also edit manually."
-                    />
+                            <Button
+                                variant="secondary"
+                                onClick={handleProcess}
+                                disabled={!canProcess || isCreatingRecord}
+                            >
+                                {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
+                            </Button>
+
+                            {isCreatingRecord && (
+                                <Typography variant="pi" color="neutral600">
+                                    Setting up language record...
+                                </Typography>
+                            )}
+                        </Flex>
+                    )}
+
+                    {/* Translation text area - only show if language is selected */}
+                    {hasSelectedLanguage && (
+                        <Textarea
+                            label={`${selectedLanguageInfo?.name || 'Translation'} Content`}
+                            name={name}
+                            onChange={handleManualEdit}
+                            value={value}
+                            required={required}
+                            style={{ minHeight: '200px' }}
+                            hint={`Translated content for ${selectedLanguageInfo?.name} will appear here after translation. You can also edit manually.`}
+                        />
+                    )}
                 </Stack>
             </Box>
 
             <Divider />
 
-            {/* Multi-Language Processing Center - unchanged */}
+            {/* Multi-Language Processing Center */}
             <Box>
                 <Flex justifyContent="flex-start" alignItems="center" paddingBottom={3}>
                     <Typography variant="delta">
