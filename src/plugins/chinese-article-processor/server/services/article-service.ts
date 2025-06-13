@@ -80,7 +80,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Save processed article data to the database
+     * ENHANCED: Save processed article data using proper foreign key relationships
      */
     async saveProcessedArticle(articleId: number, processedSentences: EnhancedSentence[]): Promise<void> {
         if (!strapi.db) {
@@ -89,43 +89,49 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         const knex = strapi.db.connection;
 
         try {
-            // Start a transaction
+            console.log(`[ChineseProcessor] Enhanced save: Article ${articleId}, ${processedSentences.length} sentences`);
+
+            // STEP 1: Get the Chinese per_language_id for this article
+            const perLanguageId = await this.getPerLanguageId(articleId, 'zh');
+            if (!perLanguageId) {
+                throw new ApplicationError(
+                    `Chinese per_language entry not found for article ${articleId}. ` +
+                    `Please ensure the article is translated to Chinese first.`
+                );
+            }
+
+            console.log(`[ChineseProcessor] Using per_language_id: ${perLanguageId}`);
+
+            // STEP 2: Start transaction for data consistency
             await knex.transaction(async (trx: any) => {
-                // Delete existing sentences and related data for this article
-                const existingSentenceIds = await trx('article_sentences')
-                    .where('article_id', articleId)
-                    .pluck('id');
+                // STEP 3: Clean up existing sentences (CASCADE will handle grammar rules and translations)
+                console.log(`[ChineseProcessor] Cleaning up existing sentences for per_language_id: ${perLanguageId}`);
 
-                // Delete translations for existing sentences
-                if (existingSentenceIds.length > 0) {
-                    await trx('sentence_translations')
-                        .whereIn('sentence_id', existingSentenceIds)
-                        .delete();
-
-                    // Delete grammar rules for existing sentences
-                    await trx('sentence_grammar_rules')
-                        .whereIn('sentence_id', existingSentenceIds)
-                        .delete();
-                }
-
-                // Delete existing sentences
-                await trx('article_sentences')
-                    .where('article_id', articleId)
+                const deletedCount = await trx('article_sentences')
+                    .where('per_language_id', perLanguageId)
                     .delete();
 
-                // Insert new sentences
+                console.log(`[ChineseProcessor] Deleted ${deletedCount} existing sentences (with cascading)`);
+
+                // STEP 4: Insert new sentences with proper foreign key relationships
+                console.log(`[ChineseProcessor] Inserting ${processedSentences.length} new sentences`);
+
                 for (let i = 0; i < processedSentences.length; i++) {
                     const sentence = processedSentences[i];
 
-                    // Insert the sentence
+                    // Insert sentence with proper foreign keys
                     const [sentenceId] = await trx('article_sentences')
                         .insert({
-                            article_id: articleId,
+                            article_id: articleId,           // Keep for compatibility
+                            per_language_id: perLanguageId,  // NEW: Proper foreign key
+                            language: 'zh',                  // NEW: Language identifier
                             sentence_text: sentence.chinese,
                             sentence_order: i + 1,
                             created_at: trx.fn.now(),
                             updated_at: trx.fn.now()
                         });
+
+                    console.log(`[ChineseProcessor] Created sentence ${i + 1} with ID: ${sentenceId}`);
 
                     // Insert grammar rules if any
                     if (sentence.grammarRules && Array.isArray(sentence.grammarRules) && sentence.grammarRules.length > 0) {
@@ -137,6 +143,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                         }));
 
                         await trx('sentence_grammar_rules').insert(rulesToInsert);
+                        console.log(`[ChineseProcessor] Added ${rulesToInsert.length} grammar rules for sentence ${i + 1}`);
                     }
 
                     // Insert translations for each language
@@ -152,32 +159,78 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
                     if (translationsToInsert.length > 0) {
                         await trx('sentence_translations').insert(translationsToInsert);
+                        console.log(`[ChineseProcessor] Added translations in ${Object.keys(sentence.translations).join(', ')} for sentence ${i + 1}`);
                     }
                 }
             });
 
-            console.log(`Successfully saved processed article ${articleId} with ${processedSentences.length} sentences`);
+            console.log(`[ChineseProcessor] ✅ Successfully saved processed article ${articleId} with proper foreign keys`);
+
         } catch (error) {
-            console.error('Error saving processed article:', error);
-            throw new ApplicationError('Failed to save processed article');
+            console.error('[ChineseProcessor] Error saving processed article:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            throw new ApplicationError(`Failed to save processed article: ${errorMessage}`);
         }
     },
 
     /**
-     * Get all sentences with translations for an article
+     * NEW: Helper method to get per_language_id for a specific language
      */
-    async getArticleSentences(articleId: number): Promise<EnhancedSentence[]> {
+    async getPerLanguageId(articleId: number, language: string): Promise<number | null> {
+        try {
+            const entityService = strapi.entityService;
+            if (!entityService) {
+                throw new ApplicationError('Entity service is not available');
+            }
+
+            const perLanguageEntries = await entityService.findMany('plugin::per-language.per-language', {
+                filters: {
+                    article_id: articleId,
+                    language: language
+                }
+            });
+
+            if (Array.isArray(perLanguageEntries) && perLanguageEntries.length > 0) {
+                return parseInt(String(perLanguageEntries[0].id));
+            }
+
+            return null;
+        } catch (error) {
+            console.error(`[ChineseProcessor] Error getting per_language_id for article ${articleId}, language ${language}:`, error);
+            return null;
+        }
+    },
+
+    /**
+     * Get sentences using proper foreign key relationships
+     */
+    async getArticleSentences(articleId: number, language: string = 'zh'): Promise<EnhancedSentence[]> {
         if (!strapi.db) {
             throw new ApplicationError('Database connection is not available');
         }
         const knex = strapi.db.connection;
 
         try {
-            // Get sentences for the article
+            console.log(`[ChineseProcessor] Getting sentences for article ${articleId}, language ${language}`);
+
+            // Get the per_language_id first
+            const perLanguageId = await this.getPerLanguageId(articleId, language);
+            if (!perLanguageId) {
+                console.log(`[ChineseProcessor] No per_language entry found for article ${articleId}, language ${language}`);
+                return [];
+            }
+
+            // Get sentences using the proper foreign key relationship
             const sentences = await knex('article_sentences')
-                .where('article_id', articleId)
+                .where('per_language_id', perLanguageId)
                 .orderBy('sentence_order')
                 .select('id', 'sentence_text');
+
+            console.log(`[ChineseProcessor] Found ${sentences.length} sentences for per_language_id ${perLanguageId}`);
+
+            if (sentences.length === 0) {
+                return [];
+            }
 
             // Get all grammar rules for these sentences
             const sentenceIds = sentences.map((s: any) => s.id);
@@ -212,28 +265,88 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             }
 
             // Combine data into the expected format
-            return sentences.map((sentence: any) => ({
+            const result = sentences.map((sentence: any) => ({
                 chinese: sentence.sentence_text,
                 translations: translationsBySentenceId[sentence.id] || {},
                 grammarRules: rulesBySentenceId[sentence.id] || []
             }));
+
+            console.log(`[ChineseProcessor] ✅ Successfully retrieved ${result.length} enhanced sentences`);
+            return result;
+
         } catch (error) {
-            console.error('Error fetching article sentences:', error);
-            throw new ApplicationError('Failed to fetch article sentences');
+            console.error('[ChineseProcessor] Error fetching article sentences:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            throw new ApplicationError(`Failed to fetch article sentences: ${errorMessage}`);
         }
     },
 
+    /**
+     * Process article with dual source using proper foreign keys
+     */
     async processArticleWithDualSource(
         articleId: number,
         targetLanguages: string[] = ['en'],
         useBatchGrammar: boolean = true,
         batchOptions: BatchGrammarOptions = {}
     ): Promise<EnhancedSentence[]> {
+        console.log(`[ChineseProcessor] Processing article ${articleId} with enhanced foreign key support`);
+
         // Get content using process service instead of direct access
         const processService = strapi.plugin('chinese-article-processor').service('processService');
         const content = await processService.getArticleContent(articleId, 'zh');
 
+        console.log(`[ChineseProcessor] Retrieved content for processing: ${content.length} characters`);
+
         // Use existing processArticle method
         return this.processArticle(content, targetLanguages, useBatchGrammar, batchOptions);
+    },
+
+    /**
+     * Verify foreign key relationships for debugging
+     */
+    async verifyForeignKeyRelationships(articleId: number): Promise<{
+        articleExists: boolean;
+        perLanguageEntries: any[];
+        sentencesByLanguage: { [language: string]: number };
+        totalSentences: number;
+    }> {
+        try {
+            if (!strapi.db) {
+                throw new ApplicationError('Database connection is not available');
+            }
+            const knex = strapi.db.connection;
+
+            // Check if article exists
+            const articleExists = await knex('articles').where('id', articleId).first();
+
+            // Get per_language entries
+            const perLanguageEntries = await knex('per_languages').where('article_id', articleId);
+
+            // Get sentence counts by language
+            const sentenceCounts = await knex('article_sentences')
+                .where('article_id', articleId)
+                .groupBy('language')
+                .select('language', knex.raw('COUNT(*) as count'));
+
+            const sentencesByLanguage: { [language: string]: number } = {};
+            let totalSentences = 0;
+
+            for (const row of sentenceCounts) {
+                sentencesByLanguage[row.language] = parseInt(row.count);
+                totalSentences += parseInt(row.count);
+            }
+
+            return {
+                articleExists: !!articleExists,
+                perLanguageEntries,
+                sentencesByLanguage,
+                totalSentences
+            };
+
+        } catch (error) {
+            console.error('[ChineseProcessor] Error verifying foreign key relationships:', error);
+            throw error;
+        }
     }
 });

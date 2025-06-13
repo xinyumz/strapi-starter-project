@@ -1,6 +1,6 @@
 // src/plugins/per-language/admin/src/components/ProcessedDataDisplay.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box,
     Button,
@@ -47,56 +47,74 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     const [showAllGrammar, setShowAllGrammar] = useState<Record<number, boolean>>({});
     const [showAllTranslations, setShowAllTranslations] = useState<Record<number, boolean>>({});
 
-    const { get, put } = useFetchClient();
+    // SAFE: Get fetch client
+    const fetchClient = useFetchClient();
 
-    useEffect(() => {
-        if (articleId) {
-            loadLanguageData();
-        }
-    }, [articleId]);
+    // SAFE: Memoized data loading function to prevent infinite loops
+    const loadLanguageData = useCallback(async () => {
+        if (!articleId) return; // Simplified check
 
-    const loadLanguageData = async () => {
         try {
+            console.log(`[ProcessedDataDisplay] Starting to load data for article ${articleId}`);
+            console.log(`[ProcessedDataDisplay] Current isLoading state:`, isLoading);
+
             setIsLoading(true);
             setError(null);
 
-            const response = await get(`/per-language/article/${articleId}/languages`);
+            console.log(`[ProcessedDataDisplay] API URL: /per-language/article/${articleId}/languages`);
+
+            const response = await fetchClient.get(`/per-language/article/${articleId}/languages`);
+
+            console.log(`[ProcessedDataDisplay] Raw response:`, response);
+            console.log(`[ProcessedDataDisplay] Response data:`, response.data);
 
             let data = [];
             if (response.data && response.data.data && Array.isArray(response.data.data)) {
                 data = response.data.data;
+                console.log(`[ProcessedDataDisplay] Using response.data.data`);
             } else if (response.data && Array.isArray(response.data)) {
                 data = response.data;
+                console.log(`[ProcessedDataDisplay] Using response.data directly`);
+            } else {
+                console.log(`[ProcessedDataDisplay] Unexpected response format:`, response.data);
             }
+
+            console.log(`[ProcessedDataDisplay] Processed data:`, data);
+            console.log(`[ProcessedDataDisplay] Data length:`, data.length);
 
             setLanguageData(data);
 
         } catch (err: any) {
-            console.error('Error loading language data:', err);
+            console.error('[ProcessedDataDisplay] Error loading language data:', err);
             setError(err.message || 'Failed to load language data');
             setLanguageData([]);
         } finally {
+            console.log(`[ProcessedDataDisplay] Setting isLoading to false`);
             setIsLoading(false);
         }
-    };
+    }, [articleId, fetchClient.get]); // SAFE: Proper dependencies
 
-    const handleRefresh = async () => {
+    // SAFE: Only load data when articleId changes
+    useEffect(() => {
+        if (articleId) {
+            loadLanguageData();
+        }
+    }, [articleId]); // REMOVED loadLanguageData from deps to prevent infinite loop
+
+    const handleRefresh = useCallback(async () => {
         await loadLanguageData();
         if (onRefresh) {
             onRefresh();
         }
-    };
+    }, [loadLanguageData, onRefresh]);
 
-    const handleLanguageRefresh = async (languageId: number, languageCode: string) => {
+    const handleLanguageRefresh = useCallback(async (languageId: number, languageCode: string) => {
         try {
             setIsUpdating(prev => ({ ...prev, [`refresh_${languageId}`]: true }));
 
             console.log(`[Frontend Refresh] Refreshing language ${languageCode} for article ${articleId}`);
 
-            // Call the individual refresh endpoint to update backend data
-            await get(`/per-language/article/${articleId}/language/${languageCode}/refresh`);
-
-            // Then reload all language data to get the updated information
+            await fetchClient.get(`/per-language/article/${articleId}/language/${languageCode}/refresh`);
             await loadLanguageData();
 
             console.log(`[Frontend Refresh] ✅ Successfully refreshed language ${languageCode}`);
@@ -107,13 +125,98 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         } finally {
             setIsUpdating(prev => ({ ...prev, [`refresh_${languageId}`]: false }));
         }
-    };
+    }, [articleId, fetchClient.get, loadLanguageData]);
 
-    const handlePublishToggle = async (languageId: number, currentPublished: boolean) => {
+    // SAFE: Delete handler with proper error handling
+    const handleLanguageDelete = useCallback(async (languageId: number, languageName: string) => {
+        try {
+            setIsUpdating(prev => ({ ...prev, [`delete_${languageId}`]: true }));
+
+            console.log(`[ProcessedDataDisplay] Deleting language content:`, {
+                languageId,
+                languageName,
+                articleId
+            });
+
+            // Try to use del method, fallback to delete if not available
+            let response;
+            try {
+                if (fetchClient.del) {
+                    response = await fetchClient.del(`/per-language/content/${languageId}`);
+                } else if (fetchClient.delete) {
+                    response = await fetchClient.delete(`/per-language/content/${languageId}`);
+                } else {
+                    // Manual fetch as fallback
+                    response = await fetch(`/per-language/content/${languageId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                        },
+                    });
+                }
+            } catch (fetchError) {
+                console.error('Fetch client error, using manual fetch:', fetchError);
+                response = await fetch(`/per-language/content/${languageId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                    },
+                });
+            }
+
+            console.log(`[ProcessedDataDisplay] Delete response:`, response);
+
+            // Remove from local state immediately
+            setLanguageData(prev => prev.filter(lang => lang.id !== languageId));
+
+            // Clean up related state
+            setVisibleCards(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(languageId);
+                return newSet;
+            });
+
+            setExpandedCards(prev => {
+                const newExpanded = { ...prev };
+                delete newExpanded[languageId];
+                return newExpanded;
+            });
+
+            setShowAllGrammar(prev => {
+                const newGrammar = { ...prev };
+                delete newGrammar[languageId];
+                return newGrammar;
+            });
+
+            setShowAllTranslations(prev => {
+                const newTranslations = { ...prev };
+                delete newTranslations[languageId];
+                return newTranslations;
+            });
+
+            // Optional refresh
+            if (onRefresh) {
+                onRefresh();
+            }
+
+            console.log(`[ProcessedDataDisplay] ✅ ${languageName} content deleted successfully`);
+
+        } catch (error: any) {
+            console.error(`[ProcessedDataDisplay] Error deleting ${languageName} content:`, error);
+            setError(`Failed to delete ${languageName} content: ${error.message || 'Unknown error'}`);
+            throw error;
+        } finally {
+            setIsUpdating(prev => ({ ...prev, [`delete_${languageId}`]: false }));
+        }
+    }, [articleId, fetchClient, onRefresh]);
+
+    const handlePublishToggle = useCallback(async (languageId: number, currentPublished: boolean) => {
         try {
             setIsUpdating(prev => ({ ...prev, [`publish_${languageId}`]: true }));
 
-            await put(`/per-language/content/${languageId}/publish`, {
+            await fetchClient.put(`/per-language/content/${languageId}/publish`, {
                 published: !currentPublished
             });
 
@@ -131,19 +234,15 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         } finally {
             setIsUpdating(prev => ({ ...prev, [`publish_${languageId}`]: false }));
         }
-    };
+    }, [fetchClient.put]);
 
-    // FIXED: Updated access tier change handler to handle null values properly
-    const handleAccessTierChange = async (languageId: number, newTier: string) => {
-        // Don't allow selection of the placeholder option
-        if (newTier === '') {
-            return;
-        }
+    const handleAccessTierChange = useCallback(async (languageId: number, newTier: string) => {
+        if (newTier === '') return;
 
         try {
             setIsUpdating(prev => ({ ...prev, [`tier_${languageId}`]: true }));
 
-            await put(`/per-language/content/${languageId}/access-tier`, {
+            await fetchClient.put(`/per-language/content/${languageId}/access-tier`, {
                 access_tier: newTier
             });
 
@@ -161,117 +260,157 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         } finally {
             setIsUpdating(prev => ({ ...prev, [`tier_${languageId}`]: false }));
         }
-    };
+    }, [fetchClient.put]);
 
-    const handleOpenProcessor = async (language: string) => {
+    const handleOpenProcessor = useCallback(async (language: string) => {
         const processor = SUPPORTED_LANGUAGES.find(l => l.code === language);
 
         if (processor?.hasProcessor && processor.processorUrl) {
-            // Check if there's already content for this language
             const existingLang = languageData.find(lang => lang.language === language);
 
             if (!existingLang) {
-                // Create an empty entry in per_languages table first
                 try {
                     console.log(`[ProcessedDataDisplay] Creating empty ${language} entry for article ${articleId}`);
 
-                    // Use the same endpoint that works for translation
-                    const response = await put(`/per-language/article/${articleId}/content`, {
+                    await fetchClient.put(`/per-language/article/${articleId}/content`, {
                         language: language,
-                        content: ' ' // Use a space instead of empty string to ensure it's not filtered out
+                        content: ' '
                     });
 
-                    console.log(`[ProcessedDataDisplay] ✅ Empty ${language} entry created:`, response);
-
-                    // Refresh the data to show the new entry
                     await loadLanguageData();
-
-                    // Small delay to ensure backend processing is complete
                     await new Promise(resolve => setTimeout(resolve, 500));
                 } catch (error) {
                     console.error(`[ProcessedDataDisplay] Failed to create ${language} entry:`, error);
-                    alert(`Failed to initialize ${language} content. Please translate content first using the "Translate to ${processor.name}" button above.`);
+                    alert(`Failed to initialize ${language} content.`);
                     return;
                 }
             }
 
             const processorUrl = `${processor.processorUrl}?articleId=${articleId}`;
-            console.log(`[ProcessedDataDisplay] Opening processor: ${processorUrl}`);
             window.open(processorUrl, '_blank');
         }
-    };
-    const handleBulkPublish = async (publish: boolean) => {
+    }, [articleId, languageData, fetchClient.put, loadLanguageData]);
+
+    // FIXED: Bulk publish handler that sets all to the desired state
+    const handleBulkPublish = useCallback(async (shouldPublish: boolean) => {
         try {
+            console.log(`[ProcessedDataDisplay] Bulk publish: setting all languages to ${shouldPublish ? 'published' : 'draft'}`);
+
             if (!Array.isArray(languageData)) return;
 
-            const targetLanguages = languageData.filter(lang => lang.published !== publish);
+            // Update the bulk state immediately for UI feedback
+            setBulkPublishState(shouldPublish);
 
-            for (const lang of targetLanguages) {
-                await handlePublishToggle(lang.id, lang.published);
-            }
+            // Update all languages to the desired state
+            const updatePromises = languageData.map(async (lang) => {
+                // Only update if the current state is different from desired state
+                if (lang.published !== shouldPublish) {
+                    try {
+                        setIsUpdating(prev => ({ ...prev, [`bulk_publish_${lang.id}`]: true }));
+
+                        // FIXED: Use fetchClient.put directly without extra data
+                        const response = await fetch(`/per-language/content/${lang.id}/publish`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                            },
+                            body: JSON.stringify({
+                                published: shouldPublish
+                            }),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Failed to update ${lang.language}: ${response.status}`);
+                        }
+
+                        console.log(`[ProcessedDataDisplay] ✅ ${lang.language} set to ${shouldPublish ? 'published' : 'draft'}`);
+                    } catch (error) {
+                        console.error(`[ProcessedDataDisplay] Error updating ${lang.language} publish state:`, error);
+                        throw error;
+                    } finally {
+                        setIsUpdating(prev => ({ ...prev, [`bulk_publish_${lang.id}`]: false }));
+                    }
+                }
+            });
+
+            // Wait for all updates to complete
+            await Promise.all(updatePromises);
+
+            // Update local state to reflect the changes
+            setLanguageData(prev => {
+                if (!Array.isArray(prev)) return [];
+                return prev.map(lang => ({
+                    ...lang,
+                    published: shouldPublish
+                }));
+            });
+
+            console.log(`[ProcessedDataDisplay] ✅ Bulk publish completed: all languages set to ${shouldPublish ? 'published' : 'draft'}`);
+
         } catch (error) {
-            console.error('Error in bulk publish:', error);
+            console.error('[ProcessedDataDisplay] Error in bulk publish:', error);
+            setError(`Bulk publish failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-    };
+    }, [languageData]);
 
-    const handleBulkAccessTier = async (tier: string) => {
+    // Update bulk publish state based on current language data
+    useEffect(() => {
+        if (languageData && Array.isArray(languageData) && languageData.length > 0) {
+            // Set bulk state based on majority of languages
+            const publishedCount = languageData.filter(lang => lang.published).length;
+            const shouldBeBulkPublished = publishedCount > languageData.length / 2;
+            setBulkPublishState(shouldBeBulkPublished);
+        }
+    }, [languageData]);
+
+    const handleBulkAccessTier = useCallback(async (tier: string) => {
         try {
             if (!Array.isArray(languageData)) return;
-
             const targetLanguages = languageData.filter(lang => lang.access_tier !== tier);
-
             for (const lang of targetLanguages) {
                 await handleAccessTierChange(lang.id, tier);
             }
         } catch (error) {
             console.error('Error in bulk access tier update:', error);
         }
-    };
+    }, [languageData, handleAccessTierChange]);
 
-    const toggleCardExpansion = (languageId: number) => {
+    // All other handlers with useCallback...
+    const toggleCardExpansion = useCallback((languageId: number) => {
         setExpandedCards(prev => ({
             ...prev,
             [languageId]: !prev[languageId]
         }));
-    };
+    }, []);
 
-    const handleOpenLanguageCard = async (languageCode: string) => {
-        try {
-            const existingLang = languageData.find(lang => lang.language === languageCode);
-            if (existingLang) {
-                setVisibleCards(prev => new Set([...prev, existingLang.id]));
-            } else {
-                const newLangData = {
-                    id: Date.now(),
-                    language: languageCode,
-                    per_language_text: '',
-                    processed_data: {},
-                    difficulty_data: {},
-                    display_skill: '',
-                    published: false,
-                    access_tier: null, // FIXED: Start with null instead of 'Free'
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-
-                setLanguageData(prev => [...prev, newLangData]);
-                setVisibleCards(prev => new Set([...prev, newLangData.id]));
-            }
-        } catch (error) {
-            console.error('Error opening language card:', error);
+    const handleOpenLanguageCard = useCallback(async (languageCode: string) => {
+        const existingLang = languageData.find(lang => lang.language === languageCode);
+        if (existingLang) {
+            setVisibleCards(prev => new Set([...prev, existingLang.id]));
+        } else {
+            const newLangData = {
+                id: Date.now(),
+                language: languageCode,
+                per_language_text: '',
+                processed_data: {},
+                difficulty_data: {},
+                display_skill: '',
+                published: false,
+                access_tier: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            setLanguageData(prev => [...prev, newLangData]);
+            setVisibleCards(prev => new Set([...prev, newLangData.id]));
         }
-    };
+    }, [languageData]);
 
-    const handleBulkPublishToggle = async (checked: boolean) => {
-        setBulkPublishState(checked);
-        await handleBulkPublish(checked);
-    };
-
-    const handleCloseCard = (languageId: number) => {
+    const handleCloseCard = useCallback((languageId: number) => {
         setLanguageData(prev => prev.filter(lang => lang.id !== languageId));
-    };
+    }, []);
 
-    const getLanguageInfo = (languageCode: string) => {
+    const getLanguageInfo = useCallback((languageCode: string) => {
         if (!languageCode || typeof languageCode !== 'string') {
             return {
                 code: 'unknown',
@@ -282,17 +421,13 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         }
 
         const found = SUPPORTED_LANGUAGES.find(l => l.code === languageCode);
-        if (found) {
-            return found;
-        }
-
-        return {
+        return found || {
             code: languageCode,
             name: languageCode.toUpperCase(),
             hasProcessor: false,
             difficultyLabel: 'Level'
         };
-    };
+    }, []);
 
     if (isLoading) {
         return (
@@ -331,7 +466,6 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
 
     return (
         <Box>
-            {/* Header with bulk controls */}
             <BulkControls
                 onLanguageSelect={handleOpenLanguageCard}
                 onRefresh={handleRefresh}
@@ -339,7 +473,6 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 onBulkAccessTier={handleBulkAccessTier}
                 bulkPublishState={bulkPublishState}
             />
-            {/* Language cards */}
             <Stack spacing={4}>
                 {languageData
                     .filter(lang => visibleCards.size === 0 || visibleCards.has(lang.id))
@@ -362,6 +495,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                                 onPublishToggle={handlePublishToggle}
                                 onAccessTierChange={handleAccessTierChange}
                                 onOpenProcessor={handleOpenProcessor}
+                                onDelete={handleLanguageDelete}
                                 onGrammarExpansionToggle={(languageId: number) =>
                                     setShowAllGrammar(prev => ({
                                         ...prev,

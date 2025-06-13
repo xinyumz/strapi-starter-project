@@ -657,6 +657,12 @@ export interface PluginChineseArticleProcessorArticleSentence
   };
   attributes: {
     article_id: Attribute.Integer & Attribute.Required;
+    per_language_id: Attribute.Integer & Attribute.Required;
+    language: Attribute.String &
+      Attribute.Required &
+      Attribute.SetMinMaxLength<{
+        maxLength: 10;
+      }>;
     sentence_text: Attribute.RichText & Attribute.Required;
     sentence_order: Attribute.Integer & Attribute.Required;
     createdAt: Attribute.DateTime;

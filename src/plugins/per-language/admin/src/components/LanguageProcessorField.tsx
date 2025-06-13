@@ -1,6 +1,6 @@
 // src/plugins/per-language/admin/src/components/LanguageProcessorField.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     Stack,
     Textarea,
@@ -11,12 +11,12 @@ import {
     Box,
     Flex,
     Divider,
-    Wysiwyg
+    Alert
 } from '@strapi/design-system';
 import { useIntl } from 'react-intl';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import { ProcessedDataDisplay } from './ProcessedDataDisplay';
-import { SUPPORTED_LANGUAGES, StatusIndicators } from './shared';
+import { SUPPORTED_LANGUAGES } from './shared';
 
 interface LanguageProcessorFieldProps {
     name: string;
@@ -34,39 +34,54 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     required,
 }) => {
     const { formatMessage } = useIntl();
-    // CHANGED: No default language selection - user must choose
     const [targetLanguage, setTargetLanguage] = useState('');
     const [isTranslating, setIsTranslating] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
     const [isCreatingRecord, setIsCreatingRecord] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
     const { modifiedData } = useCMEditViewDataManager();
 
-    // Add ref for debouncing manual edits
-    const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-    // Cleanup timeout on unmount
-    React.useEffect(() => {
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-        };
-    }, []);
+    // Debounce timer for manual input
+    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+    const lastSyncedContent = useRef<string>('');
 
     const selectedLanguageInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
     const hasContent = Boolean(value && value.trim().length > 0);
-    const canProcess = Boolean(hasContent && targetLanguage); // FIXED: Convert to boolean
-    const hasSelectedLanguage = Boolean(targetLanguage); // NEW: Track if language is selected
+    const hasSelectedLanguage = Boolean(targetLanguage);
+    const articleId = modifiedData.id;
 
-    // NEW: Function to create per_languages record when language is selected
-    const createLanguageRecord = async (articleId: string, language: string, initialContent: string = '') => {
-        setIsCreatingRecord(true);
+    // Clear messages after 5 seconds
+    useEffect(() => {
+        if (error || success) {
+            const timer = setTimeout(() => {
+                setError(null);
+                setSuccess(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [error, success]);
+
+    /**
+     * FIXED: Direct sync function that takes explicit parameters
+     */
+    const syncContentToDatabase = useCallback(async (content: string, languageCode: string) => {
+        if (!articleId || !languageCode) {
+            console.log('[LanguageProcessor] Missing articleId or languageCode, skipping sync');
+            return;
+        }
+
+        if (content === lastSyncedContent.current) {
+            console.log('[LanguageProcessor] Content unchanged, skipping sync');
+            return;
+        }
+
         try {
-            console.log('[LanguageProcessorField] Creating language record:', {
+            console.log('[LanguageProcessor] Syncing to database:', {
                 articleId,
-                language,
-                hasInitialContent: !!initialContent
+                language: languageCode,
+                contentLength: content.length,
+                preview: content.substring(0, 50) + '...'
             });
 
             const response = await fetch(`/per-language/article/${articleId}/content`, {
@@ -76,79 +91,200 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                     'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
                 },
                 body: JSON.stringify({
-                    language: language,
-                    content: initialContent || ' ' // Use space if no content to ensure record creation
+                    language: languageCode,
+                    content: content,
                 }),
             });
 
-            if (response.ok) {
-                console.log('[LanguageProcessorField] ✅ Language record created successfully');
-                // Refresh the ProcessedDataDisplay to show the new record
-                setRefreshKey(prev => prev + 1);
-                return true;
-            } else {
-                console.error('[LanguageProcessorField] Failed to create language record');
-                return false;
+            if (!response.ok) {
+                throw new Error(`Sync failed: ${response.status}`);
             }
-        } catch (error) {
-            console.error('[LanguageProcessorField] Error creating language record:', error);
-            return false;
+
+            const result = await response.json();
+            console.log('[LanguageProcessor] ✅ Content synced successfully:', result);
+
+            lastSyncedContent.current = content;
+
+            // Add success message for manual input sync
+            const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === languageCode);
+            setSuccess(`${selectedLangInfo?.name || languageCode} content saved automatically`);
+
+        } catch (error: any) {
+            console.error('[LanguageProcessor] Sync error:', error);
+            setError(`Failed to sync content: ${error.message}`);
+            throw error;
+        }
+    }, [articleId]);
+
+    /**
+     * FIXED: Create per_languages record with empty content only
+     */
+    const createLanguageRecord = useCallback(async (languageCode: string) => {
+        if (!articleId) {
+            console.log('[LanguageProcessor] No article ID available, skipping record creation');
+            return;
+        }
+
+        try {
+            setIsCreatingRecord(true);
+            setError(null);
+
+            const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === languageCode);
+
+            console.log('[LanguageProcessor] Creating per_languages record:', {
+                articleId,
+                language: languageCode,
+                languageName: selectedLangInfo?.name
+            });
+
+            const response = await fetch(`/per-language/article/${articleId}/content`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                },
+                body: JSON.stringify({
+                    language: languageCode,
+                    content: ' ', // Always start with empty content for new records
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to create language record: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('[LanguageProcessor] ✅ Language record created:', result);
+
+            setSuccess(`${selectedLangInfo?.name || languageCode} content initialized`);
+
+        } catch (error: any) {
+            console.error('[LanguageProcessor] Error creating language record:', error);
+            const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === languageCode);
+            setError(`Failed to initialize ${selectedLangInfo?.name || languageCode}: ${error.message}`);
         } finally {
             setIsCreatingRecord(false);
         }
-    };
+    }, [articleId]);
 
-    // CHANGED: Enhanced language selection handler
-    const handleLanguageSelect = async (selectedLanguage: string) => {
-        const articleId = modifiedData.id;
-
-        console.log('[LanguageProcessorField] Language selected:', {
-            selectedLanguage,
-            articleId,
-            hasExistingContent: !!value
-        });
-
+    /**
+     * FIXED: Language selection with proper content loading
+     */
+    const handleLanguageSelect = useCallback(async (selectedLanguage: string) => {
+        console.log('[LanguageProcessor] Language selected:', selectedLanguage);
         setTargetLanguage(selectedLanguage);
 
-        // If article is saved, immediately create the per_languages record
-        if (articleId && selectedLanguage) {
-            // Use existing field content if available
-            const existingContent = value || '';
-            await createLanguageRecord(articleId, selectedLanguage, existingContent);
+        if (!articleId || !selectedLanguage) {
+            return;
         }
-    };
 
-    const handleTranslate = async () => {
-        const sourceText = modifiedData.Base || modifiedData.base;
-        const articleId = modifiedData.id;
+        try {
+            setError(null);
+            const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === selectedLanguage);
 
-        console.log('[LanguageProcessorField] Starting translation:', {
-            hasSourceText: !!sourceText,
-            sourceTextLength: sourceText?.length || 0,
-            articleId,
-            targetLanguage,
-            fieldName: name
+            // First, try to get existing content for this language
+            const response = await fetch(`/per-language/article/${articleId}/content?language=${selectedLanguage}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                },
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const existingContent = result.data?.per_language_text || '';
+
+                console.log('[LanguageProcessor] Found existing content:', {
+                    language: selectedLanguage,
+                    contentLength: existingContent.length
+                });
+
+                // Update UI with existing content
+                onChange({ target: { name, value: existingContent } });
+                lastSyncedContent.current = existingContent;
+
+                if (existingContent.trim()) {
+                    setSuccess(`Loaded existing ${selectedLangInfo?.name || selectedLanguage} content`);
+                }
+            } else {
+                // No existing content, clear field and create new record
+                console.log('[LanguageProcessor] No existing content, creating new record');
+                onChange({ target: { name, value: '' } });
+                lastSyncedContent.current = '';
+
+                await createLanguageRecord(selectedLanguage);
+            }
+        } catch (error: any) {
+            console.error('[LanguageProcessor] Error loading language content:', error);
+            // Clear field and create new record as fallback
+            onChange({ target: { name, value: '' } });
+            lastSyncedContent.current = '';
+            await createLanguageRecord(selectedLanguage);
+        }
+
+        setRefreshKey(prev => prev + 1);
+    }, [articleId, name, onChange, createLanguageRecord]);
+
+    /**
+     * FIXED: Manual edit with proper debounced sync
+     */
+    const handleManualEdit = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        console.log('[LanguageProcessor] Manual edit:', {
+            language: targetLanguage,
+            length: newValue.length
         });
 
+        // Update UI immediately
+        onChange({ target: { name, value: newValue } });
+
+        // Clear existing timer
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        // Set new timer for database sync (1 second delay)
+        if (articleId && targetLanguage) {
+            debounceTimer.current = setTimeout(() => {
+                syncContentToDatabase(newValue, targetLanguage);
+            }, 1000);
+        }
+    }, [name, onChange, articleId, targetLanguage, syncContentToDatabase]);
+
+    /**
+     * FIXED: Translation with immediate database sync
+     */
+    const handleTranslate = useCallback(async () => {
+        const sourceText = modifiedData.Base || modifiedData.base;
+
         if (!sourceText) {
-            alert('Base field is empty. Please add content to the Base field first.');
+            setError('Base field is empty. Please add content to the Base field first.');
             return;
         }
 
         if (!targetLanguage) {
-            alert('Please select a target language first.');
+            setError('Please select a target language first.');
+            return;
+        }
+
+        if (!articleId) {
+            setError('Please save the article first.');
             return;
         }
 
         setIsTranslating(true);
-        try {
-            const requestBody = {
-                text: sourceText,
-                targetLanguage,
-                articleId: articleId
-            };
+        setError(null);
 
-            console.log('[LanguageProcessorField] Request body:', requestBody);
+        try {
+            const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
+
+            console.log('[LanguageProcessor] Starting translation:', {
+                articleId,
+                targetLanguage,
+                sourceLength: sourceText.length,
+                languageName: selectedLangInfo?.name
+            });
 
             const response = await fetch('/translator/translate', {
                 method: 'POST',
@@ -156,200 +292,120 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
                 },
-                body: JSON.stringify(requestBody),
+                body: JSON.stringify({
+                    text: sourceText,
+                    targetLanguage,
+                    articleId: articleId
+                }),
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Translation failed: ${response.status} ${response.statusText} - ${errorText}`);
+                throw new Error(`Translation failed: ${response.status}`);
             }
 
             const { translatedText } = await response.json();
 
-            console.log('[LanguageProcessorField] Translation successful, updating field and syncing to per_languages');
+            console.log('[LanguageProcessor] Translation received:', {
+                translatedLength: translatedText.length,
+                targetLanguage,
+                preview: translatedText.substring(0, 50) + '...'
+            });
 
-            // Update the field value
+            // Update UI field first
             onChange({ target: { name, value: translatedText } });
 
-            // IMMEDIATELY sync to per_languages table
-            if (articleId) {
-                await syncToPerLanguages(translatedText, articleId, targetLanguage);
-            }
+            // Immediately sync to database with explicit parameters
+            await syncContentToDatabase(translatedText, targetLanguage);
 
-            // Refresh the ProcessedDataDisplay
+            setSuccess(`Translation to ${selectedLangInfo?.name || targetLanguage} completed and saved`);
             setRefreshKey(prev => prev + 1);
 
+            console.log('[LanguageProcessor] ✅ Translation workflow completed');
+
         } catch (error: any) {
-            console.error('Translation error:', error);
-            alert(`Translation failed: ${error.message}`);
+            console.error('[LanguageProcessor] Translation error:', error);
+            setError(`Translation failed: ${error.message}`);
         } finally {
             setIsTranslating(false);
         }
-    };
+    }, [modifiedData, targetLanguage, articleId, name, onChange, syncContentToDatabase]);
 
-    // UPDATED: Improved sync function
-    const syncToPerLanguages = async (content: string, articleId: string, language: string) => {
-        if (!language) {
-            console.log('[LanguageProcessorField] No language selected for sync');
-            return;
-        }
-
-        setIsSyncing(true);
-        try {
-            console.log('[LanguageProcessorField] Syncing to per_languages table:', {
-                articleId,
-                language,
-                contentLength: content?.length || 0,
-                contentPreview: content ? content.substring(0, 50) + '...' : 'empty'
-            });
-
-            // Use the primary sync endpoint
-            const response = await fetch(`/per-language/article/${articleId}/content`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
-                },
-                body: JSON.stringify({
-                    language: language,
-                    content: content || ' ' // Ensure we always have some content
-                }),
-            });
-
-            if (response.ok) {
-                console.log('[LanguageProcessorField] ✅ Successfully synced to per_languages table');
-            } else {
-                console.warn('[LanguageProcessorField] Primary sync failed, trying fallback method');
-
-                // Fallback: use the translate endpoint with manual flag
-                const fallbackResponse = await fetch('/per-language/translate-enhanced', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
-                    },
-                    body: JSON.stringify({
-                        articleId: articleId,
-                        targetLanguage: language,
-                        text: content || ' ',
-                        isManualContent: true // Flag to indicate this is manual content, not auto-translated
-                    }),
-                });
-
-                if (fallbackResponse.ok) {
-                    console.log('[LanguageProcessorField] ✅ Successfully synced via fallback method');
-                } else {
-                    console.error('[LanguageProcessorField] Both sync methods failed');
-                }
-            }
-        } catch (error) {
-            console.error('[LanguageProcessorField] Error syncing to per_languages:', error);
-        } finally {
-            setIsSyncing(false);
-        }
-    };
-
-    // UPDATED: Manual edit handler now works with language selection
-    const handleManualEdit = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newValue = e.target.value;
-
-        console.log('[LanguageProcessorField] Manual edit detected:', {
-            newValueLength: newValue.length,
-            targetLanguage,
-            hasLanguageSelected: !!targetLanguage
-        });
-
-        // Update the form field immediately
-        onChange({ target: { name, value: newValue } });
-
-        // Only sync if language is selected
-        if (!targetLanguage) {
-            console.log('[LanguageProcessorField] No language selected, skipping sync');
-            return;
-        }
-
-        // Clear any existing timeout
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
-
-        // Debounce the sync operation
-        saveTimeoutRef.current = setTimeout(async () => {
-            const articleId = modifiedData.id;
-            if (articleId && targetLanguage) {
-                console.log('[LanguageProcessorField] Debounced sync triggered for manual edit');
-                await syncToPerLanguages(newValue, articleId, targetLanguage);
-                // Refresh the ProcessedDataDisplay
-                setRefreshKey(prev => prev + 1);
-            }
-        }, 1000); // Wait 1 second after user stops typing
-    };
-
-    const handleProcess = () => {
-        const articleId = modifiedData.id;
-
+    /**
+     * Enhanced process handler with content verification
+     */
+    const handleProcess = useCallback(async () => {
         if (!articleId) {
-            alert('Please save the article first.');
+            setError('Please save the article first.');
             return;
         }
 
-        if (!targetLanguage) {
-            alert('Please select a target language first.');
+        if (!targetLanguage || !hasContent) {
+            setError('Please select a language and add content first.');
             return;
         }
 
-        if (!hasContent) {
-            alert('Please add content in the selected language first.');
-            return;
+        // Ensure content is synced before processing
+        if (value && value !== lastSyncedContent.current) {
+            try {
+                await syncContentToDatabase(value, targetLanguage);
+            } catch (error) {
+                setError('Failed to sync content. Please try again.');
+                return;
+            }
         }
-
-        console.log('[LanguageProcessorField] Opening processor:', {
-            language: targetLanguage,
-            articleId,
-            hasProcessor: selectedLanguageInfo?.hasProcessor,
-            contentLength: value.length
-        });
 
         if (selectedLanguageInfo?.hasProcessor) {
-            // Open the processor with article ID as query parameter
             const processorUrl = `/admin/plugins/chinese-article-processor/chinese-processor?articleId=${articleId}`;
             window.open(processorUrl, '_blank');
         } else {
-            // Show under development message
-            alert(`${selectedLanguageInfo?.name} processor is under development. Coming soon!`);
+            setError(`${selectedLanguageInfo?.name} processor is under development.`);
         }
-    };
+    }, [articleId, targetLanguage, hasContent, value, selectedLanguageInfo, syncContentToDatabase]);
 
-    const handleRefresh = () => {
+    const handleRefresh = useCallback(() => {
         setRefreshKey(prev => prev + 1);
-    };
+    }, []);
+
+    // Cleanup debounce timer on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, []);
 
     return (
         <Stack spacing={6}>
+            {/* Error/Success Messages */}
+            {error && (
+                <Alert variant="danger" title="Error" closable onClose={() => setError(null)}>
+                    {error}
+                </Alert>
+            )}
+
+            {success && (
+                <Alert variant="success" title="Success" closable onClose={() => setSuccess(null)}>
+                    {success}
+                </Alert>
+            )}
+
             {/* Translation Section */}
             <Box>
-                <Typography variant="delta" paddingBottom={3}>
-                    Translation
-                </Typography>
-
+                <Box paddingBottom={3}>
+                    <Typography variant="delta">
+                        Translation
+                    </Typography>
+                </Box>
                 <Stack spacing={4}>
-                    {/* Status indicators - only show if language is selected */}
-                    {hasSelectedLanguage && (
-                        <StatusIndicators
-                            hasContent={hasContent}
-                            canProcess={canProcess}
-                            hasProcessor={selectedLanguageInfo?.hasProcessor || false}
-                            isSyncing={isSyncing}
-                        />
-                    )}
-
-                    {/* UPDATED: Language selection with placeholder and required selection */}
+                    {/* Language selection */}
                     <Select
                         label="Select Target Language"
-                        placeholder="Select target language"
+                        placeholder="Choose a language to begin translation"
                         value={targetLanguage}
                         onChange={handleLanguageSelect}
                         required
+                        disabled={isCreatingRecord}
                     >
                         {SUPPORTED_LANGUAGES.map((lang) => (
                             <Option key={lang.code} value={lang.code}>
@@ -358,53 +414,57 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                         ))}
                     </Select>
 
-                    {/* Show message if no language selected */}
                     {!hasSelectedLanguage && (
                         <Box padding={3} background="neutral100" borderRadius="4px">
                             <Typography variant="pi" color="neutral600">
                                 Please select a target language to begin translation and processing.
+                                {articleId ? ' A language record will be created automatically.' : ' Save the article first to enable auto-sync.'}
                             </Typography>
                         </Box>
                     )}
 
-                    {/* Controls - only show if language is selected */}
                     {hasSelectedLanguage && (
-                        <Flex gap={3}>
-                            <Button
-                                onClick={handleTranslate}
-                                disabled={isTranslating || isCreatingRecord}
-                                loading={isTranslating}
-                            >
-                                {isTranslating ? 'Translating...' : 'Translate'}
-                            </Button>
+                        <>
+                            <Flex gap={3}>
+                                <Button
+                                    onClick={handleTranslate}
+                                    disabled={isTranslating || isCreatingRecord || !articleId}
+                                    loading={isTranslating}
+                                >
+                                    {isTranslating ? 'Translating...' : 'Translate'}
+                                </Button>
 
-                            <Button
-                                variant="secondary"
-                                onClick={handleProcess}
-                                disabled={!canProcess || isCreatingRecord}
-                            >
-                                {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
-                            </Button>
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleProcess}
+                                    disabled={!hasContent || isCreatingRecord}
+                                >
+                                    {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
+                                </Button>
+                            </Flex>
+
+                            <Textarea
+                                label={`${selectedLanguageInfo?.name || 'Translation'} Content`}
+                                name={name}
+                                onChange={handleManualEdit}
+                                value={value}
+                                required={required}
+                                disabled={isCreatingRecord}
+                                style={{ minHeight: '200px' }}
+                                hint={articleId
+                                    ? `Translated content for ${selectedLanguageInfo?.name}. Changes auto-sync to database.`
+                                    : `Translated content for ${selectedLanguageInfo?.name}. Save article to enable auto-sync.`
+                                }
+                            />
 
                             {isCreatingRecord && (
-                                <Typography variant="pi" color="neutral600">
-                                    Setting up language record...
-                                </Typography>
+                                <Box padding={2} background="primary100" borderRadius="4px">
+                                    <Typography variant="pi" color="primary600">
+                                        Creating {selectedLanguageInfo?.name} language record...
+                                    </Typography>
+                                </Box>
                             )}
-                        </Flex>
-                    )}
-
-                    {/* Translation text area - only show if language is selected */}
-                    {hasSelectedLanguage && (
-                        <Textarea
-                            label={`${selectedLanguageInfo?.name || 'Translation'} Content`}
-                            name={name}
-                            onChange={handleManualEdit}
-                            value={value}
-                            required={required}
-                            style={{ minHeight: '200px' }}
-                            hint={`Translated content for ${selectedLanguageInfo?.name} will appear here after translation. You can also edit manually.`}
-                        />
+                        </>
                     )}
                 </Stack>
             </Box>
@@ -412,34 +472,31 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
             <Divider />
 
             {/* Multi-Language Processing Center */}
-            <Box>
-                <Flex justifyContent="flex-start" alignItems="center" paddingBottom={3}>
+            <Stack>
+                <Box paddingBottom={2}>
                     <Typography variant="delta">
                         Multi-Language Processing Center
                     </Typography>
-                </Flex>
-
+                </Box>
                 <Box paddingBottom={4}>
                     <Typography variant="pi" color="neutral600">
-                        Manage translation status, processing, publishing, and access controls for all languages from this centralized interface.
+                        Manage translation status, processing, publishing, and access controls across all languages.
                     </Typography>
                 </Box>
-
-                {/* Integrated ProcessedDataDisplay */}
-                {modifiedData.id ? (
+                {articleId ? (
                     <ProcessedDataDisplay
-                        key={refreshKey} // Force refresh when key changes
-                        articleId={modifiedData.id}
+                        key={refreshKey}
+                        articleId={articleId}
                         onRefresh={handleRefresh}
                     />
                 ) : (
                     <Box padding={4} background="neutral100" borderRadius="4px">
                         <Typography variant="pi" color="neutral600">
-                            Please save the article first to enable multi-language processing.
+                            Please save the article first to enable multi-language processing and management.
                         </Typography>
                     </Box>
                 )}
-            </Box>
+            </Stack>
         </Stack>
     );
 };

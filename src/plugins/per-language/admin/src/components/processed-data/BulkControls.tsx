@@ -70,7 +70,10 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
                                 <Typography variant="pi" style={{ whiteSpace: 'nowrap' }}>Publish All:</Typography>
                                 <ToggleCheckbox
                                     checked={bulkPublishState}
-                                    onChange={(checked: boolean) => onBulkPublish(checked)}
+                                    onChange={(event: any) => {
+                                        const isChecked = event.target ? event.target.checked : event;
+                                        onBulkPublish(Boolean(isChecked));
+                                    }}
                                 />
                             </Flex>
 

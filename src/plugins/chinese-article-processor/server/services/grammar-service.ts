@@ -239,12 +239,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * CORRECTED: Save grammar data with complete HSK data preservation
-     * REQUIREMENTS:
-     * 1. Gets existing processed data from per_languages table ONLY
-     * 2. Merges grammar with existing HSK data (or works without HSK data)
-     * 3. Saves complete merged data to per_languages table ONLY
-     * 4. HSK and grammar operations are completely separate
+     * Save grammar data
+     */
+    /**
+     * FIXED: Save grammar data with proper foreign key relationships
      */
     async saveArticleGrammar(articleId: number, sentences: GrammarRule[]): Promise<{ success: boolean, error?: string }> {
         if (!strapi.db || !strapi.db.connection) {
@@ -278,10 +276,29 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             };
         }
 
+        // FIXED: Get per_language_id for Chinese content
+        let perLanguageId = null;
+        try {
+            const perLanguagePlugin = strapi.plugin('per-language');
+            const contentService = perLanguagePlugin?.service('contentService');
+
+            if (contentService) {
+                const chineseContent = await contentService.getLanguageContent(articleId, 'zh');
+                if (chineseContent && chineseContent.id) {
+                    perLanguageId = chineseContent.id;
+                    strapi.log.info(`Found Chinese per_language_id: ${perLanguageId}`);
+                } else {
+                    strapi.log.warn(`No Chinese per_language content found for article ${articleId}`);
+                }
+            }
+        } catch (error) {
+            strapi.log.error(`Error getting per_language_id:`, error);
+        }
+
         const trx = await strapi.db.connection.transaction();
 
         try {
-            // Save to sentence tables (existing logic)
+            // Save to sentence tables with proper foreign keys
             const existingSentences = await trx
                 .select('id')
                 .from('article_sentences')
@@ -304,7 +321,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 .where('article_id', articleId)
                 .delete();
 
-            // Insert new sentences and rules
+            // Insert new sentences and rules with proper foreign keys
             for (let i = 0; i < sentences.length; i++) {
                 const sentence = sentences[i];
 
@@ -317,14 +334,22 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     const sentenceText = typeof sentence.sentence === 'string' ?
                         sentence.sentence : String(sentence.sentence);
 
-                    const [sentenceId] = await trx('article_sentences')
-                        .insert({
-                            article_id: articleId,
-                            sentence_text: sentenceText,
-                            sentence_order: i,
-                            created_at: trx.fn.now(),
-                            updated_at: trx.fn.now()
-                        });
+                    // FIXED: Include per_language_id and language in insert
+                    const insertData: any = {
+                        article_id: articleId,
+                        sentence_text: sentenceText,
+                        sentence_order: i,
+                        created_at: trx.fn.now(),
+                        updated_at: trx.fn.now()
+                    };
+
+                    // Add foreign key fields if we have the per_language_id
+                    if (perLanguageId) {
+                        insertData.per_language_id = perLanguageId;
+                        insertData.language = 'zh';
+                    }
+
+                    const [sentenceId] = await trx('article_sentences').insert(insertData);
 
                     if (sentence.rules && Array.isArray(sentence.rules) && sentence.rules.length > 0) {
                         const rulesToInsert = sentence.rules.map(rule => ({

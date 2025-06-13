@@ -21,7 +21,8 @@ import {
     Play,
     Eye,
     EyeStriked,
-    ExclamationMarkCircle
+    ExclamationMarkCircle,
+    Trash
 } from '@strapi/icons';
 
 import { LanguageData, LanguageProcessor } from '../shared/types';
@@ -45,6 +46,7 @@ interface LanguageCardProps {
     onOpenProcessor: (language: string) => void;
     onGrammarExpansionToggle: (languageId: number) => void;
     onTranslationExpansionToggle: (languageId: number) => void;
+    onDelete?: (languageId: number, languageName: string) => void;
 }
 
 export const LanguageCard: React.FC<LanguageCardProps> = ({
@@ -62,7 +64,8 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
     onAccessTierChange,
     onOpenProcessor,
     onGrammarExpansionToggle,
-    onTranslationExpansionToggle
+    onTranslationExpansionToggle,
+    onDelete
 }) => {
     // Helper function to get the correct icon for access tier
     const getAccessTierIcon = (accessTier: string | null) => {
@@ -153,6 +156,49 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
         }
     };
 
+    // SIMPLIFIED: Handle delete with simple confirm dialog
+    const handleDeleteClick = async () => {
+        if (!onDelete) return;
+
+        // Calculate what will be deleted for the warning
+        const contentLength = lang.per_language_text?.length || 0;
+        const sentenceCount = lang.processed_data?.grammar?.sentences?.length || 0;
+        const grammarRuleCount = lang.processed_data?.grammar?.sentences?.reduce((total: number, sentence: any) =>
+            total + (sentence.rules?.length || 0), 0
+        ) || 0;
+
+        // Create detailed warning message
+        const warningMessage = `⚠️ DELETE ${processor.name.toUpperCase()} CONTENT
+
+This will permanently delete:
+• Translated content (${contentLength} characters)
+• ${sentenceCount} processed sentences
+• ${grammarRuleCount} grammar rules
+• All processing metadata and settings
+• Related sentence data from connected tables
+
+The base article content will remain unchanged.
+
+This action CANNOT be undone!
+
+Are you sure you want to delete all ${processor.name} content?`;
+
+        // Show confirmation dialog
+        const confirmed = confirm(warningMessage);
+
+        if (confirmed) {
+            try {
+                console.log(`[LanguageCard] User confirmed deletion of ${processor.name} content`);
+                await onDelete(lang.id, processor.name);
+            } catch (error) {
+                console.error('Error deleting language content:', error);
+                alert(`Failed to delete ${processor.name} content. Please try again.`);
+            }
+        } else {
+            console.log(`[LanguageCard] User canceled deletion of ${processor.name} content`);
+        }
+    };
+
     // Handle invalid language data
     if (!lang || typeof lang !== 'object') {
         return (
@@ -231,12 +277,11 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
                             </Flex>
                         </Flex>
 
-                        {/* Access tier and publish controls */}
+                        {/* Access tier, publish controls, and DELETE BUTTON */}
                         <Flex justifyContent="space-between" alignItems="center">
                             <Flex gap={4} alignItems="center">
                                 <Flex gap={2} alignItems="center">
                                     <TierIcon width="16px" height="16px" />
-                                    <Typography variant="pi" textColor="neutral600">Access Tier:</Typography>
                                     <AccessTierSelect
                                         value={lang.access_tier}
                                         onChange={(value: string) => onAccessTierChange(lang.id, value)}
@@ -259,9 +304,25 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
                                 </Flex>
                             </Flex>
 
-                            <Typography variant="pi" textColor="neutral500">
-                                Last updated: {new Date(lang.updatedAt || lang.updated_at).toLocaleDateString()}
-                            </Typography>
+                            {/* Right side with date and delete button */}
+                            <Flex gap={3} alignItems="center">
+                                <Typography variant="pi" textColor="neutral500">
+                                    Last updated: {new Date(lang.updatedAt || lang.updated_at).toLocaleDateString()}
+                                </Typography>
+
+                                {/* SIMPLIFIED: Delete button with simple confirm */}
+                                {onDelete && (
+                                    <Button
+                                        variant="danger-light"
+                                        startIcon={<Trash />}
+                                        onClick={handleDeleteClick}
+                                        disabled={isUpdating[`delete_${lang.id}`]}
+                                        size="S"
+                                    >
+                                        Delete
+                                    </Button>
+                                )}
+                            </Flex>
                         </Flex>
 
                         {/* Metrics display */}

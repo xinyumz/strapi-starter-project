@@ -21,14 +21,33 @@ export default {
         },
     },
     attributes: {
+        // Keep for backward compatibility
         article_id: {
             type: 'integer',
             required: true,
         },
+
+        // Link to specific per_languages entry
+        per_language_id: {
+            type: 'integer',
+            required: true,
+            unsigned: true, // ADDED: This should match per_languages.id type
+        },
+
+        // Store language code for easy filtering
+        language: {
+            type: 'string',
+            required: true,
+            maxLength: 10,
+        },
+
+        // Sentence content
         sentence_text: {
-            type: 'richtext',  // ← Changed from 'text' to 'richtext' for LONGTEXT
+            type: 'richtext',
             required: true,
         },
+
+        // Order within the language content
         sentence_order: {
             type: 'integer',
             required: true,

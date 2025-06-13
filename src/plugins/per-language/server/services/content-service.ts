@@ -152,16 +152,190 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Delete language content
+         * WORKING: Delete language content with manual cascading delete
          */
         async deleteLanguageContent(contentId: number): Promise<void> {
             try {
+                console.log(`[ContentService] Starting enhanced delete for content ID: ${contentId}`);
+
                 const entityService = getEntityService();
+
+                // Get the language content first for logging and verification
+                const languageContent = await entityService.findOne('plugin::per-language.per-language', contentId);
+
+                if (!languageContent) {
+                    throw new ApplicationError(`Language content with ID ${contentId} not found`);
+                }
+
+                const { article_id: articleId, language } = languageContent as any;
+                console.log(`[ContentService] About to delete: Article ${articleId}, Language ${language}`);
+
+                // Get statistics before deletion for logging
+                const stats = await this.getLanguageContentStatistics(contentId);
+                console.log(`[ContentService] Pre-deletion stats:`, stats);
+
+                // MANUAL CASCADING DELETE - Since foreign keys aren't working properly
+                await this.performManualCascadingDelete(contentId);
+
+                // Finally, delete the per_languages record
                 await entityService.delete('plugin::per-language.per-language', contentId);
+
+                console.log(`[ContentService] ✅ Successfully completed manual cascading delete:`, {
+                    contentId,
+                    language: stats.language,
+                    deletedSentences: stats.sentenceCount,
+                    deletedGrammarRules: stats.grammarRuleCount,
+                    deletedTranslations: stats.translationCount,
+                    message: 'All related data manually deleted'
+                });
+
             } catch (error) {
-                console.error('Error deleting language content:', error);
+                console.error('[ContentService] Error deleting language content:', error);
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 throw new ApplicationError(`Failed to delete language content: ${errorMessage}`);
+            }
+        },
+
+        /**
+         * NEW: Manual cascading delete implementation
+         */
+        async performManualCascadingDelete(perLanguageId: number): Promise<void> {
+            try {
+                console.log(`[ContentService] Starting manual cascading delete for per_language_id: ${perLanguageId}`);
+
+                // Get access to the database for raw queries
+                if (!strapi.db) {
+                    console.warn('[ContentService] Database connection not available');
+                    return;
+                }
+
+                const db = strapi.db;
+
+                // Step 1: Find all sentences linked to this per_language_id
+                console.log(`[ContentService] Finding sentences for per_language_id: ${perLanguageId}`);
+
+                // Use raw query to find sentences
+                const sentences = await db.connection.raw(`
+                    SELECT id FROM article_sentences WHERE per_language_id = ?
+                `, [perLanguageId]);
+
+                // Handle different MySQL result formats
+                const sentenceRows = sentences[0] || sentences;
+                const sentenceIds = sentenceRows.map((row: any) => row.id);
+
+                console.log(`[ContentService] Found ${sentenceIds.length} sentences to delete: [${sentenceIds.join(', ')}]`);
+
+                if (sentenceIds.length === 0) {
+                    console.log(`[ContentService] No sentences found, skipping sentence cleanup`);
+                    return;
+                }
+
+                // Step 2: Delete sentence translations
+                console.log(`[ContentService] Deleting sentence translations...`);
+                const deletedTranslations = await db.connection.raw(`
+                    DELETE FROM sentence_translations WHERE sentence_id IN (${sentenceIds.map(() => '?').join(',')})
+                `, sentenceIds);
+                console.log(`[ContentService] Deleted translations:`, deletedTranslations[0]?.affectedRows || 0);
+
+                // Step 3: Delete sentence grammar rules
+                console.log(`[ContentService] Deleting sentence grammar rules...`);
+                const deletedRules = await db.connection.raw(`
+                    DELETE FROM sentence_grammar_rules WHERE sentence_id IN (${sentenceIds.map(() => '?').join(',')})
+                `, sentenceIds);
+                console.log(`[ContentService] Deleted grammar rules:`, deletedRules[0]?.affectedRows || 0);
+
+                // Step 4: Delete sentences themselves
+                console.log(`[ContentService] Deleting sentences...`);
+                const deletedSentences = await db.connection.raw(`
+                    DELETE FROM article_sentences WHERE per_language_id = ?
+                `, [perLanguageId]);
+                console.log(`[ContentService] Deleted sentences:`, deletedSentences[0]?.affectedRows || 0);
+
+                console.log(`[ContentService] ✅ Manual cascading delete completed successfully`);
+
+            } catch (error) {
+                console.error('[ContentService] Error in manual cascading delete:', error);
+                throw new ApplicationError(`Manual cascading delete failed: ${error.message}`);
+            }
+        },
+
+        /**
+         * Get statistics about language content before deletion
+         */
+        async getLanguageContentStatistics(contentId: number): Promise<{
+            articleId: number;
+            language: string;
+            contentLength: number;
+            sentenceCount: number;
+            grammarRuleCount: number;
+            translationCount: number;
+            uniqueTranslationLanguages: string[];
+        }> {
+            try {
+                const entityService = getEntityService();
+
+                // Get the per_language record
+                const languageContent = await entityService.findOne('plugin::per-language.per-language', contentId);
+                if (!languageContent) {
+                    throw new ApplicationError(`Language content with ID ${contentId} not found`);
+                }
+
+                const { article_id: articleId, language, per_language_text } = languageContent as any;
+
+                // Use raw database queries to get accurate counts
+                const db = strapi.db;
+                if (!db) {
+                    return {
+                        articleId,
+                        language,
+                        contentLength: per_language_text?.length || 0,
+                        sentenceCount: 0,
+                        grammarRuleCount: 0,
+                        translationCount: 0,
+                        uniqueTranslationLanguages: []
+                    };
+                }
+
+                // Count sentences
+                const sentenceResult = await db.connection.raw(`
+                    SELECT COUNT(*) as count FROM article_sentences WHERE per_language_id = ?
+                `, [contentId]);
+                const sentenceCount = sentenceResult[0]?.[0]?.count || 0;
+
+                // Count grammar rules
+                const grammarResult = await db.connection.raw(`
+                    SELECT COUNT(*) as count 
+                    FROM sentence_grammar_rules sgr
+                    JOIN article_sentences s ON sgr.sentence_id = s.id
+                    WHERE s.per_language_id = ?
+                `, [contentId]);
+                const grammarRuleCount = grammarResult[0]?.[0]?.count || 0;
+
+                // Count translations and get unique languages
+                const translationResult = await db.connection.raw(`
+                    SELECT COUNT(*) as count, GROUP_CONCAT(DISTINCT st.translation_language) as languages
+                    FROM sentence_translations st
+                    JOIN article_sentences s ON st.sentence_id = s.id  
+                    WHERE s.per_language_id = ?
+                `, [contentId]);
+
+                const translationCount = translationResult[0]?.[0]?.count || 0;
+                const languagesString = translationResult[0]?.[0]?.languages || '';
+                const uniqueTranslationLanguages = languagesString ? languagesString.split(',') : [];
+
+                return {
+                    articleId,
+                    language,
+                    contentLength: per_language_text?.length || 0,
+                    sentenceCount: parseInt(sentenceCount.toString()),
+                    grammarRuleCount: parseInt(grammarRuleCount.toString()),
+                    translationCount: parseInt(translationCount.toString()),
+                    uniqueTranslationLanguages
+                };
+
+            } catch (error) {
+                console.error('[ContentService] Error getting language content statistics:', error);
+                throw error;
             }
         },
 

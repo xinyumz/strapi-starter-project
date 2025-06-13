@@ -9,7 +9,6 @@ interface AccessTierSelectProps {
     onChange: (value: string) => void;
     disabled?: boolean;
     size?: 'S' | 'M' | 'L';
-    placeholder?: string;
     error?: string;
 }
 
@@ -18,28 +17,23 @@ export const AccessTierSelect: React.FC<AccessTierSelectProps> = ({
     onChange,
     disabled = false,
     size = 'S',
-    placeholder = 'Select Access Tier',
     error
 }) => {
-    const getDisplayValue = (accessTier: string | null) => {
-        return accessTier || ''; // Return empty string for null to show placeholder
-    };
-
     const handleChange = (newValue: string) => {
-        // Don't allow selection of the placeholder option
-        if (newValue !== '') {
+        // Only trigger onChange for valid tier values
+        if (newValue && newValue !== '') {
             onChange(newValue);
         }
     };
 
     return (
         <Select
-            value={getDisplayValue(value)}
+            value={value || ''}
             onChange={handleChange}
             disabled={disabled}
             size={size}
-            placeholder={placeholder}
             error={error}
+            hasError={!!error}
         >
             {ACCESS_TIERS.map(tier => (
                 <Option
