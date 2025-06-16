@@ -67,15 +67,25 @@ export default [
         }
     },
 
-    // Article processing routes (modern only)
+    // Article processing routes
     {
         method: 'POST',
-        path: '/process-article',
+        path: '/process-article/:id',
         handler: 'articleController.processArticle',
         config: {
             policies: [],
             auth: false,
-            description: 'Process full article content with translations and grammar rules'
+            description: 'Process article from per_languages table (main endpoint)'
+        }
+    },
+    {
+        method: 'POST',
+        path: '/process-article-content',
+        handler: 'articleController.processArticleWithContent',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Process article with direct content input (legacy)'
         }
     },
     {
@@ -86,16 +96,6 @@ export default [
             policies: [],
             auth: false,
             description: 'Get sentences with translations for an article'
-        }
-    },
-    {
-        method: 'POST',
-        path: '/process-v2/:id',
-        handler: 'articleController.processArticleV2',
-        config: {
-            policies: [],
-            auth: false,
-            description: 'Complete article processing workflow (per_languages only)'
         }
     },
     {

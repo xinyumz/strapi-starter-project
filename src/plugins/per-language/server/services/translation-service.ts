@@ -1,12 +1,11 @@
 // src/plugins/per-language/server/services/translation-service.ts
+
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
-import { PerLanguageContentType } from '../types';
 
 const { ApplicationError } = errors;
 
 export default ({ strapi }: { strapi: Strapi }) => {
-    // Type guard helper function
     const getEntityService = () => {
         if (!strapi.entityService) {
             throw new ApplicationError('Entity service is not available');
@@ -16,146 +15,92 @@ export default ({ strapi }: { strapi: Strapi }) => {
 
     return {
         /**
-         * Translate an article to a target language and save to per_language table
-         * TEMPORARY WORKAROUND: This uses the existing translation field instead of calling the translator plugin
+         * Translate using external translator plugin and save to per_languages table
          */
-        async translateArticle(articleId: number, targetLanguage: string): Promise<{ success: boolean; message?: string; contentId?: number }> {
+        async translateArticle(
+            articleId: number,
+            targetLanguage: string
+        ): Promise<{ success: boolean; message?: string; contentId?: number }> {
             try {
-                console.log(`[TranslationService] Starting translation for article ${articleId} to ${targetLanguage}`);
+                console.log(`[TranslationService] Translating article ${articleId} to ${targetLanguage}`);
 
-                // Try different approaches to get the article content
-                let articleData: any = null;
-                let baseContent: string | null = null;
-                let translatedContent: string | null = null;
+                // Step 1: Get source content from articles.Base field only
+                const entityService = getEntityService();
+                const article = await entityService.findOne('api::article.article', articleId);
 
-                // 1. First try with entityService
-                try {
-                    const entityService = getEntityService();
-                    console.log(`[TranslationService] Fetching article ${articleId} with entityService`);
-                    const article: any = await entityService.findOne('api::article.article', articleId, {
-                        populate: '*' as any  // Try to populate all fields
-                    });
-
-                    if (article) {
-                        console.log(`[TranslationService] Article found with keys:`, Object.keys(article));
-                        articleData = article;
-                        baseContent = article.base as string || null;
-                        translatedContent = article.translation as string || null;
-                    }
-                } catch (entityError) {
-                    console.error(`[TranslationService] Entity service error:`, entityError);
+                if (!article || !(article as any).Base) {
+                    throw new ApplicationError(
+                        `Article ${articleId} not found or has no Base content. ` +
+                        `Please ensure the article exists and has content in the Base field.`
+                    );
                 }
 
-                // 2. If that fails, try direct database query
-                if (!baseContent && strapi.db) {
-                    try {
-                        console.log(`[TranslationService] Trying direct database query`);
-                        const knex = strapi.db.connection;
-                        const result: any = await knex('articles').where('id', articleId).first();
+                const sourceText = (article as any).Base;
+                console.log(`[TranslationService] Source text length: ${sourceText.length}`);
 
-                        if (result) {
-                            console.log(`[TranslationService] Direct query result keys:`, Object.keys(result));
-                            articleData = result;
-                            baseContent = result.base as string || null;
-                            translatedContent = result.translation as string || null;
-                        }
-                    } catch (dbError) {
-                        console.error(`[TranslationService] Database query error:`, dbError);
-                    }
+                // Step 2: Translate using external translator plugin
+                const translatorPlugin = strapi.plugin('translator');
+                if (!translatorPlugin) {
+                    throw new ApplicationError('Translator plugin not found');
                 }
 
-                // 3. If we still don't have content, try the API
-                if (!baseContent) {
-                    try {
-                        console.log(`[TranslationService] Trying API request`);
-                        // Use node-fetch or another HTTP client that's compatible with your environment
-                        const fetch = require('node-fetch');
-                        const response = await fetch(`http://localhost:1337/api/articles/${articleId}?populate=*`);
-                        const apiData: any = await response.json();
-
-                        if (apiData && apiData.data && apiData.data.attributes) {
-                            console.log(`[TranslationService] API data:`, JSON.stringify(apiData.data, null, 2));
-                            const attributes = apiData.data.attributes;
-                            articleData = attributes;
-                            baseContent = attributes.base as string || null;
-                            translatedContent = attributes.translation as string || null;
-                        }
-                    } catch (apiError) {
-                        console.error(`[TranslationService] API request error:`, apiError);
-                    }
+                const translationService = translatorPlugin.service('translationService');
+                if (!translationService?.translate) {
+                    throw new ApplicationError('Translation service not available');
                 }
 
-                // Now proceed with the content we found
-                if (!baseContent && !translatedContent) {
-                    console.log(`[TranslationService] No content found, using hardcoded test content`);
-                    // Use hardcoded content for testing if nothing else works
-                    baseContent = "This is test content. We are testing the translation plugin.";
-                    translatedContent = "这是测试内容。我们正在测试翻译插件。";
+                console.log(`[TranslationService] Calling external translator for ${targetLanguage}`);
+                const translatedText = await translationService.translate(sourceText, targetLanguage);
+
+                if (!translatedText) {
+                    throw new ApplicationError('Translation service returned empty result');
                 }
 
-                console.log(`[TranslationService] Final content:`, {
-                    hasBase: !!baseContent,
-                    baseLength: baseContent ? baseContent.length : 0,
-                    hasTranslation: !!translatedContent,
-                    translationLength: translatedContent ? translatedContent.length : 0
-                });
+                console.log(`[TranslationService] Translation completed, length: ${translatedText.length}`);
 
-                // Choose the appropriate content based on language
-                let contentToUse: string = (targetLanguage === 'zh' && translatedContent)
-                    ? translatedContent
-                    : (baseContent || "");
-
-                // Save to per_language table
-                console.log(`[TranslationService] Saving to per_language table`);
+                // Step 3: Save to per_languages table only
                 const contentService = strapi.plugin('per-language').service('contentService');
                 const perLanguageContent = await contentService.upsertLanguageContent(
                     articleId,
                     targetLanguage,
-                    contentToUse
+                    translatedText
                 );
-                console.log(`[TranslationService] Saved to per_language table, id: ${perLanguageContent.id}`);
+
+                console.log(`[TranslationService] ✅ Saved to per_languages table, ID: ${perLanguageContent.id}`);
 
                 return {
                     success: true,
-                    message: `Article content saved for ${targetLanguage}`,
+                    message: `Article translated to ${targetLanguage} and saved`,
                     contentId: perLanguageContent.id
                 };
+
             } catch (error) {
-                console.error('[TranslationService] General error:', error);
+                console.error('[TranslationService] Translation error:', error);
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                throw new ApplicationError(`Failed to translate article: ${errorMessage}`);
+                throw new ApplicationError(`Translation failed: ${errorMessage}`);
             }
         },
 
         /**
-         * Get the translated content of an article for a specific language
+         * Get translated content from per_languages table
          */
         async getTranslatedContent(articleId: number, languageCode: string): Promise<string> {
             try {
-                console.log(`[TranslationService] Getting translated content for article ${articleId} in ${languageCode}`);
+                console.log(`[TranslationService] Getting content for article ${articleId} in ${languageCode}`);
+
                 const contentService = strapi.plugin('per-language').service('contentService');
                 const content = await contentService.getLanguageContent(articleId, languageCode);
 
-                if (!content) {
-                    console.log(`[TranslationService] No content found in per_language table`);
-
-                    // Fallback to the article's translation field
-                    const entityService = getEntityService();
-                    const article = await entityService.findOne('api::article.article', articleId, {
-                        populate: '*' as any
-                    });
-
-                    if (!article || !(article as any).Translation || (article as any).translation) {
-                        console.log(`[TranslationService] No fallback translation found in article`);
-                        throw new ApplicationError(`No content found for article ${articleId} in language ${languageCode}`);
-                    }
-
-                    console.log(`[TranslationService] Using fallback translation from article`);
-                    return (article as any).Translation || (article as any).translation;
+                if (!content?.per_language_text) {
+                    throw new ApplicationError(
+                        `No content found for article ${articleId} in language ${languageCode}. ` +
+                        `Please translate the article first using the translation feature.`
+                    );
                 }
 
-                console.log(`[TranslationService] Found content in per_language table`);
+                console.log(`[TranslationService] ✅ Found content in per_languages table`);
                 return content.per_language_text;
+
             } catch (error) {
                 console.error('[TranslationService] Error getting translated content:', error);
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';

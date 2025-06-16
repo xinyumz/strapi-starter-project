@@ -9,12 +9,14 @@ import React from 'react';
 import { Switch, Route } from 'react-router-dom';
 import { NotFound } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
+import HomePage from '../HomePage';
 import ChineseArticleProcessor from '../ChineseArticleProcessor';
 
 const App = () => {
   return (
     <div>
       <Switch>
+        <Route path={`/plugins/${pluginId}`} component={HomePage} exact />
         <Route path={`/plugins/${pluginId}/chinese-processor`} component={ChineseArticleProcessor} exact />
         <Route component={NotFound} />
       </Switch>

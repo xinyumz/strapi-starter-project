@@ -37,38 +37,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Get content from per_languages table
-     */
-    async getContentFromAnySource(articleId: number, language: string = 'zh'): Promise<{ content: string, source: string }> {
-        try {
-            console.log(`[ProcessService] Getting content from per_languages table for article ${articleId}`);
-
-            if (!strapi.plugin('per-language')?.service('contentService')) {
-                throw new ApplicationError('per-language service not available');
-            }
-
-            const perLanguageContent = await strapi.plugin('per-language')
-                .service('contentService')
-                .getLanguageContent(articleId, language);
-
-            if (perLanguageContent?.per_language_text) {
-                return {
-                    content: perLanguageContent.per_language_text,
-                    source: 'per_languages'
-                };
-            }
-
-            throw new ApplicationError(
-                `No content found for article ${articleId} in language ${language}. ` +
-                `Please ensure the content is translated and saved in the per_languages table first.`
-            );
-        } catch (error) {
-            console.error('[ProcessService] Error getting content from per_languages table:', error);
-            throw error;
-        }
-    },
-
-    /**
      * Get processed data from per_languages table
      */
     async getProcessedData(articleId: number, language: string = 'zh'): Promise<any> {
@@ -150,7 +118,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
     /**
      * Complete article processing workflow using per_languages table
-     * This is used by the complete processing endpoint (process-v2)
      */
     async processArticleComplete(
         articleId: number,
@@ -161,8 +128,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             console.log(`[ProcessService] Complete processing for article ${articleId}`);
 
             // 1. Get content from per_languages table ONLY
-            const { content, source } = await this.getContentFromAnySource(articleId, language);
-            console.log(`[ProcessService] Found content from source: ${source}`);
+            const content = await this.getArticleContent(articleId, language);
+            console.log(`[ProcessService] Found content from per_languages table`);
 
             // 2. Validate content before processing
             if (!content || content.trim().length === 0) {
@@ -196,7 +163,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
      */
     async getDataForChineseProcessor(articleId: number, language: string = 'zh') {
         try {
-            const { content, source } = await this.getContentFromAnySource(articleId, language);
+            const content = await this.getArticleContent(articleId, language);
             const processedData = await this.getProcessedData(articleId, language);
 
             return {
@@ -204,7 +171,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 language,
                 content: {
                     text: content,
-                    source: source
+                    source: 'per_languages' // We know it's always per_languages now
                 },
                 processedData: {
                     data: processedData,
@@ -212,94 +179,13 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 },
                 compatibility: {
                     canProcess: !!content && content.trim().length > 0,
-                    dataSource: source,
-                    isModern: source === 'per_languages'
+                    dataSource: 'per_languages', // We know it's always per_languages now
+                    isModern: true // We know it's always modern now
                 }
             };
         } catch (error) {
             console.error('[ProcessService] Error getting data for Chinese processor:', error);
             throw error;
-        }
-    },
-
-    /**
-     * Get data source information for transparency
-     */
-    async getDataSourceInfo(articleId: number, language: string = 'zh') {
-        try {
-            const contentSource = await this.checkContentSource(articleId, language);
-            const processedSource = await this.checkProcessedDataSource(articleId, language);
-
-            return {
-                articleId,
-                language,
-                content: {
-                    source: contentSource,
-                    isModern: contentSource === 'per_languages'
-                },
-                processedData: {
-                    source: processedSource,
-                    isModern: processedSource === 'per_languages'
-                },
-                overallStatus: (contentSource === 'per_languages' && processedSource === 'per_languages')
-                    ? 'modern' : (contentSource === 'none' || processedSource === 'none')
-                        ? 'missing' : 'unknown'
-            };
-        } catch (error) {
-            console.error('[ProcessService] Error getting data source info:', error);
-            return {
-                articleId,
-                language,
-                content: { source: 'unknown', isModern: false },
-                processedData: { source: 'unknown', isModern: false },
-                overallStatus: 'unknown'
-            };
-        }
-    },
-
-    /**
-     * CORRECTED: Check where content is coming from - per_languages ONLY
-     */
-    async checkContentSource(articleId: number, language: string): Promise<'per_languages' | 'none'> {
-        try {
-            if (!strapi.plugin('per-language')?.service('contentService')) {
-                return 'none';
-            }
-
-            const perLanguageContent = await strapi.plugin('per-language')
-                .service('contentService')
-                .getLanguageContent(articleId, language);
-
-            if (perLanguageContent?.per_language_text) {
-                return 'per_languages';
-            }
-
-            return 'none';
-        } catch (error) {
-            return 'none';
-        }
-    },
-
-    /**
-     * CORRECTED: Check where processed data is coming from - per_languages ONLY
-     */
-    async checkProcessedDataSource(articleId: number, language: string): Promise<'per_languages' | 'none'> {
-        try {
-            if (!strapi.plugin('per-language')?.service('contentService')) {
-                return 'none';
-            }
-
-            const perLanguageContent = await strapi.plugin('per-language')
-                .service('contentService')
-                .getLanguageContent(articleId, language);
-
-            if (perLanguageContent?.processed_data) {
-                return 'per_languages';
-            }
-
-            return 'none';
-        } catch (error) {
-            return 'none';
         }
     },
 

@@ -7,8 +7,39 @@ import { ExtendedContext } from '../services/types';
 const { ApplicationError } = errors;
 
 export default ({ strapi }: { strapi: Strapi }) => ({
-    // Process full article content
+    // Main article processing endpoint
+    // This method gets content from per_languages table and processes it
     async processArticle(ctx: ExtendedContext) {
+        try {
+            const { id } = ctx.params;
+            const { targetLanguages = ['en'] } = ctx.request.body.data || ctx.request.body;
+
+            if (!id) {
+                return ctx.badRequest('Article ID is required');
+            }
+
+            const processService = strapi.plugin('chinese-article-processor').service('processService');
+            const result = await processService.processArticleComplete(
+                parseInt(id),
+                'zh',
+                targetLanguages
+            );
+
+            ctx.body = { data: result };
+        } catch (error: unknown) {
+            if (error instanceof ApplicationError) {
+                ctx.throw(400, error.message);
+            } else if (error instanceof Error) {
+                ctx.throw(500, `Article processing failed: ${error.message}`);
+            } else {
+                ctx.throw(500, 'Article processing failed');
+            }
+        }
+    },
+
+    // LEGACY: Process article with direct content input (keep for backward compatibility)
+    // This method takes content directly in the request body
+    async processArticleWithContent(ctx: ExtendedContext) {
         try {
             // Handle both structured and flat request formats
             const data = ctx.request.body.data || ctx.request.body;
@@ -92,86 +123,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // Process article using per_languages table exclusively
-    async processArticleFromAnySource(ctx: ExtendedContext) {
-        try {
-            const { id } = ctx.params;
-            const { targetLanguages = ['en'] } = ctx.request.body.data || ctx.request.body;
-
-            if (!id) {
-                return ctx.badRequest('Article ID is required');
-            }
-
-            // Get the process service
-            const processService = strapi.plugin('chinese-article-processor').service('processService');
-
-            if (!processService) {
-                return ctx.badRequest('Process service not available');
-            }
-
-            // Get content from per_languages table only
-            const content = await processService.getArticleContent(Number(id), 'zh');
-
-            // Process the content using existing article service
-            const articleService = strapi.plugin('chinese-article-processor').service('articleService');
-            const processedArticle = await articleService.processArticle(
-                content,
-                targetLanguages
-            );
-
-            // Save processed data to per_languages table
-            await processService.saveProcessedData(
-                Number(id),
-                'zh',
-                processedArticle
-            );
-
-            // Also save to the sentence tables
-            await articleService.saveProcessedArticle(Number(id), processedArticle);
-
-            ctx.body = {
-                data: processedArticle
-            };
-        } catch (error: unknown) {
-            if (error instanceof ApplicationError) {
-                ctx.throw(400, error.message);
-            } else if (error instanceof Error) {
-                ctx.throw(500, `Article processing failed: ${error.message}`);
-            } else {
-                ctx.throw(500, 'Article processing failed');
-            }
-        }
-    },
-
-    // Complete processing workflow using per_languages table
-    async processArticleV2(ctx: ExtendedContext) {
-        try {
-            const { id } = ctx.params;
-            const { targetLanguages = ['en'] } = ctx.request.body.data || ctx.request.body;
-
-            if (!id) {
-                return ctx.badRequest('Article ID is required');
-            }
-
-            const processService = strapi.plugin('chinese-article-processor').service('processService');
-            const result = await processService.processArticleComplete(
-                parseInt(id),
-                'zh',
-                targetLanguages
-            );
-
-            ctx.body = { data: result };
-        } catch (error: unknown) {
-            if (error instanceof ApplicationError) {
-                ctx.throw(400, error.message);
-            } else if (error instanceof Error) {
-                ctx.throw(500, `Article processing failed: ${error.message}`);
-            } else {
-                ctx.throw(500, 'Article processing failed');
-            }
-        }
-    },
-
     // Update processed data in per_languages table only
     async updateArticleProcessedData(ctx: ExtendedContext) {
         try {
@@ -220,5 +171,5 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 ctx.throw(500, 'Failed to update processed data');
             }
         }
-    },
+    }
 });

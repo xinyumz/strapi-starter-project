@@ -150,6 +150,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Save grammar data
      */
+    /**
+ * FIXED: Save grammar data with stable sentence IDs
+ * This version preserves existing sentence IDs and only updates what actually changed
+ */
     async saveArticleGrammar(articleId: number, sentences: GrammarRule[]): Promise<{ success: boolean, error?: string }> {
         if (!strapi.db || !strapi.db.connection) {
             return {
@@ -204,30 +208,28 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         const trx = await strapi.db.connection.transaction();
 
         try {
-            // Save to sentence tables with proper foreign keys
+            // 🎯 STEP 1: Get existing sentences with their current order
             const existingSentences = await trx
-                .select('id')
+                .select('id', 'sentence_text', 'sentence_order')
                 .from('article_sentences')
-                .where('article_id', articleId);
-
-            const sentenceIds = existingSentences.map(s => s.id);
-            strapi.log.info(`Found ${sentenceIds.length} existing sentences to delete`);
-
-            if (sentenceIds.length > 0) {
-                await trx('sentence_translations')
-                    .whereIn('sentence_id', sentenceIds)
-                    .delete();
-
-                await trx('sentence_grammar_rules')
-                    .whereIn('sentence_id', sentenceIds)
-                    .delete();
-            }
-
-            await trx('article_sentences')
                 .where('article_id', articleId)
-                .delete();
+                .orderBy('sentence_order');
 
-            // Insert new sentences and rules with proper foreign keys
+            strapi.log.info(`Found ${existingSentences.length} existing sentences`);
+
+            // 🎯 STEP 2: Create mappings for intelligent UPSERT
+            const existingSentenceMap = new Map();
+            existingSentences.forEach(sentence => {
+                existingSentenceMap.set(sentence.sentence_order, {
+                    id: sentence.id,
+                    text: sentence.sentence_text
+                });
+            });
+
+            // Track which sentences we've processed to identify deletions
+            const processedSentenceIds = new Set();
+
+            // 🎯 STEP 3: UPSERT sentences (update existing, insert new)
             for (let i = 0; i < sentences.length; i++) {
                 const sentence = sentences[i];
 
@@ -236,11 +238,33 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     continue;
                 }
 
-                try {
-                    const sentenceText = typeof sentence.sentence === 'string' ?
-                        sentence.sentence : String(sentence.sentence);
+                const sentenceText = typeof sentence.sentence === 'string' ?
+                    sentence.sentence : String(sentence.sentence);
 
-                    // Include per_language_id and language in insert
+                const existingSentence = existingSentenceMap.get(i);
+                let sentenceId;
+
+                if (existingSentence) {
+                    // ✅ UPDATE existing sentence (preserves ID)
+                    sentenceId = existingSentence.id;
+                    processedSentenceIds.add(sentenceId);
+
+                    // Only update if text actually changed
+                    if (existingSentence.text !== sentenceText) {
+                        await trx('article_sentences')
+                            .where('id', sentenceId)
+                            .update({
+                                sentence_text: sentenceText,
+                                sentence_order: i,
+                                updated_at: trx.fn.now()
+                            });
+
+                        strapi.log.info(`Updated sentence ID ${sentenceId} at order ${i}`);
+                    } else {
+                        strapi.log.info(`Sentence ID ${sentenceId} unchanged at order ${i}`);
+                    }
+                } else {
+                    // ✅ INSERT new sentence
                     const insertData: any = {
                         article_id: articleId,
                         sentence_text: sentenceText,
@@ -255,90 +279,73 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                         insertData.language = 'zh';
                     }
 
-                    const [sentenceId] = await trx('article_sentences').insert(insertData);
+                    const [newSentenceId] = await trx('article_sentences').insert(insertData);
+                    sentenceId = newSentenceId;
+                    processedSentenceIds.add(sentenceId);
 
-                    if (sentence.rules && Array.isArray(sentence.rules) && sentence.rules.length > 0) {
-                        const rulesToInsert = sentence.rules.map(rule => ({
-                            sentence_id: sentenceId,
-                            rule: typeof rule === 'string' ? rule : String(rule),
-                            created_at: trx.fn.now(),
-                            updated_at: trx.fn.now()
-                        }));
-
-                        await trx('sentence_grammar_rules').insert(rulesToInsert);
-                    }
-
-                    if (sentence.translation) {
-                        const englishText = typeof sentence.translation === 'string' ?
-                            sentence.translation : String(sentence.translation);
-
-                        await trx('sentence_translations').insert({
-                            sentence_id: sentenceId,
-                            translation_language: 'en',
-                            translation_text: englishText,
-                            created_at: trx.fn.now(),
-                            updated_at: trx.fn.now()
-                        });
-                    }
-
-                    if (sentence.translations && Array.isArray(sentence.translations)) {
-                        const translationsToInsert = sentence.translations
-                            .filter(trans => {
-                                if (!trans || !trans.text || !trans.language) return false;
-                                if (trans.language === 'en' && sentence.translation) return false;
-                                return true;
-                            })
-                            .map(trans => {
-                                const translationText = typeof trans.text === 'string' ?
-                                    trans.text : String(trans.text);
-
-                                return {
-                                    sentence_id: sentenceId,
-                                    translation_language: trans.language,
-                                    translation_text: translationText,
-                                    created_at: trx.fn.now(),
-                                    updated_at: trx.fn.now()
-                                };
-                            });
-
-                        if (translationsToInsert.length > 0) {
-                            await trx('sentence_translations').insert(translationsToInsert);
-                        }
-                    }
-                } catch (insertError) {
-                    const errorMessage = insertError instanceof Error ? insertError.message : 'Unknown error';
-                    strapi.log.error(`Error inserting sentence ${i}: ${errorMessage}`);
+                    strapi.log.info(`Created new sentence ID ${sentenceId} at order ${i}`);
                 }
+
+                // 🎯 STEP 4: Update grammar rules for this sentence
+                await this.updateSentenceGrammarRules(trx, sentenceId, sentence.rules || []);
+
+                // 🎯 STEP 5: Update translations for this sentence  
+                await this.updateSentenceTranslations(
+                    trx,
+                    sentenceId,
+                    sentence.translation || '',
+                    sentence.translations || []
+                );
+            }
+
+            // 🎯 STEP 6: Delete sentences that are no longer needed
+            const sentencesToDelete = existingSentences.filter(sentence =>
+                !processedSentenceIds.has(sentence.id)
+            );
+
+            if (sentencesToDelete.length > 0) {
+                const deleteIds = sentencesToDelete.map(s => s.id);
+                strapi.log.info(`Deleting ${deleteIds.length} unused sentences: ${deleteIds.join(', ')}`);
+
+                // Delete related data first (cascade delete)
+                await trx('sentence_translations')
+                    .whereIn('sentence_id', deleteIds)
+                    .delete();
+
+                await trx('sentence_grammar_rules')
+                    .whereIn('sentence_id', deleteIds)
+                    .delete();
+
+                await trx('article_sentences')
+                    .whereIn('id', deleteIds)
+                    .delete();
             }
 
             await trx.commit();
-            strapi.log.info(`Successfully saved grammar data for article ID: ${articleId}`);
+            strapi.log.info(`✅ Successfully saved grammar data for article ID: ${articleId} with stable sentence IDs`);
 
-            // **Update per_languages table ONLY with HSK preservation**
+            // Update per_languages table with HSK preservation (same as before)
             try {
                 console.log(`[Grammar Service] 🎯 Updating per_languages table with HSK preservation...`);
 
-                // STEP 1: Get existing processed data from per_languages table ONLY
                 const perLanguagePlugin = strapi.plugin('per-language');
                 const contentService = perLanguagePlugin?.service('contentService');
 
                 if (!contentService) {
                     console.log(`[Grammar Service] ⚠️ per-language service not available`);
-                    return { success: true }; // Still return success since sentence tables were saved
+                    return { success: true };
                 }
 
                 const existingContent = await contentService.getLanguageContent(articleId, 'zh');
 
                 if (!existingContent) {
                     console.log(`[Grammar Service] ⚠️ No per_language entry found for article ${articleId}`);
-                    return { success: true }; // Still return success since sentence tables were saved
+                    return { success: true };
                 }
 
-                // STEP 2: Get existing processed data (including HSK data if it exists)
                 const existingProcessedData = existingContent.processed_data || {};
                 console.log(`[Grammar Service] 📋 Existing processed data keys:`, Object.keys(existingProcessedData));
 
-                // STEP 3: Create new grammar data structure
                 const newGrammarData = {
                     sentences: sentences.map(sentence => ({
                         sentence: sentence.sentence,
@@ -348,24 +355,11 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     }))
                 };
 
-                // STEP 4: Merge grammar with existing data (preserve HSK if it exists)
                 const completeData = {
-                    ...existingProcessedData,  // Preserve existing HSK and other data (if any)
-                    grammar: newGrammarData    // Update only grammar data
+                    ...existingProcessedData,
+                    grammar: newGrammarData
                 };
 
-                console.log(`[Grammar Service] 📊 Complete merged data structure:`, {
-                    hasHSK: !!completeData.hsk,
-                    hasGrammar: !!completeData.grammar,
-                    grammarSentencesCount: completeData.grammar?.sentences?.length || 0,
-                    hskData: completeData.hsk ? {
-                        calculatedLevel: completeData.hsk.calculatedLevel,
-                        selectedLevel: completeData.hsk.selectedLevel,
-                        hasDistribution: !!completeData.hsk.distribution
-                    } : 'No HSK data found (this is fine)'
-                });
-
-                // STEP 5: Extract difficulty data for performance optimization (only if HSK exists)
                 const difficultyData = completeData.hsk ? {
                     hsk: {
                         distribution: completeData.hsk.distribution,
@@ -374,39 +368,30 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     }
                 } : null;
 
-                // STEP 6: Extract display skill for UI (only if HSK exists)
                 const displaySkill = completeData.hsk?.selectedLevel ?
                     `HSK ${completeData.hsk.selectedLevel}` :
                     (completeData.hsk?.calculatedLevel ? `HSK ${completeData.hsk.calculatedLevel}` : null);
 
-                console.log(`[Grammar Service] 🚀 Updating per_languages table with preserved HSK data...`);
-                console.log(`[Grammar Service] 📊 Difficulty data:`, difficultyData || 'No HSK data to preserve');
-                console.log(`[Grammar Service] 🏷️ Display skill:`, displaySkill || 'No HSK display skill');
-
-                // STEP 7: Update per_languages table ONLY
                 if (contentService.updateCompleteProcessedData) {
                     await contentService.updateCompleteProcessedData(
                         existingContent.id,
-                        completeData,       // processed_data: Complete metadata with preserved HSK
-                        difficultyData,     // difficulty_data: Extracted difficulty (null if no HSK)
-                        displaySkill       // display_skill: UI display (null if no HSK)
+                        completeData,
+                        difficultyData,
+                        displaySkill
                     );
                     console.log(`[Grammar Service] ✅ Successfully updated per_languages table with complete data preservation`);
                 } else {
-                    console.log(`[Grammar Service] ⚠️ updateCompleteProcessedData method not available, using fallback`);
                     await contentService.updateProcessedData(existingContent.id, completeData, displaySkill);
                     console.log(`[Grammar Service] ✅ Updated per_languages table using fallback method`);
                 }
 
-                console.log(`[Grammar Service] ✅ Grammar update with HSK preservation completed`);
             } catch (updateError) {
-                // Log error but don't fail the entire operation since sentence tables were saved successfully
                 const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
                 console.error(`[Grammar Service] ❌ Error updating per_languages table: ${errorMessage}`);
-                console.log(`[Grammar Service] ℹ️ Sentence tables were saved successfully despite update error`);
             }
 
             return { success: true };
+
         } catch (error) {
             await trx.rollback();
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -415,6 +400,122 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 success: false,
                 error: errorMessage
             };
+        }
+    },
+
+    /**
+     * HELPER: Update grammar rules for a specific sentence
+     */
+    async updateSentenceGrammarRules(trx: any, sentenceId: number, newRules: string[]): Promise<void> {
+        // Get existing rules
+        const existingRules = await trx('sentence_grammar_rules')
+            .where('sentence_id', sentenceId)
+            .select('rule');
+
+        const existingRuleTexts = existingRules.map((r: any) => r.rule);
+        const newRuleTexts = newRules.filter(rule => rule && rule.trim());
+
+        // Find rules to delete and add
+        const rulesToDelete = existingRuleTexts.filter((rule: string) => !newRuleTexts.includes(rule));
+        const rulesToAdd = newRuleTexts.filter((rule: string) => !existingRuleTexts.includes(rule));
+
+        // Delete removed rules
+        if (rulesToDelete.length > 0) {
+            await trx('sentence_grammar_rules')
+                .where('sentence_id', sentenceId)
+                .whereIn('rule', rulesToDelete)
+                .delete();
+        }
+
+        // Add new rules
+        if (rulesToAdd.length > 0) {
+            const rulesToInsert = rulesToAdd.map(rule => ({
+                sentence_id: sentenceId,
+                rule: rule,
+                created_at: trx.fn.now(),
+                updated_at: trx.fn.now()
+            }));
+
+            await trx('sentence_grammar_rules').insert(rulesToInsert);
+        }
+    },
+
+    /**
+     * HELPER: Update translations for a specific sentence
+     */
+    async updateSentenceTranslations(trx: any, sentenceId: number, englishTranslation: string, otherTranslations: any[]): Promise<void> {
+        // Get existing translations
+        const existingTranslations = await trx('sentence_translations')
+            .where('sentence_id', sentenceId)
+            .select('translation_language', 'translation_text');
+
+        const existingTransMap = new Map();
+        existingTranslations.forEach((t: any) => {
+            existingTransMap.set(t.translation_language, t.translation_text);
+        });
+
+        // Prepare new translations map
+        const newTransMap = new Map();
+
+        // Add English translation if provided
+        if (englishTranslation && englishTranslation.trim()) {
+            newTransMap.set('en', englishTranslation.trim());
+        }
+
+        // Add other translations
+        if (otherTranslations && Array.isArray(otherTranslations)) {
+            otherTranslations.forEach(trans => {
+                if (trans && trans.language && trans.text && trans.text.trim()) {
+                    newTransMap.set(trans.language, trans.text.trim());
+                }
+            });
+        }
+
+        // Find translations to delete, update, and add
+        const languagesToDelete = Array.from(existingTransMap.keys()).filter(lang => !newTransMap.has(lang));
+        const languagesToAdd: string[] = [];
+        const languagesToUpdate: string[] = [];
+
+        newTransMap.forEach((text, language) => {
+            if (existingTransMap.has(language)) {
+                if (existingTransMap.get(language) !== text) {
+                    languagesToUpdate.push(language);
+                }
+            } else {
+                languagesToAdd.push(language);
+            }
+        });
+
+        // Delete removed translations
+        if (languagesToDelete.length > 0) {
+            await trx('sentence_translations')
+                .where('sentence_id', sentenceId)
+                .whereIn('translation_language', languagesToDelete)
+                .delete();
+        }
+
+        // Update changed translations
+        for (const language of languagesToUpdate) {
+            await trx('sentence_translations')
+                .where('sentence_id', sentenceId)
+                .where('translation_language', language)
+                .update({
+                    translation_text: newTransMap.get(language),
+                    updated_at: trx.fn.now()
+                });
+        }
+
+        // Add new translations
+        if (languagesToAdd.length > 0) {
+            const translationsToInsert = languagesToAdd.map(language => ({
+                sentence_id: sentenceId,
+                translation_language: language,
+                translation_text: newTransMap.get(language),
+                created_at: trx.fn.now(),
+                updated_at: trx.fn.now()
+            }));
+
+            await trx('sentence_translations').insert(translationsToInsert);
         }
     }
 });
