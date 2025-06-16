@@ -32,9 +32,6 @@ interface SentenceProcessingSectionProps {
   onDeleteSelected: () => void;
   isRuleSelected: (sentenceIndex: number, ruleIndex: number) => boolean;
   simplified?: boolean; // Control simplified view
-  // New batch processing props
-  useBatch: boolean;
-  onToggleBatch: (value: boolean) => void;
 }
 
 /**
@@ -65,9 +62,6 @@ const SentenceProcessingSection: React.FC<SentenceProcessingSectionProps> = ({
   onDeleteSelected,
   isRuleSelected,
   simplified = false,
-  // New batch processing props
-  useBatch,
-  onToggleBatch
 }) => {
   const hasSentences = sentences.length > 0;
 
@@ -146,9 +140,6 @@ const SentenceProcessingSection: React.FC<SentenceProcessingSectionProps> = ({
         onLanguageChange={onLanguageChange}
         onGenerateClick={onGenerateClick}
         onTranslateClick={onTranslateClick}
-        // Add batch processing props
-        useBatch={useBatch}
-        onToggleBatch={onToggleBatch}
       />
 
       {hasTranslationChanges && (

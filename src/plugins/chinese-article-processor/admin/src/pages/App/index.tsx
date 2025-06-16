@@ -9,7 +9,6 @@ import React from 'react';
 import { Switch, Route } from 'react-router-dom';
 import { NotFound } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
-import GrammarPage from '../GrammarPage';
 import ChineseArticleProcessor from '../ChineseArticleProcessor';
 
 const App = () => {

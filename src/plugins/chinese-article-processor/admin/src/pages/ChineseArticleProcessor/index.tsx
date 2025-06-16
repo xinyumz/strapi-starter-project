@@ -1,5 +1,4 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/index.tsx
-// CLEAN VERSION - Removed all migration-related UI components
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -29,7 +28,6 @@ import { useHSKManagement, useArticleProcessor, useGrammarManagement, useTransla
 
 /**
  * Main component for processing Chinese articles
- * Clean version without migration UI
  */
 const ChineseArticleProcessor = () => {
     // Common state
@@ -105,12 +103,8 @@ const ChineseArticleProcessor = () => {
         engineChoice,
         selectedRules,
         isDeleteModalVisible,
-        useBatch,
-        batchOptions,
         generateGrammarRules,
         handleEngineChange,
-        toggleBatchProcessing,
-        updateBatchOptions,
         toggleRuleSelection,
         isRuleSelected,
         handleShowDeleteConfirm,
@@ -317,8 +311,6 @@ const ChineseArticleProcessor = () => {
                             onDeleteSelected={handleBulkDeleteConfirmed}
                             isRuleSelected={isRuleSelected}
                             simplified={simplified}
-                            useBatch={useBatch}
-                            onToggleBatch={toggleBatchProcessing}
                         />
                     </>
                 )}

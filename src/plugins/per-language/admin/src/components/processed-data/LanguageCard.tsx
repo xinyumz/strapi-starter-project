@@ -93,7 +93,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
                 return <Badge backgroundColor="success200" textColor="success700">✅ Processed</Badge>;
             }
 
-            return <Badge backgroundColor="secondary200" textColor="secondary700">Content Ready</Badge>;
+            return <Badge backgroundColor="primary200" textColor="neutral800">Content Ready</Badge>;
         } catch (error) {
             console.error('Error in getStatusBadge:', error);
             return <Badge backgroundColor="neutral200">Unknown</Badge>;
@@ -119,7 +119,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
                             {lang.display_skill && (
                                 <Flex gap={2} alignItems="center">
                                     <Typography variant="pi" textColor="neutral600">{processor.difficultyLabel}:</Typography>
-                                    <Badge backgroundColor="secondary200" textColor="secondary700">{lang.display_skill}</Badge>
+                                    <Badge backgroundColor="primary200" textColor="neutral800">{lang.display_skill}</Badge>
                                 </Flex>
                             )}
 
@@ -364,7 +364,7 @@ Are you sure you want to delete all ${processor.name} content?`;
                                                     <Typography variant="beta" fontWeight="semiBold">
                                                         Difficulty Level:
                                                     </Typography>
-                                                    <Badge backgroundColor="secondary200" textColor="secondary700">
+                                                    <Badge backgroundColor="primary200" textColor="neutral800">
                                                         {lang.display_skill}
                                                     </Badge>
                                                 </Flex>
@@ -376,7 +376,7 @@ Are you sure you want to delete all ${processor.name} content?`;
                                                     <Typography variant="beta" fontWeight="semiBold">
                                                         Difficulty Level:
                                                     </Typography>
-                                                    <Badge backgroundColor="secondary200" textColor="secondary700">
+                                                    <Badge backgroundColor="primary200" textColor="neutral800">
                                                         {processor.difficultyLabel} {lang.processed_data.hsk.selectedLevel || lang.processed_data.hsk.calculatedLevel}
                                                     </Badge>
                                                 </Flex>

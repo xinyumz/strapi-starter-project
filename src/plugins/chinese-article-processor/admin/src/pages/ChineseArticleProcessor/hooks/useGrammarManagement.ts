@@ -6,14 +6,6 @@ import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../utils/t
 import { ERROR_MESSAGES, STATUS_MESSAGES, GRAMMAR_ENGINE_OPTIONS } from '../../../utils/constants';
 import { useLoadingState } from '../../../hooks';
 
-// New interface for batch options
-interface BatchOptions {
-  batchSize?: number;
-  maxRetries?: number;
-  retryDelay?: number;
-  concurrentRequests?: number;
-}
-
 interface UseGrammarManagementProps {
   articleId: string | null;
   pluginId: string;
@@ -29,8 +21,7 @@ interface UseGrammarManagementProps {
 }
 
 /**
- * FIXED: Custom hook for managing grammar rules
- * CRITICAL FIX: Corrected per_languages content ID retrieval
+ * Custom hook for managing grammar rules
  */
 const useGrammarManagement = ({
   articleId,
@@ -47,15 +38,6 @@ const useGrammarManagement = ({
 }: UseGrammarManagementProps) => {
   // Grammar engine choice
   const [engineChoice, setEngineChoice] = useState<GrammarEngineChoice>(GRAMMAR_ENGINE_OPTIONS.BOTH as GrammarEngineChoice);
-
-  // Batch processing options
-  const [useBatch, setUseBatch] = useState<boolean>(false); // Disable batch by default
-  const [batchOptions, setBatchOptions] = useState<BatchOptions>({
-    batchSize: 5,
-    maxRetries: 3,
-    retryDelay: 1000,
-    concurrentRequests: 1
-  });
 
   // Direct management of selected rules within this hook
   const [selectedRules, setSelectedRules] = useState<SelectedRule[]>([]);
@@ -74,7 +56,7 @@ const useGrammarManagement = ({
   const { get, post } = useFetchClient();
 
   /**
-   * Get translation content from per_languages table ONLY
+   * Get translation content from per_languages table
    */
   const getTranslationContent = useCallback(async (articleId: string): Promise<string | null> => {
     try {
@@ -194,7 +176,7 @@ const useGrammarManagement = ({
   }, []);
 
   /**
-   * FIXED: Generate grammar rules for an article with correct error handling
+   * Generate grammar rules for an article with correct error handling
    */
   const generateGrammarRules = useCallback(async () => {
     if (!articleId) {
@@ -241,15 +223,12 @@ const useGrammarManagement = ({
         }
       });
 
-      // Generate grammar rules with batch processing options
-      console.log(`Generating grammar rules for article ID: ${articleId} with batch processing: ${useBatch}`);
+      // Generate grammar rules
+      console.log(`Generating grammar rules for article ID: ${articleId}`);
 
-      // Include batch processing options in the request
       const requestData = {
         text: translationText,
-        engineChoice,
-        useBatch,
-        batchOptions
+        engineChoice
       };
 
       const genResponse = await post(`/${pluginId}/grammar/generate`, {
@@ -289,7 +268,7 @@ const useGrammarManagement = ({
         throw new Error(ERROR_MESSAGES.GRAMMAR_SAVE_FAILED);
       }
 
-      // Also save to per_languages table with HSK preservation
+      // Save to per_languages table with HSK preservation
       console.log("Saving grammar data to per_languages table with HSK preservation...");
       await updateArticleWithProcessorData(articleId, updatedSentences);
 
@@ -316,8 +295,6 @@ const useGrammarManagement = ({
     articleId,
     pluginId,
     engineChoice,
-    useBatch,
-    batchOptions,
     sentences,
     post,
     setSentences,
@@ -341,7 +318,7 @@ const useGrammarManagement = ({
   }, []);
 
   /**
-   * FIXED: Delete a single rule after confirmation with proper error handling
+   * Delete a single rule after confirmation with proper error handling
    */
   const handleDeleteRuleConfirmed = useCallback(async () => {
     if (!ruleToDelete) return;
@@ -423,7 +400,7 @@ const useGrammarManagement = ({
   ]);
 
   /**
-   * FIXED: Bulk delete selected rules after confirmation with proper error handling
+   * Bulk delete selected rules after confirmation with proper error handling
    */
   const handleBulkDeleteConfirmed = useCallback(async () => {
     // Use the ref to get the most current selection
@@ -517,37 +494,16 @@ const useGrammarManagement = ({
     setEngineChoice(engine);
   }, []);
 
-  /**
-   * Toggle batch processing
-   */
-  const toggleBatchProcessing = useCallback((value: boolean) => {
-    setUseBatch(value);
-  }, []);
-
-  /**
-   * Update batch options
-   */
-  const updateBatchOptions = useCallback((options: BatchOptions) => {
-    setBatchOptions(prev => ({
-      ...prev,
-      ...options
-    }));
-  }, []);
-
   return {
     // State
     engineChoice,
     selectedRules,
     isDeleteModalVisible,
     ruleToDelete,
-    useBatch,
-    batchOptions,
 
     // Grammar rule actions
     generateGrammarRules,
     handleEngineChange,
-    toggleBatchProcessing,
-    updateBatchOptions,
 
     // Selection/deletion actions
     toggleRuleSelection,

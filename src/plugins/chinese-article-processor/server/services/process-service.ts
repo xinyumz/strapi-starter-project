@@ -7,7 +7,7 @@ const { ApplicationError } = errors;
 
 export default ({ strapi }: { strapi: Strapi }) => ({
     /**
-     * CORRECTED: Get article content from per_languages table ONLY
+     * Get article content from per_languages table
      */
     async getArticleContent(articleId: number, language: string = 'zh'): Promise<string> {
         try {
@@ -37,7 +37,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * CORRECTED: Get content from per_languages table ONLY
+     * Get content from per_languages table
      */
     async getContentFromAnySource(articleId: number, language: string = 'zh'): Promise<{ content: string, source: string }> {
         try {
@@ -69,7 +69,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * CORRECTED: Get processed data from per_languages table ONLY
+     * Get processed data from per_languages table
      */
     async getProcessedData(articleId: number, language: string = 'zh'): Promise<any> {
         try {
@@ -97,7 +97,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * CORRECTED: Save processed data to per_languages table ONLY
+     * Save processed data to per_languages table
      * Enhanced with complete data preservation
      */
     async saveProcessedData(
@@ -149,7 +149,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * CORRECTED: Complete article processing workflow using per_languages table ONLY
+     * Complete article processing workflow using per_languages table
      * This is used by the complete processing endpoint (process-v2)
      */
     async processArticleComplete(
@@ -173,9 +173,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const articleService = strapi.plugin('chinese-article-processor').service('articleService');
             const processedArticle = await articleService.processArticle(
                 content,
-                targetLanguages,
-                true, // Use batch processing
-                {} // Default batch options
+                targetLanguages
             );
 
             // 4. Save processed data (per_languages ONLY)
@@ -194,7 +192,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * CORRECTED: Enhanced compatibility method for Chinese processor UI
+     * Enhanced compatibility method for Chinese processor UI
      */
     async getDataForChineseProcessor(articleId: number, language: string = 'zh') {
         try {
@@ -225,7 +223,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * CORRECTED: Get data source information for transparency
+     * Get data source information for transparency
      */
     async getDataSourceInfo(articleId: number, language: string = 'zh') {
         try {

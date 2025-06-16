@@ -2,7 +2,7 @@
 
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
-import { ExtendedContext, BatchGrammarOptions } from '../services/types';
+import { ExtendedContext } from '../services/types';
 
 const { ApplicationError } = errors;
 
@@ -18,30 +18,17 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const targetLanguages = data.targetLanguages || ['en'];
             const articleId = data.articleId;
 
-            // Use type assertion for optional properties that might not be defined in the interface
-            const useBatchGrammar = 'useBatchGrammar' in data ? data.useBatchGrammar : true;
-            const batchOptions = data.batchOptions || {};
-
             if (!content) {
                 return ctx.badRequest('Article content is required');
             }
 
-            // Configure batch options with defaults if not provided
-            const grammarBatchOptions: BatchGrammarOptions = {
-                batchSize: batchOptions.batchSize || 5,
-                maxRetries: batchOptions.maxRetries || 3,
-                retryDelay: batchOptions.retryDelay || 1000,
-                concurrentRequests: batchOptions.concurrentRequests || 2
-            };
-
             const processedArticle = await strapi
                 .plugin('chinese-article-processor')
                 .service('articleService')
-                .processArticle(content, targetLanguages, useBatchGrammar, grammarBatchOptions);
+                .processArticle(content, targetLanguages);
 
             // If articleId is provided, save the processed article to the database
             if (articleId) {
-                // CLEANED: Save to per_languages table only
                 const processService = strapi.plugin('chinese-article-processor').service('processService');
 
                 if (processService) {
@@ -105,7 +92,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // CLEANED: Process article using per_languages table exclusively
+    // Process article using per_languages table exclusively
     async processArticleFromAnySource(ctx: ExtendedContext) {
         try {
             const { id } = ctx.params;
@@ -129,9 +116,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const articleService = strapi.plugin('chinese-article-processor').service('articleService');
             const processedArticle = await articleService.processArticle(
                 content,
-                targetLanguages,
-                true, // Default to batch processing
-                {} // Use default batch options
+                targetLanguages
             );
 
             // Save processed data to per_languages table
@@ -158,7 +143,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // CLEANED: Complete processing workflow using per_languages table only
+    // Complete processing workflow using per_languages table
     async processArticleV2(ctx: ExtendedContext) {
         try {
             const { id } = ctx.params;
@@ -187,7 +172,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // CLEANED: Update processed data in per_languages table only
+    // Update processed data in per_languages table only
     async updateArticleProcessedData(ctx: ExtendedContext) {
         try {
             const { id } = ctx.params;
@@ -236,8 +221,4 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             }
         }
     },
-
-    // REMOVED: syncProcessedDataManually method (no longer needed)
-    // This method was for migrating data from articles table to per_languages table
-    // Since we now use per_languages table exclusively, this is not needed
 });

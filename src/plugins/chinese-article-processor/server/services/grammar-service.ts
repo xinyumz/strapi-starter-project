@@ -4,102 +4,11 @@ import { errors } from '@strapi/utils';
 import {
     GrammarRule,
     RulesResponse,
-    BatchGrammarOptions
 } from './types';
 
 const { ApplicationError } = errors;
 
 export default ({ strapi }: { strapi: Strapi }) => ({
-    /**
-     * Processes sentences in batches for more efficient grammar rule generation
-     */
-    async generateRulesBatch(
-        sentences: string[],
-        engineChoice: 'stanford' | 'jieba' | 'both' = 'both',
-        options: BatchGrammarOptions = {}
-    ): Promise<GrammarRule[]> {
-        const {
-            batchSize = 5,
-            maxRetries = 3,
-            retryDelay = 1000,
-            concurrentRequests = 1
-        } = options;
-
-        strapi.log.info(`Generating grammar rules in batches: ${sentences.length} sentences with engine: ${engineChoice}`);
-
-        if (!sentences || !Array.isArray(sentences) || sentences.length === 0) {
-            strapi.log.warn('No sentences provided for grammar rule generation');
-            return [];
-        }
-
-        const allRules: GrammarRule[] = [];
-        const batches: string[][] = [];
-
-        // Split sentences into batches
-        for (let i = 0; i < sentences.length; i += batchSize) {
-            batches.push(sentences.slice(i, i + batchSize));
-        }
-
-        strapi.log.info(`Split ${sentences.length} sentences into ${batches.length} batches of max ${batchSize} sentences`);
-
-        // Process each batch sequentially
-        for (let i = 0; i < batches.length; i++) {
-            const batchSentences = batches[i];
-            const batchNumber = i + 1;
-
-            strapi.log.info(`Processing batch ${batchNumber}/${batches.length} with ${batchSentences.length} sentences`);
-
-            const batchResults: GrammarRule[] = [];
-
-            for (let j = 0; j < batchSentences.length; j++) {
-                const sentence = batchSentences[j];
-                strapi.log.info(`Processing sentence ${j + 1}/${batchSentences.length} in batch ${batchNumber}`);
-
-                let retryCount = 0;
-                let success = false;
-                let sentenceRules: GrammarRule[] = [];
-
-                while (retryCount < maxRetries && !success) {
-                    try {
-                        sentenceRules = await this.generateRules(sentence, engineChoice);
-                        success = true;
-                    } catch (error) {
-                        retryCount++;
-                        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                        strapi.log.error(`Error processing sentence ${j + 1} (attempt ${retryCount}/${maxRetries}): ${errorMessage}`);
-
-                        if (retryCount >= maxRetries) {
-                            strapi.log.error(`Failed to process sentence ${j + 1} after ${maxRetries} attempts`);
-                            sentenceRules = [{
-                                sentence,
-                                rules: [],
-                                translations: []
-                            }];
-                        } else {
-                            await new Promise(resolve => setTimeout(resolve, retryDelay));
-                        }
-                    }
-                }
-
-                batchResults.push(...sentenceRules);
-
-                if (j < batchSentences.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-            }
-
-            allRules.push(...batchResults);
-
-            if (i < batches.length - 1) {
-                strapi.log.info(`Waiting ${retryDelay}ms before processing next batch`);
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-            }
-        }
-
-        strapi.log.info(`Grammar rule generation completed for all ${sentences.length} sentences with ${allRules.length} results`);
-        return allRules;
-    },
-
     // Generate grammar rules from external API
     async generateRules(text: string, engineChoice: 'stanford' | 'jieba' | 'both' = 'both'): Promise<GrammarRule[]> {
         try {
@@ -241,9 +150,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Save grammar data
      */
-    /**
-     * FIXED: Save grammar data with proper foreign key relationships
-     */
     async saveArticleGrammar(articleId: number, sentences: GrammarRule[]): Promise<{ success: boolean, error?: string }> {
         if (!strapi.db || !strapi.db.connection) {
             return {
@@ -276,7 +182,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             };
         }
 
-        // FIXED: Get per_language_id for Chinese content
+        // Get per_language_id for Chinese content
         let perLanguageId = null;
         try {
             const perLanguagePlugin = strapi.plugin('per-language');
@@ -334,7 +240,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     const sentenceText = typeof sentence.sentence === 'string' ?
                         sentence.sentence : String(sentence.sentence);
 
-                    // FIXED: Include per_language_id and language in insert
+                    // Include per_language_id and language in insert
                     const insertData: any = {
                         article_id: articleId,
                         sentence_text: sentenceText,
@@ -408,7 +314,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             await trx.commit();
             strapi.log.info(`Successfully saved grammar data for article ID: ${articleId}`);
 
-            // **CORRECTED: Update per_languages table ONLY with HSK preservation**
+            // **Update per_languages table ONLY with HSK preservation**
             try {
                 console.log(`[Grammar Service] 🎯 Updating per_languages table with HSK preservation...`);
 

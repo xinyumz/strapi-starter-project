@@ -1,7 +1,7 @@
 // server/controllers/grammar-controller.ts
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
-import { ExtendedContext, GrammarRule, BatchGrammarOptions } from '../services/types';
+import { ExtendedContext } from '../services/types';
 
 const { ApplicationError } = errors;
 
@@ -16,10 +16,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const text = data.text;
             const engineChoice = data.engineChoice || 'both';
 
-            // Use type assertion or check for properties that might not be defined in interface
-            const useBatch = 'useBatch' in data ? Boolean(data.useBatch) : false;
-            const batchOptions = data.batchOptions || {};
-
             if (!text) {
                 return ctx.badRequest('Text content is required');
             }
@@ -30,34 +26,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             const grammarService = strapi.plugin('chinese-article-processor').service('grammarService');
 
-            let rules: GrammarRule[] = [];
-
-            if (useBatch) {
-                // Split text into sentences using your preferred delimiter
-                const sentences = text.split('|').filter(s => s.trim());
-
-                if (sentences.length === 0) {
-                    return ctx.badRequest('No valid sentences found in content');
-                }
-
-                // Configure batch options with defaults if not provided
-                const options: BatchGrammarOptions = {
-                    batchSize: batchOptions.batchSize || 5,
-                    maxRetries: batchOptions.maxRetries || 3,
-                    retryDelay: batchOptions.retryDelay || 1000,
-                    concurrentRequests: batchOptions.concurrentRequests || 2
-                };
-
-                // Use batch processing method
-                rules = await grammarService.generateRulesBatch(sentences, engineChoice, options);
-
-                strapi.log.info(`Generated grammar rules for ${rules.length} sentences using batch processing`);
-            } else {
-                // Use traditional single request method
-                rules = await grammarService.generateRules(text, engineChoice);
-
-                strapi.log.info(`Generated grammar rules using single request processing`);
-            }
+            const rules = await grammarService.generateRules(text, engineChoice);
 
             ctx.body = {
                 data: {

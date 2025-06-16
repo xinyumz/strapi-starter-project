@@ -42,14 +42,6 @@ export interface BatchTranslationOptions {
     concurrentRequests?: number;
 }
 
-// New interface for batch grammar processing options
-export interface BatchGrammarOptions {
-    batchSize?: number;
-    maxRetries?: number;
-    retryDelay?: number;
-    concurrentRequests?: number;
-}
-
 export interface TranslationResult {
     sourceLanguage?: string;
     targetLanguage: string;
@@ -110,9 +102,6 @@ export interface ExtendedContext extends Context {
                 content?: string;
                 targetLanguages?: string[];
                 articleId?: number;
-                useBatch?: boolean;
-                useBatchGrammar?: boolean;
-                batchOptions?: BatchGrammarOptions;
             };
             text?: string;
             engineChoice?: 'stanford' | 'jieba' | 'both';
@@ -120,9 +109,6 @@ export interface ExtendedContext extends Context {
             content?: string;
             targetLanguages?: string[];
             articleId?: number;
-            useBatch?: boolean;
-            useBatchGrammar?: boolean;
-            batchOptions?: BatchGrammarOptions;
         };
     };
     params: {

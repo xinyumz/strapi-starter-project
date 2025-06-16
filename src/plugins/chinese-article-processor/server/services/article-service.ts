@@ -1,7 +1,7 @@
 // server/services/article-service.ts
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
-import { EnhancedSentence, BatchGrammarOptions, BatchTranslationOptions } from './types';
+import { EnhancedSentence } from './types';
 
 const { ApplicationError } = errors;
 
@@ -12,9 +12,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
      */
     async processArticle(
         content: string,
-        targetLanguages: string[] = ['en'],
-        useBatchGrammar: boolean = true,
-        batchOptions: BatchGrammarOptions = {}
+        targetLanguages: string[] = ['en']
     ): Promise<EnhancedSentence[]> {
         if (typeof content !== 'string') {
             throw new ApplicationError('Content must be a string');
@@ -30,23 +28,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const grammarService = strapi.plugin('chinese-article-processor').service('grammarService');
             const translationService = strapi.plugin('chinese-article-processor').service('translationService');
 
-            // Get grammar rules based on batch preference
-            let grammarRules;
-            if (useBatchGrammar && sentences.length > 1) {
-                // Configure default batch options if not provided
-                const options: BatchGrammarOptions = {
-                    batchSize: batchOptions.batchSize || 5,
-                    maxRetries: batchOptions.maxRetries || 3,
-                    retryDelay: batchOptions.retryDelay || 1000,
-                    concurrentRequests: batchOptions.concurrentRequests || 2
-                };
-
-                strapi.log.info(`Processing ${sentences.length} sentences with batch grammar generation`);
-                grammarRules = await grammarService.generateRulesBatch(sentences, 'both', options);
-            } else {
-                strapi.log.info(`Processing article with standard grammar generation`);
-                grammarRules = await grammarService.generateRules(content);
-            }
+            // SIMPLIFIED: Always use single request method (faster than batch)
+            strapi.log.info(`Processing ${sentences.length} sentences with standard grammar generation`);
+            const grammarRules = await grammarService.generateRules(content);
 
             // Then get translations for each target language
             const translationsByLanguage: { [language: string]: string[] } = {};
@@ -283,12 +267,11 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
     /**
      * Process article with dual source using proper foreign keys
+     * UPDATED: Removed batch parameters
      */
     async processArticleWithDualSource(
         articleId: number,
-        targetLanguages: string[] = ['en'],
-        useBatchGrammar: boolean = true,
-        batchOptions: BatchGrammarOptions = {}
+        targetLanguages: string[] = ['en']
     ): Promise<EnhancedSentence[]> {
         console.log(`[ChineseProcessor] Processing article ${articleId} with enhanced foreign key support`);
 
@@ -298,8 +281,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
         console.log(`[ChineseProcessor] Retrieved content for processing: ${content.length} characters`);
 
-        // Use existing processArticle method
-        return this.processArticle(content, targetLanguages, useBatchGrammar, batchOptions);
+        // Use existing processArticle method (now simplified without batch)
+        return this.processArticle(content, targetLanguages);
     },
 
     /**
