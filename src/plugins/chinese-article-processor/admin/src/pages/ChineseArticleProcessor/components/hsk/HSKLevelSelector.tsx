@@ -1,6 +1,6 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/hsk/HSKLevelSelector.tsx
 import React from 'react';
-import { Box, Typography, Stack, Select, Option, Button } from '@strapi/design-system';
+import { Box, Typography, Stack, Select, Option, Button, Badge, Flex } from '@strapi/design-system';
 import { Check } from '@strapi/icons';
 import { HSK_LEVELS } from '../../../../utils/constants';
 
@@ -28,10 +28,20 @@ const HSKLevelSelector: React.FC<HSKLevelSelectorProps> = ({
     <Box background="neutral0" padding={4} hasRadius shadow="filterShadow">
       <Stack spacing={4}>
         <Box>
-          <Typography variant="delta">Calculated HSK Level</Typography>
-          <Typography variant="alpha" textColor="primary600" paddingTop={2}>
-            HSK {calculatedLevel || 'N/A'}
-          </Typography>
+          <Flex gap={3}>
+            <Typography variant="delta">
+              Calculated HSK Level
+            </Typography>
+            {calculatedLevel ? (
+              <Badge backgroundColor="primary200" textColor="neutral800">
+                HSK {calculatedLevel}
+              </Badge>
+            ) : (
+              <Badge backgroundColor="neutral200" textColor="neutral800">
+                N/A
+              </Badge>
+            )}
+          </Flex>
         </Box>
 
         <Box>

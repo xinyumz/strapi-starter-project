@@ -150,10 +150,6 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Save grammar data
      */
-    /**
- * FIXED: Save grammar data with stable sentence IDs
- * This version preserves existing sentence IDs and only updates what actually changed
- */
     async saveArticleGrammar(articleId: number, sentences: GrammarRule[]): Promise<{ success: boolean, error?: string }> {
         if (!strapi.db || !strapi.db.connection) {
             return {
