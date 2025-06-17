@@ -2,6 +2,10 @@ export default ({ env }) => ({
     seo: {
         enabled: true,
     },
+    'category-manager': {
+        enabled: true,
+        resolve: './src/plugins/category-manager'
+    },
     'translator': {
         enabled: true,
         resolve: './src/plugins/translator'
