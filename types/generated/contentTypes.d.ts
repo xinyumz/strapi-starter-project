@@ -595,7 +595,7 @@ export interface PluginPerLanguagePerLanguage extends Schema.CollectionType {
   info: {
     singularName: 'per-language';
     pluralName: 'per-languages';
-    displayName: 'Language-Specific Content';
+    displayName: 'Per Language';
     description: 'Language-specific content for articles';
   };
   options: {

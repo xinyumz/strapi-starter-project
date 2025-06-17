@@ -45,8 +45,8 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     // Default languages to use if API fails or custom languages not provided
     const defaultLanguages: Language[] = [
         { code: 'en', name: 'English' },
-        { code: 'fr', name: 'French' },
         { code: 'es', name: 'Spanish' },
+        { code: 'fr', name: 'French' },
         { code: 'de', name: 'German' },
         { code: 'it', name: 'Italian' },
         { code: 'ja', name: 'Japanese' },

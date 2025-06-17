@@ -82,25 +82,46 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     .service('translationService')
                     .getSupportedLanguages();
 
-                // Define the languages you want to support
-                const supportedCodes = ['en', 'fr', 'es', 'de', 'it', 'ja', 'ko', 'ru', 'pt', 'ar'];
+                // Define preferred order
+                const preferredOrder = [
+                    'en', // English
+                    'es', // Spanish
+                    'fr', // French 
+                    'de', // German
+                    'it', // Italian
+                    'ja', // Japanese
+                    'ko', // Korean
+                    'ru', // Russian
+                    'pt', // Portuguese
+                    'ar'  // Arabic
+                ];
 
-                // Filter to just the languages you want to support
-                const filteredLanguages = languages.filter(
-                    (lang: { code: string; name: string }) => supportedCodes.includes(lang.code)
-                );
+                // Create a map for quick lookup of language details
+                const languageMap = new Map();
+                languages.forEach((lang: { code: string; name: string }) => {
+                    if (preferredOrder.includes(lang.code)) {
+                        languageMap.set(lang.code, lang);
+                    }
+                });
+
+                // Build ordered array based on preferred order
+                const orderedLanguages = preferredOrder
+                    .filter(code => languageMap.has(code))  // Only include available languages
+                    .map(code => languageMap.get(code));    // Get language object in preferred order
+
+                console.log('Ordered languages:', orderedLanguages.map(l => `${l.code}:${l.name}`));
 
                 ctx.body = {
-                    data: filteredLanguages
+                    data: orderedLanguages
                 };
             } catch (serviceError) {
                 console.error('Error fetching languages from translation service:', serviceError);
 
-                // Fallback to hardcoded default languages if the service call fails
+                // Fallback with preferred order
                 const defaultLanguages = [
                     { code: 'en', name: 'English' },
-                    { code: 'fr', name: 'French' },
                     { code: 'es', name: 'Spanish' },
+                    { code: 'fr', name: 'French' },
                     { code: 'de', name: 'German' },
                     { code: 'it', name: 'Italian' },
                     { code: 'ja', name: 'Japanese' },
