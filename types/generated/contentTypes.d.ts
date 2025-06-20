@@ -1085,7 +1085,7 @@ export interface ApiArticleArticle extends Schema.CollectionType {
     Base: Attribute.RichText & Attribute.Required;
     LanguageProcessor: Attribute.RichText &
       Attribute.CustomField<'plugin::per-language.language-processor'>;
-    Category: Attribute.JSON &
+    category_id: Attribute.JSON &
       Attribute.CustomField<'plugin::category-manager.category-selector'>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;

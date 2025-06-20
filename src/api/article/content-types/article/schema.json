@@ -36,7 +36,7 @@
       "type": "customField",
       "customField": "plugin::per-language.language-processor"
     },
-    "Category": {
+    "category_id": {
       "type": "customField",
       "required": false,
       "customField": "plugin::category-manager.category-selector"

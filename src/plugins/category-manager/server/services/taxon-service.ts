@@ -28,7 +28,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 const entityService = getEntityService();
                 return await entityService.findMany('plugin::category-manager.taxon' as any, {
                     ...query,
-                    sort: ['name:asc'],
+                    sort: ['id:asc'],
                 });
             } catch (error) {
                 console.error('Error finding taxons:', error);

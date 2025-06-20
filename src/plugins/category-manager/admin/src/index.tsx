@@ -1,7 +1,6 @@
-// admin/src/index.tsx
+// src/plugins/category-manager/admin/src/index.tsx
 
 import { prefixPluginTranslations } from '@strapi/helper-plugin';
-import { Grid } from '@strapi/icons';
 import pluginPkg from '../../package.json';
 import pluginId from './pluginId';
 import Initializer from './components/Initializer';
@@ -13,11 +12,10 @@ export default {
   register(app: any) {
     console.log('[Category Manager] Starting plugin registration...');
 
-    // Register the custom field with simple import
     app.customFields.register({
       name: 'category-selector',
       pluginId: 'category-manager',
-      type: 'json',
+      type: 'string',
       intlLabel: {
         id: 'category-manager.category-selector.label',
         defaultMessage: 'Category Selector',
@@ -30,7 +28,7 @@ export default {
         Input: async () => import('./components/CategorySelector'),
       },
       options: {
-        base: [
+        advanced: [
           {
             sectionTitle: {
               id: 'global.settings',
@@ -52,32 +50,10 @@ export default {
             ],
           },
         ],
-        advanced: [
-          {
-            sectionTitle: {
-              id: 'category-manager.advanced-settings',
-              defaultMessage: 'Advanced Settings',
-            },
-            items: [
-              {
-                name: 'default',
-                type: 'json',
-                intlLabel: {
-                  id: 'form.attribute.item.defaultValue',
-                  defaultMessage: 'Default value',
-                },
-                description: {
-                  id: 'category-manager.default-value.description',
-                  defaultMessage: 'Set default category selection (format: {"taxonId": 1, "categoryId": 2})',
-                },
-              },
-            ],
-          },
-        ],
       },
     });
 
-    console.log('[Category Manager] ✅ Category selector field registered successfully');
+    console.log('[Category Manager] ✅ Category selector field registered successfully as STRING type');
 
     // Register plugin page
     app.addMenuLink({

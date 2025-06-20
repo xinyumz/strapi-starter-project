@@ -15,7 +15,7 @@ import { useFetchClient, useNotification, useCMEditViewDataManager } from '@stra
 
 interface CategorySelectorProps {
     name?: string;
-    value?: { taxonId: number | null; categoryId: number | null } | string | null;
+    value?: string | number | null; // Simple string/number for category ID
     onChange?: (e: { target: { name: string; value: any } }) => void;
     intlLabel?: { id: string; defaultMessage: string };
     required?: boolean;
@@ -44,15 +44,14 @@ interface Category {
     name: string;
     url: string;
     order: number;
+    taxon?: Taxon;
 }
 
 const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
-    // Log received props for debugging
-    console.log('CategorySelector props:', props);
+    console.log('[CategorySelector] Component rendered with props:', props);
 
-    // Provide safe defaults for all props
     const {
-        name = 'Category',
+        name = 'category_id',
         value = null,
         onChange = () => { },
         intlLabel = { id: 'category-selector.label', defaultMessage: 'Category' },
@@ -60,67 +59,53 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
         error = '',
         description,
         disabled = false,
-        attribute,
-        placeholder,
-        contentTypeUID = '',
-        multiple = false,
-        withDefaultValue = false,
-        type = '',
-        options = [],
-        labelAction,
-        hint = ''
     } = props || {};
 
     // State management
     const [taxons, setTaxons] = useState<Taxon[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [selectedTaxon, setSelectedTaxon] = useState<number | null>(null);
-    const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+    const [allCategories, setAllCategories] = useState<Category[]>([]); // For loading saved values
+    const [selectedTaxonId, setSelectedTaxonId] = useState<number | null>(null);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [internalError, setInternalError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isLoadingValue, setIsLoadingValue] = useState(false);
 
-    const { get, put } = useFetchClient();
+    const { get } = useFetchClient();
     const toggleNotification = useNotification();
+    const { modifiedData } = useCMEditViewDataManager();
 
-    const { modifiedData, initialData, onChange: formOnChange } = useCMEditViewDataManager();
-
-    // Helper function to parse value (handles both string and object formats)
-    const parseValue = useCallback((rawValue: any) => {
+    // Parse value safely
+    const parseValueToCategoryId = useCallback((rawValue: any): number | null => {
         console.log('[CategorySelector] Parsing value:', { rawValue, type: typeof rawValue });
 
         if (!rawValue) return null;
 
-        try {
-            // If it's already an object, return it
-            if (typeof rawValue === 'object' && rawValue.taxonId !== undefined) {
-                return rawValue;
-            }
-
-            // If it's a string, try to parse it as JSON
-            if (typeof rawValue === 'string') {
-                const parsed = JSON.parse(rawValue);
-                if (parsed && typeof parsed === 'object') {
-                    console.log('[CategorySelector] ✅ Parsed string value to object:', parsed);
-                    return parsed;
-                }
-            }
-        } catch (err) {
-            console.error('[CategorySelector] Error parsing value:', err);
+        // Handle number
+        if (typeof rawValue === 'number') {
+            return rawValue;
         }
 
+        // Handle string
+        if (typeof rawValue === 'string') {
+            const parsed = parseInt(rawValue, 10);
+            return isNaN(parsed) ? null : parsed;
+        }
+
+        console.warn('[CategorySelector] Unexpected value type:', typeof rawValue);
         return null;
     }, []);
 
-    // Handle case where props might be completely undefined
+    // Initialize component
     useEffect(() => {
         if (!props) {
-            console.warn('[CategorySelector] Props are undefined - using defaults');
-            setInternalError('Component not properly initialized. Please check field configuration.');
+            setInternalError('Component not properly initialized.');
             return;
         }
         setIsInitialized(true);
+        console.log('[CategorySelector] ✅ Component initialized');
     }, [props]);
 
     // Clear messages after 5 seconds
@@ -134,45 +119,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
         }
     }, [internalError, success]);
 
-    // Enhanced logging to see what value is being passed from Strapi
-    useEffect(() => {
-        console.log('[CategorySelector] Raw value from Strapi:', {
-            value,
-            type: typeof value,
-            stringified: JSON.stringify(value),
-            modifiedDataCategory: modifiedData?.Category,
-            initialDataCategory: initialData?.Category
-        });
-    }, [value, modifiedData, initialData]);
-
-    // FIXED: Initialize from value prop with proper parsing
-    useEffect(() => {
-        if (!isInitialized) return;
-
-        try {
-            const parsedValue = parseValue(value);
-            console.log('[CategorySelector] Processing parsed value:', parsedValue);
-
-            if (parsedValue && (parsedValue.taxonId || parsedValue.categoryId)) {
-                const newTaxonId = typeof parsedValue.taxonId === 'number' ? parsedValue.taxonId : null;
-                const newCategoryId = typeof parsedValue.categoryId === 'number' ? parsedValue.categoryId : null;
-
-                setSelectedTaxon(newTaxonId);
-                setSelectedCategory(newCategoryId);
-
-                console.log('[CategorySelector] ✅ Loaded saved values:', { newTaxonId, newCategoryId });
-            } else {
-                setSelectedTaxon(null);
-                setSelectedCategory(null);
-                console.log('[CategorySelector] No saved values to load');
-            }
-        } catch (err) {
-            console.error('[CategorySelector] Error initializing from value:', err);
-            setSelectedTaxon(null);
-            setSelectedCategory(null);
-        }
-    }, [value, isInitialized, parseValue]);
-
     // Fetch taxons on mount
     useEffect(() => {
         if (!isInitialized) return;
@@ -180,11 +126,9 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
         const fetchTaxons = async () => {
             try {
                 setLoading(true);
-                setInternalError(null);
-
                 console.log('[CategorySelector] Fetching taxons...');
-                const response = await get('/category-manager/taxons');
 
+                const response = await get('/category-manager/taxons');
                 let taxonData: Taxon[] = [];
 
                 if (Array.isArray(response.data)) {
@@ -193,29 +137,21 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
                     taxonData = response;
                 } else if (response.data && Array.isArray(response.data.data)) {
                     taxonData = response.data.data;
-                } else if (response.data && typeof response.data === 'object') {
-                    taxonData = [response.data];
-                } else {
-                    console.warn('[CategorySelector] Unexpected response structure:', response);
-                    taxonData = [];
                 }
 
                 const validTaxons = taxonData.filter(item =>
-                    item &&
-                    typeof item === 'object' &&
-                    typeof item.id === 'number' &&
-                    typeof item.name === 'string'
+                    item && typeof item.id === 'number' && typeof item.name === 'string'
                 );
 
                 setTaxons(validTaxons);
                 console.log('[CategorySelector] ✅ Taxons loaded:', validTaxons.length);
 
                 if (validTaxons.length === 0) {
-                    setInternalError('No taxonomies found. Please create taxonomies in Category Manager first.');
+                    setInternalError('No taxonomies found. Create taxonomies first.');
                 }
             } catch (err: any) {
                 console.error('[CategorySelector] Error fetching taxons:', err);
-                setInternalError('Failed to load taxonomies. Please check your connection.');
+                setInternalError('Failed to load taxonomies.');
                 setTaxons([]);
             } finally {
                 setLoading(false);
@@ -225,23 +161,15 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
         fetchTaxons();
     }, [get, isInitialized]);
 
-    // Fetch categories when taxon changes
+    // Fetch ALL categories on mount (for loading saved values)
     useEffect(() => {
         if (!isInitialized) return;
 
-        const fetchCategories = async () => {
-            if (!selectedTaxon) {
-                setCategories([]);
-                return;
-            }
-
+        const fetchAllCategories = async () => {
             try {
-                setLoading(true);
-                setInternalError(null);
+                console.log('[CategorySelector] Fetching all categories...');
 
-                console.log('[CategorySelector] Fetching categories for taxon:', selectedTaxon);
-                const response = await get(`/category-manager/categories/by-taxon/${selectedTaxon}`);
-
+                const response = await get('/category-manager/categories');
                 let categoryData: Category[] = [];
 
                 if (Array.isArray(response.data)) {
@@ -250,205 +178,239 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
                     categoryData = response;
                 } else if (response.data && Array.isArray(response.data.data)) {
                     categoryData = response.data.data;
-                } else if (response.data && typeof response.data === 'object') {
-                    categoryData = [response.data];
-                } else {
-                    console.warn('[CategorySelector] Unexpected categories response:', response);
-                    categoryData = [];
                 }
 
                 const validCategories = categoryData.filter(item =>
-                    item &&
-                    typeof item === 'object' &&
-                    typeof item.id === 'number' &&
-                    typeof item.name === 'string'
+                    item && typeof item.id === 'number' && typeof item.name === 'string'
+                );
+
+                setAllCategories(validCategories);
+                console.log('[CategorySelector] ✅ All categories loaded:', validCategories.length);
+            } catch (err: any) {
+                console.error('[CategorySelector] Error fetching all categories:', err);
+            }
+        };
+
+        fetchAllCategories();
+    }, [get, isInitialized]);
+
+    // Load saved value when categories are available
+    useEffect(() => {
+        if (!isInitialized || allCategories.length === 0) return;
+
+        setIsLoadingValue(true);
+
+        try {
+            const categoryId = parseValueToCategoryId(value);
+            console.log('[CategorySelector] Loading saved value:', { value, categoryId });
+
+            if (categoryId) {
+                // Find the category
+                const savedCategory = allCategories.find(cat => cat.id === categoryId);
+
+                if (savedCategory) {
+                    setSelectedCategoryId(categoryId);
+
+                    // Set taxon if available
+                    if (savedCategory.taxon) {
+                        setSelectedTaxonId(savedCategory.taxon.id);
+                        console.log('[CategorySelector] ✅ Restored selection:', {
+                            taxonId: savedCategory.taxon.id,
+                            taxonName: savedCategory.taxon.name,
+                            categoryId: categoryId,
+                            categoryName: savedCategory.name
+                        });
+                    } else {
+                        console.warn('[CategorySelector] Category found but no taxon info:', savedCategory);
+                    }
+                } else {
+                    console.warn('[CategorySelector] Category ID not found in available categories:', categoryId);
+                }
+            } else {
+                setSelectedCategoryId(null);
+                setSelectedTaxonId(null);
+                console.log('[CategorySelector] No saved value to load');
+            }
+        } catch (err) {
+            console.error('[CategorySelector] Error loading saved value:', err);
+        } finally {
+            setIsLoadingValue(false);
+        }
+    }, [value, allCategories, isInitialized, parseValueToCategoryId]);
+
+    // Fetch categories for selected taxon
+    useEffect(() => {
+        if (!selectedTaxonId) {
+            setCategories([]);
+            return;
+        }
+
+        const fetchCategoriesForTaxon = async () => {
+            try {
+                setLoading(true);
+                console.log('[CategorySelector] Fetching categories for taxon:', selectedTaxonId);
+
+                const response = await get(`/category-manager/categories/by-taxon/${selectedTaxonId}`);
+                let categoryData: Category[] = [];
+
+                if (Array.isArray(response.data)) {
+                    categoryData = response.data;
+                } else if (Array.isArray(response)) {
+                    categoryData = response;
+                } else if (response.data && Array.isArray(response.data.data)) {
+                    categoryData = response.data.data;
+                }
+
+                const validCategories = categoryData.filter(item =>
+                    item && typeof item.id === 'number' && typeof item.name === 'string'
+                );
+
+                // Sort by order then name
+                validCategories.sort((a, b) =>
+                    (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name)
                 );
 
                 setCategories(validCategories);
-                console.log('[CategorySelector] ✅ Categories loaded:', validCategories.length);
+                console.log('[CategorySelector] ✅ Categories for taxon loaded:', validCategories.length);
 
             } catch (err: any) {
-                console.error('[CategorySelector] Error fetching categories:', err);
-                setInternalError('Failed to load categories for selected taxonomy.');
+                console.error('[CategorySelector] Error fetching categories for taxon:', err);
+                setInternalError('Failed to load categories.');
                 setCategories([]);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchCategories();
-    }, [selectedTaxon, get, isInitialized]);
+        fetchCategoriesForTaxon();
+    }, [selectedTaxonId, get]);
 
-    // Enhanced form change detection
-    const forceFormDirty = useCallback((newValue: any) => {
-        console.log('[CategorySelector] Force form dirty with value:', newValue);
-
-        // Multiple attempts to trigger form change detection
-        if (onChange) {
-            onChange({ target: { name, value: newValue } });
-        }
-
-        if (formOnChange) {
-            formOnChange({ target: { name, value: newValue } });
-        }
-
-        // Try dispatching custom events
-        setTimeout(() => {
-            const event = new CustomEvent('strapi-field-change', {
-                bubbles: true,
-                detail: { name, value: newValue }
-            });
-            document.dispatchEvent(event);
-        }, 10);
-
-        // Try triggering form change events
-        setTimeout(() => {
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                const changeEvent = new Event('change', { bubbles: true });
-                form.dispatchEvent(changeEvent);
-            });
-        }, 20);
-
-    }, [name, onChange, formOnChange]);
-
-    // Safe find functions
-    const findTaxonById = useCallback((id: number | null): Taxon | undefined => {
-        if (!id || !Array.isArray(taxons)) return undefined;
-        return taxons.find(taxon => taxon.id === id);
-    }, [taxons]);
-
-    const findCategoryById = useCallback((id: number | null): Category | undefined => {
-        if (!id || !Array.isArray(categories)) return undefined;
-        return categories.find(category => category.id === id);
-    }, [categories]);
-
-    // Enhanced event handlers
-    const handleTaxonChange = useCallback((taxonId: string) => {
-        if (!isInitialized) return;
+    // Safe change handler - only sends category ID
+    const handleValueChange = useCallback((categoryId: number | null) => {
+        console.log('[CategorySelector] 🎯 Sending category ID to form:', categoryId);
 
         try {
-            const numericTaxonId = taxonId ? parseInt(taxonId, 10) : null;
-            setSelectedTaxon(numericTaxonId);
-            setSelectedCategory(null);
-
-            const newValue = numericTaxonId ? { taxonId: numericTaxonId, categoryId: null } : null;
-
-            console.log('[CategorySelector] Taxon changed - forcing form dirty:', newValue);
-            forceFormDirty(newValue);
-
-            if (numericTaxonId) {
-                const selectedTaxonObj = findTaxonById(numericTaxonId);
-                if (selectedTaxonObj) {
-                    setSuccess(`Selected taxonomy: ${selectedTaxonObj.name}. Choose a category to complete.`);
-                }
-            }
-
-            console.log('[CategorySelector] Taxon change complete');
+            // Convert to string as that's what we want to store
+            const valueToSave = categoryId ? categoryId.toString() : null;
+            onChange({ target: { name, value: valueToSave } });
+            console.log('[CategorySelector] ✅ Value sent successfully:', valueToSave);
         } catch (err) {
-            console.error('[CategorySelector] Error handling taxon change:', err);
-            setInternalError('Error selecting taxonomy');
+            console.error('[CategorySelector] Error sending value change:', err);
+            setInternalError('Error updating category selection');
         }
-    }, [isInitialized, forceFormDirty, findTaxonById]);
+    }, [name, onChange]);
 
-    const handleCategoryChange = useCallback((categoryId: string) => {
-        console.log('[CategorySelector] handleCategoryChange called with:', categoryId);
-
-        if (!isInitialized) return;
-
-        try {
-            const numericCategoryId = categoryId ? parseInt(categoryId, 10) : null;
-            setSelectedCategory(numericCategoryId);
-
-            const newValue = selectedTaxon && numericCategoryId
-                ? { taxonId: selectedTaxon, categoryId: numericCategoryId }
-                : selectedTaxon
-                    ? { taxonId: selectedTaxon, categoryId: null }
-                    : null;
-
-            console.log('[CategorySelector] Category changed - forcing form dirty:', newValue);
-            forceFormDirty(newValue);
-
-            if (numericCategoryId && selectedTaxon) {
-                const selectedTaxonObj = findTaxonById(selectedTaxon);
-                const selectedCategoryObj = findCategoryById(numericCategoryId);
-
-                if (selectedTaxonObj && selectedCategoryObj) {
-                    setSuccess(`Selected: ${selectedTaxonObj.name} → ${selectedCategoryObj.name}`);
-                }
-            }
-
-            console.log('[CategorySelector] Category change complete');
-        } catch (err) {
-            console.error('[CategorySelector] Error handling category change:', err);
-            setInternalError('Error selecting category');
-        }
-    }, [selectedTaxon, isInitialized, forceFormDirty, findTaxonById, findCategoryById]);
-
+    // Clear selection - MOVED UP to be available for validation
     const handleClear = useCallback(() => {
-        if (!isInitialized) return;
+        if (isLoadingValue) return;
 
-        try {
-            setSelectedTaxon(null);
-            setSelectedCategory(null);
+        setSelectedTaxonId(null);
+        setSelectedCategoryId(null);
+        handleValueChange(null);
+        setSuccess('Selection cleared');
+    }, [isLoadingValue, handleValueChange]);
 
-            console.log('[CategorySelector] Clearing selection - forcing form dirty');
-            forceFormDirty(null);
 
-            setSuccess('Category selection cleared');
-            console.log('[CategorySelector] Clear complete');
-        } catch (err) {
-            console.error('[CategorySelector] Error clearing selection:', err);
-            setInternalError('Error clearing selection');
+    // Validate saved category is still valid - ADD THIS NEW VALIDATION
+    useEffect(() => {
+        if (!selectedCategoryId || isLoadingValue || allCategories.length === 0) return;
+
+        const validateCategory = async () => {
+            try {
+                const savedCategory = allCategories.find(cat => cat.id === selectedCategoryId);
+
+                if (!savedCategory) {
+                    console.warn('[CategorySelector] Saved category no longer exists:', selectedCategoryId);
+                    setInternalError(`Category ${selectedCategoryId} no longer exists. Please select a new category.`);
+                    handleClear();
+                    return;
+                }
+
+                if (savedCategory.taxon && selectedTaxonId && savedCategory.taxon.id !== selectedTaxonId) {
+                    console.warn('[CategorySelector] Category moved to different taxon');
+                    setInternalError(`Category has been moved. Please reselect.`);
+                    handleClear();
+                    return;
+                }
+
+                console.log('[CategorySelector] ✅ Category validation passed');
+            } catch (err) {
+                console.error('[CategorySelector] Category validation error:', err);
+            }
+        };
+
+        validateCategory();
+    }, [selectedCategoryId, allCategories, selectedTaxonId, isLoadingValue, handleClear]);
+
+    // Handle taxon selection
+    const handleTaxonChange = useCallback((taxonId: string) => {
+        if (!isInitialized || isLoadingValue) return;
+
+        console.log('[CategorySelector] Taxon changed to:', taxonId);
+
+        const numericTaxonId = taxonId ? parseInt(taxonId, 10) : null;
+
+        // Update state immediately to prevent disappearing
+        setSelectedTaxonId(numericTaxonId);
+
+        // Clear category selection when taxon changes
+        if (selectedCategoryId && numericTaxonId !== selectedTaxonId) {
+            setSelectedCategoryId(null);
+            handleValueChange(null);
         }
-    }, [isInitialized, forceFormDirty]);
 
-    // Get display names safely
-    const selectedTaxonName = (() => {
-        const taxon = findTaxonById(selectedTaxon);
-        return taxon ? taxon.name : '';
-    })();
+        if (numericTaxonId) {
+            const selectedTaxon = taxons.find(t => t.id === numericTaxonId);
+            if (selectedTaxon) {
+                setSuccess(`Selected taxonomy: ${selectedTaxon.name}. Choose a category to complete.`);
+            }
+        }
 
-    const selectedCategoryName = (() => {
-        const category = findCategoryById(selectedCategory);
-        return category ? category.name : '';
-    })();
+        console.log('[CategorySelector] ✅ Taxon change complete:', numericTaxonId);
+    }, [isInitialized, isLoadingValue, selectedCategoryId, selectedTaxonId, taxons, handleValueChange]);
 
-    // Show initialization error if props are completely missing
+    // Handle category selection
+    const handleCategoryChange = useCallback((categoryId: string) => {
+        if (!isInitialized || isLoadingValue) return;
+
+        console.log('[CategorySelector] Category changed to:', categoryId);
+
+        const numericCategoryId = categoryId ? parseInt(categoryId, 10) : null;
+
+        // Update state immediately to prevent disappearing
+        setSelectedCategoryId(numericCategoryId);
+
+        // Send value change
+        handleValueChange(numericCategoryId);
+
+        if (numericCategoryId && selectedTaxonId) {
+            const selectedTaxon = taxons.find(t => t.id === selectedTaxonId);
+            const selectedCategory = categories.find(c => c.id === numericCategoryId);
+
+            if (selectedTaxon && selectedCategory) {
+                setSuccess(`Selected: ${selectedTaxon.name} → ${selectedCategory.name}`);
+            }
+        }
+
+        console.log('[CategorySelector] ✅ Category change complete:', numericCategoryId);
+    }, [isInitialized, isLoadingValue, selectedTaxonId, taxons, categories, handleValueChange]);
+
+
+
+    // Get display names
+    const selectedTaxonName = taxons.find(t => t.id === selectedTaxonId)?.name || '';
+    const selectedCategoryName = categories.find(c => c.id === selectedCategoryId)?.name ||
+        allCategories.find(c => c.id === selectedCategoryId)?.name || '';
+
     if (!isInitialized) {
         return (
             <Stack spacing={4}>
                 <Alert variant="danger" title="Configuration Error">
-                    Category selector component not properly initialized.
-                    Please check the field configuration in your content type.
+                    Component not properly initialized.
                 </Alert>
             </Stack>
         );
     }
-
-    // Test save function (for debugging)
-    const testSave = async () => {
-        console.log('[CategorySelector] Testing manual save with current value:', { selectedTaxon, selectedCategory });
-
-        const articleId = modifiedData?.id;
-        const testValue = selectedTaxon && selectedCategory ? { taxonId: selectedTaxon, categoryId: selectedCategory } : null;
-
-        if (articleId && testValue) {
-            try {
-                const response = await put(`/content-manager/collection-types/api::article.article/${articleId}`, {
-                    Category: testValue
-                });
-
-                console.log('[CategorySelector] Test save result:', response);
-                setSuccess('Test save completed successfully');
-            } catch (error) {
-                console.error('[CategorySelector] Test save error:', error);
-                setInternalError('Test save failed - check console for details');
-            }
-        } else {
-            setInternalError('No article ID or category selection for test save');
-        }
-    };
 
     return (
         <Stack spacing={4}>
@@ -466,93 +428,99 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
                 </Alert>
             )}
 
+            {/* Loading Value Indicator */}
+            {isLoadingValue && (
+                <Alert variant="default" title="Loading">
+                    Loading saved category selection...
+                </Alert>
+            )}
+
+            {/* Taxonomy and Category Selection - Side by Side */}
+            <Flex gap={4} wrap="wrap">
+                {/* Taxonomy Selection */}
+                <Box flex="1" minWidth="200px">
+                    <Select
+                        label="Taxonomy"
+                        placeholder="Select a taxonomy..."
+                        value={selectedTaxonId?.toString() || ''}
+                        onChange={handleTaxonChange}
+                        required={required}
+                        disabled={loading || taxons.length === 0 || disabled || isLoadingValue}
+                        error={error}
+                        hint="Choose the content type category"
+                    >
+                        {taxons.map((taxon) => (
+                            <Option key={`taxon-${taxon.id}`} value={taxon.id.toString()}>
+                                {taxon.name}
+                            </Option>
+                        ))}
+                    </Select>
+                </Box>
+
+                {/* Category Selection */}
+                <Box flex="1" minWidth="200px">
+                    <Select
+                        label="Category"
+                        placeholder={
+                            !selectedTaxonId
+                                ? "First select a taxonomy"
+                                : categories.length === 0 && !loading
+                                    ? "No categories available"
+                                    : "Choose a category..."
+                        }
+                        value={selectedCategoryId?.toString() || ''}
+                        onChange={handleCategoryChange}
+                        disabled={loading || !selectedTaxonId || categories.length === 0 || disabled || isLoadingValue}
+                        hint={selectedTaxonId ? `Categories in ${selectedTaxonName}` : "Select a taxonomy first"}
+                    >
+                        {categories.map((category) => (
+                            <Option key={`category-${category.id}`} value={category.id.toString()}>
+                                {category.name} {category.order > 0 ? `(#${category.order})` : ''}
+                            </Option>
+                        ))}
+                    </Select>
+                </Box>
+            </Flex>
+
             {/* Current Selection Display */}
-            {selectedTaxon && selectedCategory && selectedTaxonName && selectedCategoryName && (
-                <Box padding={3} background="primary100" borderRadius="4px">
+            {selectedTaxonId && selectedCategoryId && !isLoadingValue && (
+                <Box padding={3} background="primary100" borderRadius="4px" width="100%">
                     <Typography variant="pi" textColor="primary700">
-                        <strong>Selected:</strong> {selectedTaxonName} → {selectedCategoryName}
-                    </Typography>
-                    <Typography variant="pi" textColor="primary600" style={{ marginTop: '4px' }}>
-                        Click Save to persist your changes.
+                        Selected: {selectedTaxonName} → {selectedCategoryName}
                     </Typography>
                 </Box>
             )}
-
-            {/* Taxonomy Selection */}
-            <Select
-                label="Taxonomy"
-                placeholder="Select a taxonomy..."
-                value={selectedTaxon?.toString() || ''}
-                onChange={handleTaxonChange}
-                required={required}
-                disabled={loading || taxons.length === 0 || disabled}
-                error={error}
-                hint="Choose the content type category"
-            >
-                {Array.isArray(taxons) && taxons.map((taxon) => (
-                    <Option key={`taxon-${taxon.id}`} value={taxon.id.toString()}>
-                        {taxon.name}
-                    </Option>
-                ))}
-            </Select>
-
-            {/* Category Selection */}
-            <Select
-                label="Category"
-                placeholder={
-                    !selectedTaxon
-                        ? "First select a taxonomy"
-                        : categories.length === 0 && !loading
-                            ? `No categories available`
-                            : `Choose a category...`
-                }
-                value={selectedCategory?.toString() || ''}
-                onChange={handleCategoryChange}
-                disabled={loading || !selectedTaxon || categories.length === 0 || disabled}
-                hint={selectedTaxon ? `Available categories` : "Select a taxonomy first"}
-            >
-                {Array.isArray(categories) && categories.map((category) => (
-                    <Option key={`category-${category.id}`} value={category.id.toString()}>
-                        {category.name} {category.order > 0 ? `(#${category.order})` : ''}
-                    </Option>
-                ))}
-            </Select>
 
             {/* Helpful Messages */}
-            {taxons.length === 0 && !loading && !internalError && !error && (
-                <Box padding={3} background="neutral100" borderRadius="4px">
+            {taxons.length === 0 && !loading && !internalError && (
+                <Box padding={3} background="neutral100" borderRadius="4px" width="100%">
                     <Typography variant="pi" textColor="neutral600">
-                        No taxonomies found. Create some taxonomies first in the Category Manager.
+                        No taxonomies found. Create taxonomies first in Category Manager.
                     </Typography>
                 </Box>
             )}
 
-            {selectedTaxon && categories.length === 0 && !loading && !internalError && !error && (
-                <Box padding={3} background="neutral100" borderRadius="4px">
+            {selectedTaxonId && categories.length === 0 && !loading && !internalError && (
+                <Box padding={3} background="neutral100" borderRadius="4px" width="100%">
                     <Typography variant="pi" textColor="neutral600">
-                        No categories found for {selectedTaxonName}. Create some categories first in Category Manager.
+                        No categories found for {selectedTaxonName}. Create categories in Category Manager.
                     </Typography>
                 </Box>
             )}
 
-            {!selectedTaxon && !selectedCategory && !loading && (
-                <Box padding={3} background="neutral100" borderRadius="4px">
+            {!selectedTaxonId && !loading && !isLoadingValue && (
+                <Box padding={3} background="neutral100" borderRadius="4px" width="100%">
                     <Typography variant="pi" textColor="neutral600">
-                        <strong>How to use:</strong> Select a taxonomy first, then choose a category.
-                        Use the "Save Category" button to save your selection.
+                        Select a taxonomy first, then choose a category.
                     </Typography>
                 </Box>
             )}
 
             {/* Action Buttons */}
-            {(selectedTaxon || selectedCategory) && !disabled && (
+            {(selectedTaxonId || selectedCategoryId) && !disabled && !isLoadingValue && (
                 <Flex justifyContent="flex-end" gap={2}>
                     <Button variant="tertiary" onClick={handleClear}>
                         Clear Selection
-                    </Button>
-                    {/* Working test save button - always visible for testing */}
-                    <Button onClick={testSave} variant="secondary" size="S">
-                        Save Category
                     </Button>
                 </Flex>
             )}
@@ -566,13 +534,12 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
                 </Box>
             )}
 
-            {/* Debug Info (development only) */}
+            {/* Debug Info */}
             {process.env.NODE_ENV === 'development' && (
                 <Box padding={2} background="neutral50" borderRadius="4px">
                     <Typography variant="pi" textColor="neutral500" style={{ fontSize: '11px' }}>
-                        Debug: Value={JSON.stringify({ selectedTaxon, selectedCategory })},
-                        RawValue={typeof value === 'string' ? 'STRING' : 'OBJECT'},
-                        Loaded={selectedTaxon ? 'YES' : 'NO'}
+                        Debug: TaxonID={selectedTaxonId}, CategoryID={selectedCategoryId},
+                        Value="{value}", Loading={isLoadingValue ? 'YES' : 'NO'}
                     </Typography>
                 </Box>
             )}
