@@ -1,1 +1,11 @@
-{}
+{
+    "plugin.name": "Category Manager",
+    "category-selector.label": "Category Selector",
+    "category-selector.description": "Select taxonomy and category for content organization",
+    "category-selector.section.base": "Basic settings",
+    "category-selector.section.advanced": "Advanced settings",
+    "category-selector.required.label": "Required field",
+    "category-selector.required.description": "This field must be filled",
+    "category-selector.private.label": "Private field",
+    "category-selector.private.description": "This field will not be accessible via the API"
+}

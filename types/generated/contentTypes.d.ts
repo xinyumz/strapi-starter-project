@@ -590,6 +590,112 @@ export interface PluginContentReleasesReleaseAction
   };
 }
 
+export interface PluginCategoryManagerTaxon extends Schema.CollectionType {
+  collectionName: 'category_manager_taxons';
+  info: {
+    singularName: 'taxon';
+    pluralName: 'taxons';
+    displayName: 'Taxon';
+    description: 'Top-level categorization groups';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: Attribute.String &
+      Attribute.Required &
+      Attribute.Unique &
+      Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
+    url: Attribute.String & Attribute.Required & Attribute.Unique;
+    categories: Attribute.Relation<
+      'plugin::category-manager.taxon',
+      'oneToMany',
+      'plugin::category-manager.category'
+    >;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'plugin::category-manager.taxon',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'plugin::category-manager.taxon',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
+export interface PluginCategoryManagerCategory extends Schema.CollectionType {
+  collectionName: 'category_manager_categories';
+  info: {
+    singularName: 'category';
+    pluralName: 'categories';
+    displayName: 'Category';
+    description: 'Specific categories within taxonomies';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: Attribute.String &
+      Attribute.Required &
+      Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
+    url: Attribute.String & Attribute.Required;
+    taxon: Attribute.Relation<
+      'plugin::category-manager.category',
+      'manyToOne',
+      'plugin::category-manager.taxon'
+    > &
+      Attribute.Required;
+    order: Attribute.Integer &
+      Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Attribute.DefaultTo<0>;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'plugin::category-manager.category',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'plugin::category-manager.category',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
 export interface PluginPerLanguagePerLanguage extends Schema.CollectionType {
   collectionName: 'per_languages';
   info: {
@@ -977,22 +1083,10 @@ export interface ApiArticleArticle extends Schema.CollectionType {
     Date: Attribute.Date;
     Cover: Attribute.Media<'images'> & Attribute.Required;
     Base: Attribute.RichText & Attribute.Required;
-    SelectCategory: Attribute.JSON &
-      Attribute.CustomField<
-        'plugin::categorizer.categorizer',
-        {
-          maxDepth: 2;
-          target: 'Categories';
-          targetAttribute: 'Name';
-        }
-      >;
-    Categories: Attribute.Relation<
-      'api::article.article',
-      'oneToMany',
-      'api::category.category'
-    >;
     LanguageProcessor: Attribute.RichText &
       Attribute.CustomField<'plugin::per-language.language-processor'>;
+    Category: Attribute.JSON &
+      Attribute.CustomField<'plugin::category-manager.category-selector'>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -1038,47 +1132,6 @@ export interface ApiBlogBlog extends Schema.CollectionType {
   };
 }
 
-export interface ApiCategoryCategory extends Schema.CollectionType {
-  collectionName: 'categories';
-  info: {
-    singularName: 'category';
-    pluralName: 'categories';
-    displayName: 'Category';
-    description: '';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    Name: Attribute.String & Attribute.Required & Attribute.Unique;
-    parent: Attribute.Relation<
-      'api::category.category',
-      'oneToOne',
-      'api::category.category'
-    >;
-    article: Attribute.Relation<
-      'api::category.category',
-      'manyToOne',
-      'api::article.article'
-    >;
-    createdAt: Attribute.DateTime;
-    updatedAt: Attribute.DateTime;
-    publishedAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<
-      'api::category.category',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-    updatedBy: Attribute.Relation<
-      'api::category.category',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-  };
-}
-
 declare module '@strapi/types' {
   export module Shared {
     export interface ContentTypes {
@@ -1093,6 +1146,8 @@ declare module '@strapi/types' {
       'plugin::upload.folder': PluginUploadFolder;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
+      'plugin::category-manager.taxon': PluginCategoryManagerTaxon;
+      'plugin::category-manager.category': PluginCategoryManagerCategory;
       'plugin::per-language.per-language': PluginPerLanguagePerLanguage;
       'plugin::chinese-article-processor.article-sentence': PluginChineseArticleProcessorArticleSentence;
       'plugin::chinese-article-processor.sentence-translation': PluginChineseArticleProcessorSentenceTranslation;
@@ -1103,7 +1158,6 @@ declare module '@strapi/types' {
       'plugin::users-permissions.user': PluginUsersPermissionsUser;
       'api::article.article': ApiArticleArticle;
       'api::blog.blog': ApiBlogBlog;
-      'api::category.category': ApiCategoryCategory;
     }
   }
 }

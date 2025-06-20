@@ -1,5 +1,7 @@
-import myService from './my-service';
+import taxonService from './taxon-service';
+import categoryService from './category-service';
 
 export default {
-  myService,
+  taxonService,
+  categoryService,
 };

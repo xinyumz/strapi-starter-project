@@ -32,24 +32,14 @@
       "type": "richtext",
       "required": true
     },
-    "SelectCategory": {
-      "type": "customField",
-      "options": {
-        "maxDepth": 2,
-        "target": "Categories",
-        "targetAttribute": "Name"
-      },
-      "customField": "plugin::categorizer.categorizer"
-    },
-    "Categories": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::category.category",
-      "mappedBy": "article"
-    },
     "LanguageProcessor": {
       "type": "customField",
       "customField": "plugin::per-language.language-processor"
+    },
+    "Category": {
+      "type": "customField",
+      "required": false,
+      "customField": "plugin::category-manager.category-selector"
     }
   }
 }

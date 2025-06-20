@@ -1,5 +1,7 @@
-import myController from './my-controller';
+import taxonController from './taxon-controller';
+import categoryController from './category-controller';
 
 export default {
-  myController,
+  taxonController,
+  categoryController,
 };

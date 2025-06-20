@@ -1,5 +1,7 @@
-import { prefixPluginTranslations } from '@strapi/helper-plugin';
+// admin/src/index.tsx
 
+import { prefixPluginTranslations } from '@strapi/helper-plugin';
+import { Grid } from '@strapi/icons';
 import pluginPkg from '../../package.json';
 import pluginId from './pluginId';
 import Initializer from './components/Initializer';
@@ -9,6 +11,75 @@ const name = pluginPkg.strapi.name;
 
 export default {
   register(app: any) {
+    console.log('[Category Manager] Starting plugin registration...');
+
+    // Register the custom field with simple import
+    app.customFields.register({
+      name: 'category-selector',
+      pluginId: 'category-manager',
+      type: 'json',
+      intlLabel: {
+        id: 'category-manager.category-selector.label',
+        defaultMessage: 'Category Selector',
+      },
+      intlDescription: {
+        id: 'category-manager.category-selector.description',
+        defaultMessage: 'Select taxonomy and category for content organization',
+      },
+      components: {
+        Input: async () => import('./components/CategorySelector'),
+      },
+      options: {
+        base: [
+          {
+            sectionTitle: {
+              id: 'global.settings',
+              defaultMessage: 'Settings',
+            },
+            items: [
+              {
+                name: 'required',
+                type: 'checkbox',
+                intlLabel: {
+                  id: 'form.attribute.item.requiredField',
+                  defaultMessage: 'Required field',
+                },
+                description: {
+                  id: 'form.attribute.item.requiredField.description',
+                  defaultMessage: "You won't be able to create an entry if this field is empty",
+                },
+              },
+            ],
+          },
+        ],
+        advanced: [
+          {
+            sectionTitle: {
+              id: 'category-manager.advanced-settings',
+              defaultMessage: 'Advanced Settings',
+            },
+            items: [
+              {
+                name: 'default',
+                type: 'json',
+                intlLabel: {
+                  id: 'form.attribute.item.defaultValue',
+                  defaultMessage: 'Default value',
+                },
+                description: {
+                  id: 'category-manager.default-value.description',
+                  defaultMessage: 'Set default category selection (format: {"taxonId": 1, "categoryId": 2})',
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    console.log('[Category Manager] ✅ Category selector field registered successfully');
+
+    // Register plugin page
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
@@ -18,17 +89,12 @@ export default {
       },
       Component: async () => {
         const component = await import('./pages/App');
-
         return component;
       },
-      permissions: [
-        // Uncomment to set the permissions of the plugin here
-        // {
-        //   action: '', // the action name should be plugin::plugin-name.actionType
-        //   subject: null,
-        // },
-      ],
+      permissions: [],
     });
+
+    // Register the plugin
     const plugin = {
       id: pluginId,
       initializer: Initializer,
@@ -37,15 +103,17 @@ export default {
     };
 
     app.registerPlugin(plugin);
+
+    console.log('[Category Manager] ✅ Plugin registered successfully');
   },
 
-  bootstrap(app: any) {},
+  bootstrap(app: any) {
+    console.log('[Category Manager] ✅ Bootstrap completed');
+  },
 
-  async registerTrads(app: any) {
-    const { locales } = app;
-
+  async registerTrads({ locales }: { locales: string[] }) {
     const importedTrads = await Promise.all(
-      (locales as any[]).map((locale) => {
+      locales.map((locale) => {
         return import(`./translations/${locale}.json`)
           .then(({ default: data }) => {
             return {

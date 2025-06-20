@@ -1,10 +1,10 @@
 {
   "name": "category-manager",
   "version": "0.0.0",
-  "description": "This is the description of the plugin.",
+  "description": "Advanced category management system for Strapi with cascading dropdowns",
   "strapi": {
     "name": "category-manager",
-    "description": "Description of category-manager plugin",
+    "description": "Category management with taxonomy and category organization",
     "kind": "plugin"
   },
   "dependencies": {
