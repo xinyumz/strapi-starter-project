@@ -1,10 +1,10 @@
 {
   "kind": "collectionType",
-  "collectionName": "articles",
+  "collectionName": "collections",
   "info": {
-    "singularName": "article",
-    "pluralName": "articles",
-    "displayName": "Article",
+    "singularName": "collection",
+    "pluralName": "collections",
+    "displayName": "Collection",
     "description": ""
   },
   "options": {
@@ -17,29 +17,32 @@
   },
   "attributes": {
     "Title": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
       "type": "string",
       "required": true,
-      "unique": true,
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      }
+      "unique": true
     },
     "Date": {
-      "type": "date",
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
-      }
+      },
+      "type": "date"
     },
     "Cover": {
       "type": "media",
       "multiple": false,
       "required": true,
       "allowedTypes": [
-        "images"
+        "images",
+        "files",
+        "videos",
+        "audios"
       ],
       "pluginOptions": {
         "i18n": {
@@ -47,28 +50,20 @@
         }
       }
     },
-    "Base": {
-      "type": "richtext",
-      "required": true,
+    "Category": {
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
-      }
-    },
-    "LanguageProcessor": {
-      "type": "customField",
-      "customField": "plugin::per-language.language-processor"
-    },
-    "Category": {
+      },
       "type": "customField",
       "customField": "plugin::category-manager.category-selector"
     },
-    "collection": {
+    "articles": {
       "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::collection.collection",
-      "inversedBy": "articles"
+      "relation": "oneToMany",
+      "target": "api::article.article",
+      "mappedBy": "collection"
     }
   }
 }

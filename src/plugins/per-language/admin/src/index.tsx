@@ -15,7 +15,7 @@ export default {
     app.customFields.register({
       name: 'language-processor',
       pluginId: 'per-language',
-      type: 'richtext', // Same as translator
+      type: 'richtext',
       intlLabel: {
         id: 'per-language.language-processor.label',
         defaultMessage: 'Language Processor',

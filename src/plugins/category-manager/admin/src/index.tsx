@@ -47,6 +47,18 @@ export default {
                   defaultMessage: "You won't be able to create an entry if this field is empty",
                 },
               },
+              {
+                name: 'default',
+                type: 'string',
+                intlLabel: {
+                  id: 'form.attribute.item.defaultValue',
+                  defaultMessage: 'Default value',
+                },
+                description: {
+                  id: 'category-manager.default-value.description',
+                  defaultMessage: 'Set default category ID',
+                },
+              },
             ],
           },
         ],

@@ -64,7 +64,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
     // State management
     const [taxons, setTaxons] = useState<Taxon[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [allCategories, setAllCategories] = useState<Category[]>([]); // For loading saved values
+    const [allCategories, setAllCategories] = useState<Category[]>([]);
     const [selectedTaxonId, setSelectedTaxonId] = useState<number | null>(null);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
