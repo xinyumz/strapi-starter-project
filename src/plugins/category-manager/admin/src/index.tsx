@@ -15,7 +15,7 @@ export default {
     app.customFields.register({
       name: 'category-selector',
       pluginId: 'category-manager',
-      type: 'string',
+      type: 'integer',
       intlLabel: {
         id: 'category-manager.category-selector.label',
         defaultMessage: 'Category Selector',
@@ -45,18 +45,6 @@ export default {
                 description: {
                   id: 'form.attribute.item.requiredField.description',
                   defaultMessage: "You won't be able to create an entry if this field is empty",
-                },
-              },
-              {
-                name: 'default',
-                type: 'string',
-                intlLabel: {
-                  id: 'form.attribute.item.defaultValue',
-                  defaultMessage: 'Default value',
-                },
-                description: {
-                  id: 'category-manager.default-value.description',
-                  defaultMessage: 'Set default category ID',
                 },
               },
             ],

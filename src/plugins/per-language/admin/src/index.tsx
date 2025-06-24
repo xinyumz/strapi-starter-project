@@ -11,7 +11,7 @@ export default {
   register(app: any) {
     console.log('[per-language admin] Registering language processor field...');
 
-    // Register the custom field following the translator pattern exactly
+    // Register the language processor custom field
     app.customFields.register({
       name: 'language-processor',
       pluginId: 'per-language',
@@ -25,7 +25,6 @@ export default {
         defaultMessage: 'Translate and process content in multiple languages',
       },
       components: {
-        // Import like translator does
         Input: async () => import('./components/LanguageProcessorField'),
       },
       options: {
@@ -54,7 +53,47 @@ export default {
       },
     });
 
-    console.log('[per-language admin] Language processor field registered successfully');
+    // Register the collection perlanguage custom field
+    app.customFields.register({
+      name: 'collection-perlanguage',
+      pluginId: 'per-language',
+      type: 'text',
+      intlLabel: {
+        id: 'per-language.collection-perlanguage.label',
+        defaultMessage: 'Collection Per-Language',
+      },
+      intlDescription: {
+        id: 'per-language.collection-perlanguage.description',
+        defaultMessage: 'Manage collection content in multiple languages',
+      },
+      components: {
+        Input: async () => import('./components/CollectionPerlanguageField'),
+      },
+      options: {
+        advanced: [
+          {
+            sectionTitle: {
+              id: 'global.settings',
+              defaultMessage: 'Settings',
+            },
+            items: [
+              {
+                name: 'required',
+                type: 'checkbox',
+                intlLabel: {
+                  id: 'form.attribute.item.requiredField',
+                  defaultMessage: 'Required field',
+                },
+                description: {
+                  id: 'form.attribute.item.requiredField.description',
+                  defaultMessage: "You won't be able to create an entry if this field is empty",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
 
     // Register the menu link
     app.addMenuLink({

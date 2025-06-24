@@ -50,6 +50,12 @@
         }
       }
     },
+    "articles": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::article.article",
+      "mappedBy": "collection"
+    },
     "Category": {
       "pluginOptions": {
         "i18n": {
@@ -59,11 +65,14 @@
       "type": "customField",
       "customField": "plugin::category-manager.category-selector"
     },
-    "articles": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::article.article",
-      "mappedBy": "collection"
+    "PerLanguage": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "customField",
+      "customField": "plugin::per-language.collection-perlanguage"
     }
   }
 }

@@ -333,5 +333,236 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             console.error('[PerLanguage] Error updating access tier:', error);
             ctx.throw(500, `Failed to update access tier: ${error.message}`);
         }
+    },
+
+    // Collection methods
+    async updateCollectionContent(ctx: Context) {
+        try {
+            const { id: collectionId } = ctx.params;
+            const { language, description } = ctx.request.body;
+
+            console.log('[PerLanguage] Updating collection content:', {
+                collectionId,
+                language,
+                descriptionLength: description?.length || 0,
+                descriptionIsNull: description === null,
+                descriptionIsUndefined: description === undefined
+            });
+
+            // ✅ FIXED: Only require collectionId and language, description can be null/empty
+            if (!collectionId || !language) {
+                return ctx.badRequest('Collection ID and language are required');
+            }
+
+            // ✅ Allow description to be null, undefined, or empty string
+            const finalDescription = description || null;
+
+            const contentService = strapi.plugin('per-language').service('contentService');
+            const result = await contentService.upsertCollectionContent(
+                parseInt(collectionId),
+                language,
+                finalDescription  // Pass the processed description
+            );
+
+            console.log('[PerLanguage] ✅ Collection content updated successfully');
+
+            ctx.body = {
+                data: result,
+                message: 'Collection content updated successfully'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error updating collection content:', error);
+            ctx.throw(500, `Failed to update collection content: ${error.message}`);
+        }
+    },
+
+    async getCollectionContent(ctx: Context) {
+        try {
+            const { id: collectionId } = ctx.params;
+            const { language } = ctx.query;
+
+            if (!collectionId || !language) {
+                return ctx.badRequest('Collection ID and language are required');
+            }
+
+            const contentService = strapi.plugin('per-language').service('contentService');
+            const content = await contentService.getCollectionContent(
+                parseInt(collectionId),
+                language as string
+            );
+
+            ctx.body = {
+                data: content,
+                source: 'collection_perlanguages'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error getting collection content:', error);
+            ctx.throw(500, `Failed to get collection content: ${error.message}`);
+        }
+    },
+    /**
+ * Get all languages for a collection
+ */
+    async getCollectionLanguages(ctx: Context) {
+        try {
+            const { id: collectionId } = ctx.params;
+
+            if (!collectionId) {
+                return ctx.badRequest('Collection ID is required');
+            }
+
+            const entityService = strapi.entityService;
+            if (!entityService) {
+                throw new Error('Entity service is not available');
+            }
+
+            const languageContent = await entityService.findMany('plugin::per-language.collection-perlanguage', {
+                filters: {
+                    collection_id: parseInt(collectionId)
+                }
+            });
+
+            // Fix the type checking issue
+            const dataArray = Array.isArray(languageContent) ? languageContent : [];
+
+            ctx.body = {
+                data: dataArray,
+                count: dataArray.length
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error getting collection languages:', error);
+            ctx.throw(500, `Failed to get collection languages: ${error.message}`);
+        }
+    },
+
+    /**
+     * Update collection language publish status
+     */
+    async updateCollectionPublishStatus(ctx: Context) {
+        try {
+            const { id: languageId } = ctx.params;
+            const { published } = ctx.request.body;
+
+            if (!languageId || published === undefined) {
+                return ctx.badRequest('Language ID and published status are required');
+            }
+
+            const entityService = strapi.entityService;
+            if (!entityService) {
+                throw new Error('Entity service is not available');
+            }
+
+            const result = await entityService.update('plugin::per-language.collection-perlanguage', parseInt(languageId), {
+                data: {
+                    published: !!published,
+                    updated_at: new Date()
+                } as any // Type assertion to bypass TypeScript issue
+            });
+
+            ctx.body = {
+                data: result,
+                message: 'Collection publish status updated successfully'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error updating collection publish status:', error);
+            ctx.throw(500, `Failed to update publish status: ${error.message}`);
+        }
+    },
+
+    /**
+     * Update collection language access tier
+     */
+    async updateCollectionAccessTier(ctx: Context) {
+        try {
+            const { id: languageId } = ctx.params;
+            const { access_tier } = ctx.request.body;
+
+            if (!languageId || !access_tier) {
+                return ctx.badRequest('Language ID and access tier are required');
+            }
+
+            const entityService = strapi.entityService;
+            if (!entityService) {
+                throw new Error('Entity service is not available');
+            }
+
+            const result = await entityService.update('plugin::per-language.collection-perlanguage', parseInt(languageId), {
+                data: {
+                    access_tier,
+                    updated_at: new Date()
+                } as any // Type assertion to bypass TypeScript issue
+            });
+
+            ctx.body = {
+                data: result,
+                message: 'Collection access tier updated successfully'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error updating collection access tier:', error);
+            ctx.throw(500, `Failed to update access tier: ${error.message}`);
+        }
+    },
+
+    /**
+     * Update collection display skill
+     */
+
+    async updateCollectionDisplaySkill(ctx: Context) {
+        try {
+            const { id: languageId } = ctx.params;
+            const { display_skill } = ctx.request.body;
+
+            if (!languageId) {
+                return ctx.badRequest('Language ID is required');
+            }
+
+            const entityService = strapi.entityService;
+            if (!entityService) {
+                throw new Error('Entity service is not available');
+            }
+
+            const result = await entityService.update('plugin::per-language.collection-perlanguage', parseInt(languageId), {
+                data: {
+                    display_skill,
+                    updated_at: new Date()
+                } as any
+            });
+
+            ctx.body = {
+                data: result,
+                message: 'Collection display skill updated successfully'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error updating collection display skill:', error);
+            ctx.throw(500, `Failed to update display skill: ${error.message}`);
+        }
+    },
+
+    /**
+     * Delete collection language
+     */
+    async deleteCollectionLanguage(ctx: Context) {
+        try {
+            const { id: languageId } = ctx.params;
+
+            if (!languageId) {
+                return ctx.badRequest('Language ID is required');
+            }
+
+            const entityService = strapi.entityService;
+            if (!entityService) {
+                throw new Error('Entity service is not available');
+            }
+
+            await entityService.delete('plugin::per-language.collection-perlanguage', parseInt(languageId));
+
+            ctx.body = {
+                success: true,
+                message: 'Collection language deleted successfully'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error deleting collection language:', error);
+            ctx.throw(500, `Failed to delete collection language: ${error.message}`);
+        }
     }
 });

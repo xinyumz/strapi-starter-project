@@ -741,6 +741,96 @@ export interface PluginPerLanguagePerLanguage extends Schema.CollectionType {
   };
 }
 
+export interface PluginPerLanguageArticlePerlanguage
+  extends Schema.CollectionType {
+  collectionName: 'article_perlanguages';
+  info: {
+    singularName: 'article-perlanguage';
+    pluralName: 'article-perlanguages';
+    displayName: 'Article Per Language';
+    description: 'Language-specific content for articles';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    article_id: Attribute.Integer & Attribute.Required;
+    language: Attribute.String & Attribute.Required;
+    per_language_text: Attribute.Text & Attribute.Required;
+    processed_data: Attribute.JSON;
+    display_skill: Attribute.String;
+    difficulty_data: Attribute.JSON;
+    published: Attribute.Boolean & Attribute.DefaultTo<false>;
+    access_tier: Attribute.String;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'plugin::per-language.article-perlanguage',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'plugin::per-language.article-perlanguage',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
+export interface PluginPerLanguageCollectionPerlanguage
+  extends Schema.CollectionType {
+  collectionName: 'collection_perlanguages';
+  info: {
+    singularName: 'collection-perlanguage';
+    pluralName: 'collection-perlanguages';
+    displayName: 'Collection Per Language';
+    description: 'Language-specific content for collections';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    collection_id: Attribute.Integer & Attribute.Required;
+    language: Attribute.String & Attribute.Required;
+    description: Attribute.Text;
+    display_skill: Attribute.String;
+    published: Attribute.Boolean & Attribute.DefaultTo<false>;
+    access_tier: Attribute.String;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'plugin::per-language.collection-perlanguage',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'plugin::per-language.collection-perlanguage',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
 export interface PluginChineseArticleProcessorArticleSentence
   extends Schema.CollectionType {
   collectionName: 'article_sentences';
@@ -1114,7 +1204,7 @@ export interface ApiArticleArticle extends Schema.CollectionType {
       }>;
     LanguageProcessor: Attribute.RichText &
       Attribute.CustomField<'plugin::per-language.language-processor'>;
-    Category: Attribute.JSON &
+    Category: Attribute.Integer &
       Attribute.CustomField<'plugin::category-manager.category-selector'>;
     collection: Attribute.Relation<
       'api::article.article',
@@ -1210,18 +1300,25 @@ export interface ApiCollectionCollection extends Schema.CollectionType {
           localized: true;
         };
       }>;
-    Category: Attribute.JSON &
+    articles: Attribute.Relation<
+      'api::collection.collection',
+      'oneToMany',
+      'api::article.article'
+    >;
+    Category: Attribute.Integer &
       Attribute.CustomField<'plugin::category-manager.category-selector'> &
       Attribute.SetPluginOptions<{
         i18n: {
           localized: true;
         };
       }>;
-    articles: Attribute.Relation<
-      'api::collection.collection',
-      'oneToMany',
-      'api::article.article'
-    >;
+    PerLanguage: Attribute.Text &
+      Attribute.CustomField<'plugin::per-language.collection-perlanguage'> &
+      Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -1263,6 +1360,8 @@ declare module '@strapi/types' {
       'plugin::category-manager.taxon': PluginCategoryManagerTaxon;
       'plugin::category-manager.category': PluginCategoryManagerCategory;
       'plugin::per-language.per-language': PluginPerLanguagePerLanguage;
+      'plugin::per-language.article-perlanguage': PluginPerLanguageArticlePerlanguage;
+      'plugin::per-language.collection-perlanguage': PluginPerLanguageCollectionPerlanguage;
       'plugin::chinese-article-processor.article-sentence': PluginChineseArticleProcessorArticleSentence;
       'plugin::chinese-article-processor.sentence-translation': PluginChineseArticleProcessorSentenceTranslation;
       'plugin::chinese-article-processor.sentence-grammar-rule': PluginChineseArticleProcessorSentenceGrammarRule;

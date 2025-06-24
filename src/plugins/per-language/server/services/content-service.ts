@@ -1,4 +1,5 @@
 // src/plugins/per-language/server/services/content-service.ts
+// UPDATED VERSION - Uses new table names
 
 import { Strapi } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
@@ -17,7 +18,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
 
     return {
         /**
-         * Create or update content for a specific language
+         * UPDATED: Create or update content for a specific language (article-perlanguage table)
          */
         async upsertLanguageContent(
             articleId: number,
@@ -26,8 +27,8 @@ export default ({ strapi }: { strapi: Strapi }) => {
         ): Promise<PerLanguageContentType> {
             try {
                 const entityService = getEntityService();
-                // Check if content already exists for this article and language
-                const existingContent = await entityService.findMany('plugin::per-language.per-language', {
+                // UPDATED: Use new table name
+                const existingContent = await entityService.findMany('plugin::per-language.article-perlanguage', {
                     filters: {
                         article_id: articleId,
                         language: languageCode
@@ -37,7 +38,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 if (existingContent && Array.isArray(existingContent) && existingContent.length > 0) {
                     // Update existing content
                     const updated = await entityService.update(
-                        'plugin::per-language.per-language',
+                        'plugin::per-language.article-perlanguage',  // UPDATED
                         existingContent[0].id,
                         {
                             data: {
@@ -50,7 +51,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                     return updated as PerLanguageContentType;
                 } else {
                     // Create new content
-                    const created = await entityService.create('plugin::per-language.per-language', {
+                    const created = await entityService.create('plugin::per-language.article-perlanguage', {  // UPDATED
                         data: {
                             article_id: articleId,
                             language: languageCode,
@@ -69,12 +70,12 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Get content for a specific language (per_languages table only)
+         * UPDATED: Get content for a specific language (article-perlanguage table)
          */
         async getLanguageContent(articleId: number, languageCode: string): Promise<any> {
             try {
                 const entityService = getEntityService();
-                const existingContent = await entityService.findMany('plugin::per-language.per-language', {
+                const existingContent = await entityService.findMany('plugin::per-language.article-perlanguage', {  // UPDATED
                     filters: {
                         article_id: articleId,
                         language: languageCode
@@ -94,7 +95,59 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Update processed data for a language content
+         * NEW: Collection language content methods
+         */
+        async upsertCollectionContent(
+            collectionId: number,
+            languageCode: string,
+            description: string | null  // ✅ Allow null type
+        ): Promise<any> {
+            try {
+                const entityService = getEntityService();
+                const existingContent = await entityService.findMany('plugin::per-language.collection-perlanguage', {
+                    filters: {
+                        collection_id: collectionId,
+                        language: languageCode
+                    }
+                });
+
+                // ✅ Process description - convert empty strings to null, keep null as null
+                const finalDescription = description === '' ? null : description;
+
+                if (existingContent && Array.isArray(existingContent) && existingContent.length > 0) {
+                    // Update existing content
+                    const updated = await entityService.update(
+                        'plugin::per-language.collection-perlanguage',
+                        existingContent[0].id,
+                        {
+                            data: {
+                                description: finalDescription,  // ✅ Can be null
+                                updated_at: new Date()
+                            } as any
+                        }
+                    );
+                    return updated;
+                } else {
+                    // Create new content
+                    const created = await entityService.create('plugin::per-language.collection-perlanguage', {
+                        data: {
+                            collection_id: collectionId,
+                            language: languageCode,
+                            description: finalDescription,  // ✅ Can be null for single-article collections
+                            published: false
+                        } as any
+                    });
+                    return created;
+                }
+            } catch (error) {
+                console.error('Error upserting collection content:', error);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                throw new ApplicationError(`Failed to upsert collection content: ${errorMessage}`);
+            }
+        },
+
+        /**
+         * UPDATED: Update processed data for a language content (article-perlanguage table)
          */
         async updateProcessedData(
             contentId: number,
@@ -113,7 +166,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 }
 
                 const updated = await entityService.update(
-                    'plugin::per-language.per-language',
+                    'plugin::per-language.article-perlanguage',  // UPDATED
                     contentId,
                     { data: updateData as any }
                 );
@@ -127,13 +180,13 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Set the publish status of language content
+         * UPDATED: Set the publish status of language content (article-perlanguage table)
          */
         async setPublishStatus(contentId: number, published: boolean): Promise<PerLanguageContentType> {
             try {
                 const entityService = getEntityService();
                 const updated = await entityService.update(
-                    'plugin::per-language.per-language',
+                    'plugin::per-language.article-perlanguage',  // UPDATED
                     contentId,
                     {
                         data: {
@@ -152,7 +205,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * WORKING: Delete language content with manual cascading delete
+         * UPDATED: Delete language content with manual cascading delete (article-perlanguage table)
          */
         async deleteLanguageContent(contentId: number): Promise<void> {
             try {
@@ -161,7 +214,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 const entityService = getEntityService();
 
                 // Get the language content first for logging and verification
-                const languageContent = await entityService.findOne('plugin::per-language.per-language', contentId);
+                const languageContent = await entityService.findOne('plugin::per-language.article-perlanguage', contentId);  // UPDATED
 
                 if (!languageContent) {
                     throw new ApplicationError(`Language content with ID ${contentId} not found`);
@@ -177,8 +230,8 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 // MANUAL CASCADING DELETE - Since foreign keys aren't working properly
                 await this.performManualCascadingDelete(contentId);
 
-                // Finally, delete the per_languages record
-                await entityService.delete('plugin::per-language.per-language', contentId);
+                // Finally, delete the article_perlanguages record
+                await entityService.delete('plugin::per-language.article-perlanguage', contentId);  // UPDATED
 
                 console.log(`[ContentService] ✅ Successfully completed manual cascading delete:`, {
                     contentId,
@@ -197,7 +250,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * NEW: Manual cascading delete implementation
+         * Manual cascading delete implementation (unchanged - works with database directly)
          */
         async performManualCascadingDelete(perLanguageId: number): Promise<void> {
             try {
@@ -260,7 +313,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Get statistics about language content before deletion
+         * UPDATED: Get statistics about language content before deletion (article-perlanguage table)
          */
         async getLanguageContentStatistics(contentId: number): Promise<{
             articleId: number;
@@ -274,8 +327,8 @@ export default ({ strapi }: { strapi: Strapi }) => {
             try {
                 const entityService = getEntityService();
 
-                // Get the per_language record
-                const languageContent = await entityService.findOne('plugin::per-language.per-language', contentId);
+                // Get the article-perlanguage record
+                const languageContent = await entityService.findOne('plugin::per-language.article-perlanguage', contentId);  // UPDATED
                 if (!languageContent) {
                     throw new ApplicationError(`Language content with ID ${contentId} not found`);
                 }
@@ -340,7 +393,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Update complete processed data with all three fields for complete preservation
+         * UPDATED: Update complete processed data (article-perlanguage table)
          */
         async updateCompleteProcessedData(
             contentId: number,
@@ -362,7 +415,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                 }
 
                 const updated = await entityService.update(
-                    'plugin::per-language.per-language',
+                    'plugin::per-language.article-perlanguage',  // UPDATED
                     contentId,
                     { data: updateData }
                 );
@@ -376,7 +429,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Get processed data (per_languages table only - no fallbacks)
+         * UPDATED: Get processed data (article-perlanguage table)
          */
         async getProcessedData(
             articleId: number,
@@ -402,13 +455,13 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Update access tier for language content
+         * UPDATED: Update access tier for language content (article-perlanguage table)
          */
         async updateAccessTier(contentId: number, accessTier: string): Promise<PerLanguageContentType> {
             try {
                 const entityService = getEntityService();
                 const updated = await entityService.update(
-                    'plugin::per-language.per-language',
+                    'plugin::per-language.article-perlanguage',  // UPDATED
                     contentId,
                     {
                         data: {

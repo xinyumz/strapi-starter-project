@@ -105,7 +105,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         async getArticleLanguages(articleId: number): Promise<any[]> {
             try {
                 const entityService = getEntityService();
-                const result = await entityService.findMany('plugin::per-language.per-language', {
+                const result = await entityService.findMany('plugin::per-language.article-perlanguage', {  // UPDATED
                     filters: { article_id: articleId },
                 });
 
@@ -122,7 +122,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         async hasLanguageContent(articleId: number, languageCode: string): Promise<boolean> {
             try {
                 const entityService = getEntityService();
-                const count = await entityService.count('plugin::per-language.per-language', {
+                const count = await entityService.count('plugin::per-language.article-perlanguage', {  // UPDATED
                     filters: {
                         article_id: articleId,
                         language: languageCode

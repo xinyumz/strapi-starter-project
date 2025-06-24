@@ -5,7 +5,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
   strapi.customFields.register({
     name: 'category-selector',
     plugin: 'category-manager',
-    type: 'json',
+    type: 'integer',
     inputSize: {
       default: 6,
       isResizable: true,
