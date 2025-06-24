@@ -1,5 +1,4 @@
-// Updated CollectionPerlanguageField.tsx with improved UI and manual save
-
+// Updated CollectionPerlanguageField.tsx with improved layout
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     Stack,
@@ -17,8 +16,6 @@ import {
     CardBody,
     Badge,
     IconButton,
-    Toggle,
-    Switch,
     ToggleCheckbox,
     SingleSelect,
     SingleSelectOption,
@@ -87,7 +84,6 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
     const [isSaving, setIsSaving] = useState<Record<number, boolean>>({});
     const { modifiedData } = useCMEditViewDataManager();
 
-    const selectedLanguageInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
     const collectionId = modifiedData.id;
 
     // Clear messages after 5 seconds
@@ -490,81 +486,104 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
                             return (
                                 <Card key={lang.id}>
                                     <CardHeader>
-                                        <Flex justifyContent="space-between" alignItems="center">
-                                            <Flex alignItems="center" gap={2}>
-                                                <Typography variant="beta">
-                                                    {langInfo.name}
+                                        {/* IMPROVED: Two-line header layout */}
+                                        <Box width="100%" padding={3}>
+                                            {/* First line: Title */}
+                                            <Box paddingBottom={2} textAlign="center">
+                                                <Typography variant="beta" fontWeight="semiBold">
+                                                    {langInfo.name} ({langInfo.code})
                                                 </Typography>
-                                                <Badge
-                                                    backgroundColor={getCurrentValue(lang, 'published') ? 'success100' : 'neutral100'}
-                                                    textColor={getCurrentValue(lang, 'published') ? 'success600' : 'neutral600'}
-                                                >
-                                                    {getCurrentValue(lang, 'published') ? 'Published' : 'Draft'}
-                                                </Badge>
-                                                {getCurrentValue(lang, 'access_tier') && (
-                                                    <Badge
-                                                        backgroundColor="primary100"
-                                                        textColor="primary600"
-                                                    >
-                                                        {getCurrentValue(lang, 'access_tier')}
-                                                    </Badge>
-                                                )}
-                                                {getCurrentValue(lang, 'display_skill') && (
-                                                    <Badge
-                                                        backgroundColor="secondary100"
-                                                        textColor="secondary600"
-                                                    >
-                                                        {getCurrentValue(lang, 'display_skill')}
-                                                    </Badge>
-                                                )}
-                                                {languageHasChanges && (
-                                                    <Badge
-                                                        backgroundColor="warning100"
-                                                        textColor="warning600"
-                                                    >
-                                                        Unsaved Changes
-                                                    </Badge>
-                                                )}
-                                            </Flex>
-                                            <IconButton
-                                                onClick={() => handleDeleteLanguage(lang.id, langInfo.name)}
-                                                label={`Delete ${langInfo.name}`}
-                                                variant="ghost"
-                                            >
-                                                <Trash />
-                                            </IconButton>
-                                        </Flex>
-                                    </CardHeader>
-                                    <CardBody>
-                                        <Stack spacing={4}>
-                                            {/* Description Field */}
-                                            <Textarea
-                                                label="Description"
-                                                value={getCurrentValue(lang, 'description') || ''}
-                                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                                                    updatePendingChange(lang.id, 'description', e.target.value);
-                                                }}
-                                                style={{ minHeight: '100px' }}
-                                                hint="Collection description for this language (optional for single-article collections)"
-                                            />
+                                            </Box>
 
-                                            {/* Improved Controls Layout */}
-                                            <Stack spacing={3}>
-                                                {/* Row 1: Published and Access Tier */}
-                                                <Flex gap={6} wrap="wrap">
-                                                    <Box minWidth="120px">
-                                                        <Flex direction="column" gap={1}>
+                                            {/* Second line: Badges on left, delete button on right */}
+                                            <Flex justifyContent="space-between" alignItems="center" wrap="wrap" gap={2}>
+                                                <Flex alignItems="center" gap={2} wrap="wrap" style={{ minWidth: 'fit-content' }}>
+                                                    <Badge
+                                                        backgroundColor={getCurrentValue(lang, 'published') ? 'success100' : 'neutral100'}
+                                                        textColor={getCurrentValue(lang, 'published') ? 'success600' : 'neutral600'}
+                                                    >
+                                                        {getCurrentValue(lang, 'published') ? 'PUBLISHED' : 'DRAFT'}
+                                                    </Badge>
+                                                    {getCurrentValue(lang, 'access_tier') && (
+                                                        <Badge
+                                                            backgroundColor="primary100"
+                                                            textColor="primary600"
+                                                        >
+                                                            {getCurrentValue(lang, 'access_tier')}
+                                                        </Badge>
+                                                    )}
+                                                    {getCurrentValue(lang, 'display_skill') && (
+                                                        <Badge
+                                                            backgroundColor="secondary100"
+                                                            textColor="secondary600"
+                                                        >
+                                                            {skillLabel} {getCurrentValue(lang, 'display_skill')}
+                                                        </Badge>
+                                                    )}
+                                                    {languageHasChanges && (
+                                                        <Badge
+                                                            backgroundColor="warning100"
+                                                            textColor="warning600"
+                                                        >
+                                                            Unsaved Changes
+                                                        </Badge>
+                                                    )}
+                                                </Flex>
+
+                                                {/* IMPROVED: Delete button with no border */}
+                                                <Button
+                                                    variant="danger-light"
+                                                    onClick={() => handleDeleteLanguage(lang.id, langInfo.name)}
+                                                    size="S"
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </Flex>
+                                        </Box>
+                                    </CardHeader>
+
+                                    <CardBody>
+                                        {/* Full width card body */}
+                                        <Box width="100%" padding={4}>
+                                            <Stack spacing={4}>
+                                                {/* Description Field */}
+                                                <Textarea
+                                                    label="Description"
+                                                    value={getCurrentValue(lang, 'description') || ''}
+                                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                                                        updatePendingChange(lang.id, 'description', e.target.value);
+                                                    }}
+                                                    style={{ minHeight: '100px' }}
+                                                    hint="Collection description for this language (optional for single-article collections)"
+                                                />
+
+                                                {/* Responsive controls layout with uniform heights */}
+                                                <Flex gap={0} wrap="wrap" style={{ columnGap: '60px', rowGap: '16px' }}>
+                                                    {/* Published toggle - uniform height */}
+                                                    <Box style={{ minWidth: '120px' }}>
+                                                        <Flex direction="column" gap={1} alignItems="flex-start">
                                                             <Typography variant="pi" fontWeight="bold">Published</Typography>
-                                                            <ToggleCheckbox
-                                                                checked={Boolean(getCurrentValue(lang, 'published')) || false}  // Ensure it's always a boolean
-                                                                onChange={() => {
-                                                                    const currentValue = Boolean(getCurrentValue(lang, 'published'));
-                                                                    updatePendingChange(lang.id, 'published', !currentValue);
+                                                            <Box
+                                                                style={{
+                                                                    height: '40px',
+                                                                    width: '120px',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center'
                                                                 }}
-                                                            />
+                                                            >
+                                                                <ToggleCheckbox
+                                                                    checked={Boolean(getCurrentValue(lang, 'published')) || false}
+                                                                    onChange={() => {
+                                                                        const currentValue = Boolean(getCurrentValue(lang, 'published'));
+                                                                        updatePendingChange(lang.id, 'published', !currentValue);
+                                                                    }}
+                                                                />
+                                                            </Box>
                                                         </Flex>
                                                     </Box>
-                                                    <Box minWidth="200px" flex="1">
+
+                                                    {/* Access Tier - fixed reasonable width */}
+                                                    <Box style={{ minWidth: '200px', maxWidth: '240px' }}>
                                                         <SingleSelect
                                                             label="Access Tier"
                                                             value={getCurrentValue(lang, 'access_tier') as string || ''}
@@ -576,40 +595,40 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
                                                             <SingleSelectOption value="Premium">Premium</SingleSelectOption>
                                                         </SingleSelect>
                                                     </Box>
+
+                                                    {/* Skill Level - fixed width */}
+                                                    <Box style={{ minWidth: '160px', maxWidth: '200px' }}>
+                                                        <SingleSelect
+                                                            label={skillLabel}
+                                                            value={getCurrentValue(lang, 'display_skill') as string || ''}
+                                                            onChange={(value: string) => updatePendingChange(lang.id, 'display_skill', value)}
+                                                        >
+                                                            <SingleSelectOption value="">Select level</SingleSelectOption>
+                                                            {skillOptions.map(option => (
+                                                                <SingleSelectOption key={option.value} value={option.value}>
+                                                                    {option.label}
+                                                                </SingleSelectOption>
+                                                            ))}
+                                                        </SingleSelect>
+                                                    </Box>
                                                 </Flex>
 
-                                                {/* Row 2: Skill Level */}
-                                                <Box minWidth="200px" maxWidth="300px">
-                                                    <SingleSelect
-                                                        label={skillLabel}
-                                                        value={getCurrentValue(lang, 'display_skill') as string || ''}
-                                                        onChange={(value: string) => updatePendingChange(lang.id, 'display_skill', value)}
-                                                    >
-                                                        <SingleSelectOption value="">Select level</SingleSelectOption>
-                                                        {skillOptions.map(option => (
-                                                            <SingleSelectOption key={option.value} value={option.value}>
-                                                                {option.label}
-                                                            </SingleSelectOption>
-                                                        ))}
-                                                    </SingleSelect>
-                                                </Box>
+                                                {/* Save Button */}
+                                                {languageHasChanges && (
+                                                    <Flex justifyContent="flex-end" paddingTop={2}>
+                                                        <Button
+                                                            onClick={() => saveLanguageChanges(lang.id)}
+                                                            disabled={isSaving[lang.id]}
+                                                            loading={isSaving[lang.id]}
+                                                            startIcon={<Check />}
+                                                            size="S"
+                                                        >
+                                                            Save Changes
+                                                        </Button>
+                                                    </Flex>
+                                                )}
                                             </Stack>
-
-                                            {/* Save Button */}
-                                            {languageHasChanges && (
-                                                <Flex justifyContent="flex-end" paddingTop={2}>
-                                                    <Button
-                                                        onClick={() => saveLanguageChanges(lang.id)}
-                                                        disabled={isSaving[lang.id]}
-                                                        loading={isSaving[lang.id]}
-                                                        startIcon={<Check />}
-                                                        size="S"
-                                                    >
-                                                        Save Changes
-                                                    </Button>
-                                                </Flex>
-                                            )}
-                                        </Stack>
+                                        </Box>
                                     </CardBody>
                                 </Card>
                             );
