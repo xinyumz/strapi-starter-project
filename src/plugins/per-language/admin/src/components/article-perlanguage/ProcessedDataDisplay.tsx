@@ -19,12 +19,12 @@ import { useFetchClient } from '@strapi/helper-plugin';
 import {
     SUPPORTED_LANGUAGES,
     LanguageData,
-} from './shared';
+} from '../shared';
 
 import {
     BulkControls,
     LanguageCard
-} from './processed-data';
+} from '../processed-data';
 
 interface ProcessedDataDisplayProps {
     articleId: string;

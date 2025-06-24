@@ -696,51 +696,6 @@ export interface PluginCategoryManagerCategory extends Schema.CollectionType {
   };
 }
 
-export interface PluginPerLanguagePerLanguage extends Schema.CollectionType {
-  collectionName: 'per_languages';
-  info: {
-    singularName: 'per-language';
-    pluralName: 'per-languages';
-    displayName: 'Per Language';
-    description: 'Language-specific content for articles';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  pluginOptions: {
-    'content-manager': {
-      visible: true;
-    };
-    'content-type-builder': {
-      visible: false;
-    };
-  };
-  attributes: {
-    article_id: Attribute.Integer & Attribute.Required;
-    language: Attribute.String & Attribute.Required;
-    per_language_text: Attribute.Text & Attribute.Required;
-    processed_data: Attribute.JSON;
-    display_skill: Attribute.String;
-    difficulty_data: Attribute.JSON;
-    published: Attribute.Boolean & Attribute.DefaultTo<false>;
-    access_tier: Attribute.String;
-    createdAt: Attribute.DateTime;
-    updatedAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<
-      'plugin::per-language.per-language',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-    updatedBy: Attribute.Relation<
-      'plugin::per-language.per-language',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-  };
-}
-
 export interface PluginPerLanguageArticlePerlanguage
   extends Schema.CollectionType {
   collectionName: 'article_perlanguages';
@@ -1359,7 +1314,6 @@ declare module '@strapi/types' {
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::category-manager.taxon': PluginCategoryManagerTaxon;
       'plugin::category-manager.category': PluginCategoryManagerCategory;
-      'plugin::per-language.per-language': PluginPerLanguagePerLanguage;
       'plugin::per-language.article-perlanguage': PluginPerLanguageArticlePerlanguage;
       'plugin::per-language.collection-perlanguage': PluginPerLanguageCollectionPerlanguage;
       'plugin::chinese-article-processor.article-sentence': PluginChineseArticleProcessorArticleSentence;

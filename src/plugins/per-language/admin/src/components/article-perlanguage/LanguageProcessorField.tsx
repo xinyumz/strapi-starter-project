@@ -16,7 +16,7 @@ import {
 import { useIntl } from 'react-intl';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import { ProcessedDataDisplay } from './ProcessedDataDisplay';
-import { SUPPORTED_LANGUAGES } from './shared';
+import { SUPPORTED_LANGUAGES } from '../shared';
 
 interface LanguageProcessorFieldProps {
     name: string;

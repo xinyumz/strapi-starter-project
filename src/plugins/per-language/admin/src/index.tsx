@@ -25,7 +25,7 @@ export default {
         defaultMessage: 'Translate and process content in multiple languages',
       },
       components: {
-        Input: async () => import('./components/LanguageProcessorField'),
+        Input: async () => import('./components/article-perlanguage/LanguageProcessorField'),
       },
       options: {
         advanced: [
@@ -67,7 +67,7 @@ export default {
         defaultMessage: 'Manage collection content in multiple languages',
       },
       components: {
-        Input: async () => import('./components/CollectionPerlanguageField'),
+        Input: async () => import('./components/collection-perlanguage/CollectionPerlanguageField'),
       },
       options: {
         advanced: [

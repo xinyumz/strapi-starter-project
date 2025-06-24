@@ -158,7 +158,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * NEW: Helper method to get per_language_id for a specific language
+     * Helper method to get per_language_id for a specific language
      */
     async getPerLanguageId(articleId: number, language: string): Promise<number | null> {
         try {
@@ -167,7 +167,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 throw new ApplicationError('Entity service is not available');
             }
 
-            const perLanguageEntries = await entityService.findMany('plugin::per-language.per-language', {
+            const perLanguageEntries = await entityService.findMany('plugin::per-language.article-perlanguage', {
                 filters: {
                     article_id: articleId,
                     language: language
