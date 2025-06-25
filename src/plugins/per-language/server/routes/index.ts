@@ -1,3 +1,5 @@
+// src/plugins/per-language/server/routes/index.ts
+
 export default [
   {
     method: 'GET',
@@ -163,7 +165,10 @@ export default [
       description: 'Refresh data for a specific language'
     }
   },
-  // collection routes
+
+  // ========================================
+  // COLLECTION ROUTES
+  // ========================================
   {
     method: 'PUT',
     path: '/collection/:id/content',
@@ -171,7 +176,7 @@ export default [
     config: {
       policies: [],
       auth: false,
-      description: 'Update collection content for a specific language'
+      description: 'Update collection content for a specific language (with auto-retrieval support)'
     }
   },
   {
@@ -194,14 +199,15 @@ export default [
       description: 'Get all languages for a collection'
     }
   },
+
   {
     method: 'PUT',
-    path: '/collection/:id/publish',
-    handler: 'content.updateCollectionPublishStatus',
+    path: '/collection/:id/display-skill',
+    handler: 'content.updateCollectionDisplaySkill',
     config: {
       policies: [],
       auth: false,
-      description: 'Update collection language publish status'
+      description: 'Update collection language display skill'
     }
   },
   {
@@ -216,12 +222,12 @@ export default [
   },
   {
     method: 'PUT',
-    path: '/collection/:id/display-skill',
-    handler: 'content.updateCollectionDisplaySkill',
+    path: '/collection/:id/publish',
+    handler: 'content.updateCollectionPublishStatus',
     config: {
       policies: [],
       auth: false,
-      description: 'Update collection language display skill'
+      description: 'Update collection language publish status'
     }
   },
   {
@@ -232,6 +238,27 @@ export default [
       policies: [],
       auth: false,
       description: 'Delete collection language'
+    }
+  },
+  // Auto-retrieval endpoints
+  {
+    method: 'GET',
+    path: '/collection/:id/auto-retrieval',
+    handler: 'content.getCollectionAutoRetrieval',
+    config: {
+      policies: [],
+      auth: false,
+      description: 'Get auto-retrieval suggestions for collection language creation'
+    }
+  },
+  {
+    method: 'GET',
+    path: '/collection/:id/stats',
+    handler: 'content.getCollectionStats',
+    config: {
+      policies: [],
+      auth: false,
+      description: 'Get collection statistics (article count, etc.)'
     }
   }
 ];

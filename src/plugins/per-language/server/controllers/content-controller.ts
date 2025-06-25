@@ -188,7 +188,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 console.log('[PerLanguage] Using manual content as provided');
             }
 
-            // Save to per_languages table
+            // Save to article_perlanguages table
             const contentService = strapi.plugin('per-language').service('contentService');
             const result = await contentService.upsertLanguageContent(
                 parseInt(articleId),
@@ -196,7 +196,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 translatedText
             );
 
-            console.log('[PerLanguage] ✅ Translation saved to per_languages table');
+            console.log('[PerLanguage] ✅ Translation saved to article_perlanguages table');
 
             ctx.body = {
                 data: {
@@ -238,7 +238,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 return ctx.notFound('Article not found');
             }
 
-            // Get per_language data
+            // Get article_perlanguage data
             const contentService = strapi.plugin('per-language').service('contentService');
             const perLanguageData = await contentService.getLanguageContent(
                 parseInt(articleId),
@@ -255,7 +255,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                         Base: (article as any).Base || (article as any).base,
                         Date: (article as any).Date || (article as any).date,
 
-                        // Language-specific data (new system)
+                        // Language-specific data
                         LanguageProcessor: perLanguageData?.per_language_text || '',
 
                         // Legacy fields for backward compatibility
@@ -276,8 +276,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
- * Update processed data using the service method
- */
+    * Update processed data using the service method
+    */
     async updateProcessedData(ctx: Context) {
         try {
             const { contentId, processedData, difficultyData, displaySkill } = ctx.request.body;
@@ -303,9 +303,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             ctx.throw(500, `Failed to update processed data: ${error.message}`);
         }
     },
+
     /**
- * Update access tier for language content
- */
+    * Update access tier for language content
+    */
     async updateAccessTier(ctx: Context) {
         try {
             const { contentId } = ctx.params;
@@ -335,40 +336,127 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // Collection methods
+    // ========================================
+    // COLLECTION METHODS
+    // ========================================
+
+    /**
+     * Get auto-retrieval data for collection language creation
+     */
+    async getCollectionAutoRetrieval(ctx: Context) {
+        try {
+            const { id: collectionId } = ctx.params;
+            const { language } = ctx.query;
+
+            console.log('[PerLanguage] Getting auto-retrieval data:', {
+                collectionId,
+                language
+            });
+
+            if (!collectionId || !language) {
+                return ctx.badRequest('Collection ID and language are required');
+            }
+
+            const contentService = strapi.plugin('per-language').service('contentService');
+            const autoData = await contentService.getAutoRetrievalData(
+                parseInt(collectionId),
+                language as string
+            );
+
+            ctx.body = {
+                data: autoData,
+                message: 'Auto-retrieval data generated successfully'
+            };
+
+        } catch (error: any) {
+            console.error('[PerLanguage] Error getting auto-retrieval data:', error);
+            ctx.throw(500, `Failed to get auto-retrieval data: ${error.message}`);
+        }
+    },
+
+    /**
+     * Get collection statistics (article count, language data count)
+     */
+    async getCollectionStats(ctx: Context) {
+        try {
+            const { id: collectionId } = ctx.params;
+
+            if (!collectionId) {
+                return ctx.badRequest('Collection ID is required');
+            }
+
+            const contentService = strapi.plugin('per-language').service('contentService');
+            const articles = await contentService.getCollectionArticles(parseInt(collectionId));
+
+            ctx.body = {
+                data: {
+                    collectionId: parseInt(collectionId),
+                    articleCount: articles.length,
+                    articles: articles.map(article => ({
+                        id: article.id,
+                        title: article.title
+                    }))
+                }
+            };
+
+        } catch (error: any) {
+            console.error('[PerLanguage] Error getting collection stats:', error);
+            ctx.throw(500, `Failed to get collection stats: ${error.message}`);
+        }
+    },
+
+    // Update collection content with auto-retrieval support
     async updateCollectionContent(ctx: Context) {
         try {
             const { id: collectionId } = ctx.params;
-            const { language, description } = ctx.request.body;
+            const { language, description, useAutoRetrieval = false } = ctx.request.body;
 
             console.log('[PerLanguage] Updating collection content:', {
                 collectionId,
                 language,
                 descriptionLength: description?.length || 0,
                 descriptionIsNull: description === null,
-                descriptionIsUndefined: description === undefined
+                descriptionIsUndefined: description === undefined,
+                useAutoRetrieval
             });
 
-            // ✅ FIXED: Only require collectionId and language, description can be null/empty
+            // Only require collectionId and language, description can be null/empty
             if (!collectionId || !language) {
                 return ctx.badRequest('Collection ID and language are required');
             }
 
-            // ✅ Allow description to be null, undefined, or empty string
+            // Allow description to be null, undefined, or empty string
             const finalDescription = description || null;
 
             const contentService = strapi.plugin('per-language').service('contentService');
             const result = await contentService.upsertCollectionContent(
                 parseInt(collectionId),
                 language,
-                finalDescription  // Pass the processed description
+                finalDescription,
+                useAutoRetrieval
             );
 
             console.log('[PerLanguage] ✅ Collection content updated successfully');
 
+            // If auto-retrieval was used, get the auto-retrieval data for response
+            let autoRetrievalInfo = null;
+            if (useAutoRetrieval) {
+                try {
+                    autoRetrievalInfo = await contentService.getAutoRetrievalData(
+                        parseInt(collectionId),
+                        language
+                    );
+                } catch (error) {
+                    console.warn('[PerLanguage] Could not get auto-retrieval info for response:', error);
+                }
+            }
+
             ctx.body = {
                 data: result,
-                message: 'Collection content updated successfully'
+                autoRetrievalInfo,
+                message: useAutoRetrieval
+                    ? 'Collection content created with auto-retrieval'
+                    : 'Collection content updated successfully'
             };
         } catch (error: any) {
             console.error('[PerLanguage] Error updating collection content:', error);
@@ -400,9 +488,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             ctx.throw(500, `Failed to get collection content: ${error.message}`);
         }
     },
+
     /**
- * Get all languages for a collection
- */
+    * Get all languages for a collection
+    */
     async getCollectionLanguages(ctx: Context) {
         try {
             const { id: collectionId } = ctx.params;
@@ -436,76 +525,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Update collection language publish status
-     */
-    async updateCollectionPublishStatus(ctx: Context) {
-        try {
-            const { id: languageId } = ctx.params;
-            const { published } = ctx.request.body;
-
-            if (!languageId || published === undefined) {
-                return ctx.badRequest('Language ID and published status are required');
-            }
-
-            const entityService = strapi.entityService;
-            if (!entityService) {
-                throw new Error('Entity service is not available');
-            }
-
-            const result = await entityService.update('plugin::per-language.collection-perlanguage', parseInt(languageId), {
-                data: {
-                    published: !!published,
-                    updated_at: new Date()
-                } as any // Type assertion to bypass TypeScript issue
-            });
-
-            ctx.body = {
-                data: result,
-                message: 'Collection publish status updated successfully'
-            };
-        } catch (error: any) {
-            console.error('[PerLanguage] Error updating collection publish status:', error);
-            ctx.throw(500, `Failed to update publish status: ${error.message}`);
-        }
-    },
-
-    /**
-     * Update collection language access tier
-     */
-    async updateCollectionAccessTier(ctx: Context) {
-        try {
-            const { id: languageId } = ctx.params;
-            const { access_tier } = ctx.request.body;
-
-            if (!languageId || !access_tier) {
-                return ctx.badRequest('Language ID and access tier are required');
-            }
-
-            const entityService = strapi.entityService;
-            if (!entityService) {
-                throw new Error('Entity service is not available');
-            }
-
-            const result = await entityService.update('plugin::per-language.collection-perlanguage', parseInt(languageId), {
-                data: {
-                    access_tier,
-                    updated_at: new Date()
-                } as any // Type assertion to bypass TypeScript issue
-            });
-
-            ctx.body = {
-                data: result,
-                message: 'Collection access tier updated successfully'
-            };
-        } catch (error: any) {
-            console.error('[PerLanguage] Error updating collection access tier:', error);
-            ctx.throw(500, `Failed to update access tier: ${error.message}`);
-        }
-    },
-
-    /**
-     * Update collection display skill
-     */
+    * Update collection display skill
+    */
 
     async updateCollectionDisplaySkill(ctx: Context) {
         try {
@@ -535,6 +556,74 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         } catch (error: any) {
             console.error('[PerLanguage] Error updating collection display skill:', error);
             ctx.throw(500, `Failed to update display skill: ${error.message}`);
+        }
+    },
+
+    /**
+     * Update collection language access tier
+     */
+    async updateCollectionAccessTier(ctx: Context) {
+        try {
+            const { id: languageId } = ctx.params;
+            const { access_tier } = ctx.request.body;
+
+            if (!languageId || !access_tier) {
+                return ctx.badRequest('Language ID and access tier are required');
+            }
+
+            const entityService = strapi.entityService;
+            if (!entityService) {
+                throw new Error('Entity service is not available');
+            }
+
+            const result = await entityService.update('plugin::per-language.collection-perlanguage', parseInt(languageId), {
+                data: {
+                    access_tier,
+                    updated_at: new Date()
+                } as any
+            });
+
+            ctx.body = {
+                data: result,
+                message: 'Collection access tier updated successfully'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error updating collection access tier:', error);
+            ctx.throw(500, `Failed to update access tier: ${error.message}`);
+        }
+    },
+
+    /**
+    * Update collection language publish status
+    */
+    async updateCollectionPublishStatus(ctx: Context) {
+        try {
+            const { id: languageId } = ctx.params;
+            const { published } = ctx.request.body;
+
+            if (!languageId || published === undefined) {
+                return ctx.badRequest('Language ID and published status are required');
+            }
+
+            const entityService = strapi.entityService;
+            if (!entityService) {
+                throw new Error('Entity service is not available');
+            }
+
+            const result = await entityService.update('plugin::per-language.collection-perlanguage', parseInt(languageId), {
+                data: {
+                    published: !!published,
+                    updated_at: new Date()
+                } as any
+            });
+
+            ctx.body = {
+                data: result,
+                message: 'Collection publish status updated successfully'
+            };
+        } catch (error: any) {
+            console.error('[PerLanguage] Error updating collection publish status:', error);
+            ctx.throw(500, `Failed to update publish status: ${error.message}`);
         }
     },
 

@@ -1,9 +1,10 @@
 // src/plugins/per-language/admin/src/components/collection-perlanguage/CollectionPerlanguageField.tsx
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Stack, Typography, Box } from '@strapi/design-system';
 import { useIntl } from 'react-intl';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
+import { SUPPORTED_LANGUAGES } from '../shared';
 
 // Import custom hooks
 import {
@@ -55,7 +56,12 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
         collectionLanguages,
         isCreatingRecord,
         isSaving,
+        isLoadingAutoRetrieval,
+        autoRetrievalData,
+        collectionStats,
         createLanguageRecord,
+        getAutoRetrievalData,
+        loadCollectionStats,
         saveLanguageChanges,
         deleteLanguage
     } = useCollectionLanguages({
@@ -71,6 +77,13 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
         clearPendingChanges,
         pendingChanges
     } = useLanguageState();
+
+
+    useEffect(() => {
+        if (collectionId) {
+            loadCollectionStats();
+        }
+    }, [collectionId, loadCollectionStats]);
 
     /**
      * Handle saving changes for a specific language
@@ -121,6 +134,18 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
                 isCreatingRecord={isCreatingRecord}
                 onLanguageCreate={createLanguageRecord}
                 onError={setError}
+                // Add enhanced props to enable auto-retrieval features
+                availableLanguages={SUPPORTED_LANGUAGES.map(lang => ({
+                    code: lang.code,
+                    name: lang.name,
+                    nativeName: lang.name,
+                    processorAvailable: lang.hasProcessor
+                }))}
+                usedLanguages={collectionLanguages.map(lang => lang.language)}
+                collectionStats={collectionStats}
+                isLoadingAutoRetrieval={isLoadingAutoRetrieval}
+                autoRetrievalData={autoRetrievalData}
+                onGetAutoRetrieval={getAutoRetrievalData}
             />
 
             {/* Existing Languages Section */}

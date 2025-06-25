@@ -8,7 +8,7 @@ const { ApplicationError } = errors;
 export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Process article with single save to sentence tables
-     * The per_languages table gets updated automatically via the grammar service
+     * The article_perlanguages table gets updated automatically via the grammar service
      */
     async processArticle(articleId: number, targetLanguage: string): Promise<{ success: boolean; message?: string }> {
         try {

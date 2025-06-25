@@ -15,7 +15,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
 
     return {
         /**
-         * Translate using external translator plugin and save to per_languages table
+         * Translate using external translator plugin and save to article_perlanguages table
          */
         async translateArticle(
             articleId: number,
@@ -58,7 +58,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
 
                 console.log(`[TranslationService] Translation completed, length: ${translatedText.length}`);
 
-                // Step 3: Save to per_languages table only
+                // Step 3: Save to article_perlanguages table only
                 const contentService = strapi.plugin('per-language').service('contentService');
                 const perLanguageContent = await contentService.upsertLanguageContent(
                     articleId,
@@ -66,7 +66,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                     translatedText
                 );
 
-                console.log(`[TranslationService] ✅ Saved to per_languages table, ID: ${perLanguageContent.id}`);
+                console.log(`[TranslationService] ✅ Saved to article_perlanguages table, ID: ${perLanguageContent.id}`);
 
                 return {
                     success: true,
@@ -82,7 +82,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
         },
 
         /**
-         * Get translated content from per_languages table
+         * Get translated content from article_perlanguages table
          */
         async getTranslatedContent(articleId: number, languageCode: string): Promise<string> {
             try {
@@ -98,7 +98,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
                     );
                 }
 
-                console.log(`[TranslationService] ✅ Found content in per_languages table`);
+                console.log(`[TranslationService] ✅ Found content in article_perlanguages table`);
                 return content.per_language_text;
 
             } catch (error) {

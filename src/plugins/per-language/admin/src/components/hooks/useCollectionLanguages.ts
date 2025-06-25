@@ -8,8 +8,13 @@ interface UseCollectionLanguagesReturn {
     isLoading: boolean;
     isCreatingRecord: boolean;
     isSaving: Record<number, boolean>;
+    isLoadingAutoRetrieval: boolean;
+    autoRetrievalData: AutoRetrievalData | null;
+    collectionStats: CollectionStats | null;
     loadCollectionLanguages: () => Promise<void>;
-    createLanguageRecord: (languageCode: string) => Promise<void>;
+    createLanguageRecord: (languageCode: string, useAutoRetrieval?: boolean) => Promise<void>;
+    getAutoRetrievalData: (languageCode: string) => Promise<AutoRetrievalData | null>;
+    loadCollectionStats: () => Promise<void>;
     saveLanguageChanges: (
         languageId: number,
         pendingChanges: PendingChanges,
@@ -25,15 +30,46 @@ interface UseCollectionLanguagesProps {
     onSuccess?: (message: string) => void;
 }
 
+// Auto-retrieval types
+interface AutoRetrievalData {
+    scenario: 'no_articles' | 'no_language_data' | 'single_article' | 'multiple_articles';
+    message: string;
+    suggestedData?: {
+        access_tier?: string;
+        display_skill?: string;
+        description?: string;
+    };
+    collectionStats?: {
+        articleCount: number;
+        hasLanguageData: boolean;
+        languageDataCount: number;
+    };
+    articleDetails?: any[];
+}
+
+interface CollectionStats {
+    collectionId: number;
+    articleCount: number;
+    articles: Array<{
+        id: number;
+        title: string;
+    }>;
+}
+
 /**
- * Custom hook for managing collection language CRUD operations
+ * Custom hook for managing collection language CRUD operations with auto-retrieval
  * 
  * Handles:
  * - Loading collection languages
  * - Creating new language records
- * - Saving language changes (description, published, access_tier, display_skill)
+ * - Saving language changes (description, display_skill, access_tier, published)
  * - Deleting language records
  * - Managing loading states
+ * 
+ * - Auto-retrieval data fetching
+ * - Collection statistics
+ * - Intelligent data population
+ * - Enhanced error handling
  */
 export const useCollectionLanguages = ({
     collectionId,
@@ -45,6 +81,9 @@ export const useCollectionLanguages = ({
     const [isLoading, setIsLoading] = useState(false);
     const [isCreatingRecord, setIsCreatingRecord] = useState(false);
     const [isSaving, setIsSaving] = useState<Record<number, boolean>>({});
+    const [isLoadingAutoRetrieval, setIsLoadingAutoRetrieval] = useState(false);
+    const [autoRetrievalData, setAutoRetrievalData] = useState<AutoRetrievalData | null>(null);
+    const [collectionStats, setCollectionStats] = useState<CollectionStats | null>(null);
 
     /**
      * Load all languages for this collection
@@ -77,9 +116,72 @@ export const useCollectionLanguages = ({
     }, [collectionId, onError]);
 
     /**
-     * Create new collection language record
+    * Load collection statistics
+    */
+    const loadCollectionStats = useCallback(async () => {
+        if (!collectionId) return;
+
+        try {
+            const response = await fetch(`/per-language/collection/${collectionId}/stats`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                },
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                setCollectionStats(result.data);
+            } else {
+                console.warn('[useCollectionLanguages] Failed to load collection stats:', response.status);
+            }
+        } catch (error) {
+            console.warn('[useCollectionLanguages] Error loading collection stats:', error);
+        }
+    }, [collectionId]);
+
+    /**
+     * NEW: Get auto-retrieval data for a specific language
      */
-    const createLanguageRecord = useCallback(async (languageCode: string) => {
+    const getAutoRetrievalData = useCallback(async (languageCode: string): Promise<AutoRetrievalData | null> => {
+        if (!collectionId) {
+            onError?.('Please save the collection first.');
+            return null;
+        }
+
+        try {
+            setIsLoadingAutoRetrieval(true);
+            const response = await fetch(`/per-language/collection/${collectionId}/auto-retrieval?language=${languageCode}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                },
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const data = result.data as AutoRetrievalData;
+                setAutoRetrievalData(data);
+                return data;
+            } else {
+                const errorText = await response.text();
+                throw new Error(`Failed to get auto-retrieval data: ${response.status} - ${errorText}`);
+            }
+        } catch (error) {
+            console.error('[useCollectionLanguages] Error getting auto-retrieval data:', error);
+            onError?.(`Failed to get auto-retrieval suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            return null;
+        } finally {
+            setIsLoadingAutoRetrieval(false);
+        }
+    }, [collectionId, onError]);
+
+    /**
+     * Create new collection language record with auto-retrieval support
+     */
+    const createLanguageRecord = useCallback(async (languageCode: string, useAutoRetrieval: boolean = false) => {
         if (!collectionId) {
             onError?.('Please save the collection first.');
             return;
@@ -87,6 +189,17 @@ export const useCollectionLanguages = ({
 
         try {
             setIsCreatingRecord(true);
+
+            // Get auto-retrieval data if requested
+            let autoRetrievalInfo = null;
+            if (useAutoRetrieval) {
+                console.log(`[useCollectionLanguages] Getting auto-retrieval data for ${languageCode}`);
+                autoRetrievalInfo = await getAutoRetrievalData(languageCode);
+
+                if (!autoRetrievalInfo) {
+                    console.warn('[useCollectionLanguages] No auto-retrieval data available, creating without');
+                }
+            }
 
             const response = await fetch(`/per-language/collection/${collectionId}/content`, {
                 method: 'PUT',
@@ -97,6 +210,7 @@ export const useCollectionLanguages = ({
                 body: JSON.stringify({
                     language: languageCode,
                     description: null,
+                    useAutoRetrieval: useAutoRetrieval
                 }),
             });
 
@@ -105,8 +219,17 @@ export const useCollectionLanguages = ({
                 throw new Error(`Failed to create language record: ${response.status} - ${errorData}`);
             }
 
+            const result = await response.json();
+
             await loadCollectionLanguages();
-            onSuccess?.(`${languageCode} collection language created successfully`);
+
+            // Enhanced success message based on auto-retrieval
+            if (useAutoRetrieval && result.autoRetrievalInfo) {
+                const info = result.autoRetrievalInfo;
+                onSuccess?.(`${languageCode} collection created with auto-retrieval. ${info.message}`);
+            } else {
+                onSuccess?.(`${languageCode} collection language created successfully`);
+            }
 
         } catch (error: any) {
             console.error('[useCollectionLanguages] Error creating language record:', error);
@@ -114,7 +237,7 @@ export const useCollectionLanguages = ({
         } finally {
             setIsCreatingRecord(false);
         }
-    }, [collectionId, loadCollectionLanguages, onError, onSuccess]);
+    }, [collectionId, loadCollectionLanguages, onError, onSuccess, getAutoRetrievalData]);
 
     /**
      * Save changes for a specific language
@@ -154,18 +277,18 @@ export const useCollectionLanguages = ({
                 );
             }
 
-            // Publish status update
-            if ('published' in pending) {
+            // Display skill update
+            if ('display_skill' in pending) {
                 promises.push(
-                    fetch(`/per-language/collection/${languageId}/publish`, {
+                    fetch(`/per-language/collection/${languageId}/display-skill`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
                         },
                         body: JSON.stringify({
-                            published: pending.published
-                        }),
+                            display_skill: pending.display_skill
+                        })
                     })
                 );
             }
@@ -186,18 +309,18 @@ export const useCollectionLanguages = ({
                 );
             }
 
-            // Display skill update
-            if ('display_skill' in pending) {
+            // Publish status update
+            if ('published' in pending) {
                 promises.push(
-                    fetch(`/per-language/collection/${languageId}/display-skill`, {
+                    fetch(`/per-language/collection/${languageId}/publish`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
                         },
                         body: JSON.stringify({
-                            display_skill: pending.display_skill
-                        })
+                            published: pending.published
+                        }),
                     })
                 );
             }
@@ -282,8 +405,13 @@ export const useCollectionLanguages = ({
         isLoading,
         isCreatingRecord,
         isSaving,
+        isLoadingAutoRetrieval,
+        autoRetrievalData,
+        collectionStats,
         loadCollectionLanguages,
         createLanguageRecord,
+        getAutoRetrievalData,
+        loadCollectionStats,
         saveLanguageChanges,
         deleteLanguage,
         updateLocalLanguageData
