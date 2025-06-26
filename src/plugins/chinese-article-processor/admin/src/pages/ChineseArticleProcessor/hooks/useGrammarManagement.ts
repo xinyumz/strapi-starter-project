@@ -56,7 +56,7 @@ const useGrammarManagement = ({
   const { get, post } = useFetchClient();
 
   /**
-   * Get translation content from per_languages table
+   * Get translation content from article_perlanguages table
    */
   const getTranslationContent = useCallback(async (articleId: string): Promise<string | null> => {
     try {
@@ -70,12 +70,12 @@ const useGrammarManagement = ({
       if (perLanguageResponse.ok) {
         const perLanguageData = await perLanguageResponse.json();
         if (perLanguageData.data?.per_language_text) {
-          console.log(`[GrammarManagement] ✅ Found content in per_languages table`);
+          console.log(`[GrammarManagement] ✅ Found content in article_perlanguages table`);
           return perLanguageData.data.per_language_text;
         }
       }
 
-      console.log(`[GrammarManagement] ❌ No translation content found in per_languages table`);
+      console.log(`[GrammarManagement] ❌ No translation content found in article_perlanguages table`);
       throw new Error('No translated content found. Please translate the content first using the Language Processor field.');
     } catch (error) {
       console.error(`[GrammarManagement] Error getting translation content:`, error);
@@ -190,7 +190,7 @@ const useGrammarManagement = ({
     try {
       console.log('Starting grammar rule generation...');
 
-      // Get translation content from per_languages table ONLY
+      // Get translation content from article_perlanguages table
       const translationText = await getTranslationContent(articleId);
 
       console.log('Found translation content, preserving existing translations...');
@@ -268,8 +268,8 @@ const useGrammarManagement = ({
         throw new Error(ERROR_MESSAGES.GRAMMAR_SAVE_FAILED);
       }
 
-      // Save to per_languages table with HSK preservation
-      console.log("Saving grammar data to per_languages table with HSK preservation...");
+      // Save to article_perlanguages table with HSK preservation
+      console.log("Saving grammar data to article_perlanguages table with HSK preservation...");
       await updateArticleWithProcessorData(articleId, updatedSentences);
 
       setSentences(updatedSentences);
@@ -282,7 +282,7 @@ const useGrammarManagement = ({
       console.error("Error in grammar rule generation:", err);
       setProcessingError();
 
-      // Enhanced error messages for per_languages issues
+      // Enhanced error messages for article_perlanguages issues
       if (err instanceof Error && err.message.includes('per_language')) {
         onError('No translated content found. Please translate the content first using the Language Processor field.');
       } else if (err instanceof Error && err.message.includes('content ID')) {
@@ -357,7 +357,7 @@ const useGrammarManagement = ({
             throw new Error(ERROR_MESSAGES.UPDATE_GRAMMAR_FAILED);
           }
 
-          // Also save to per_languages table with HSK preservation
+          // Also save to article_perlanguages table with HSK preservation
           await updateArticleWithProcessorData(articleId, updatedSentences);
 
           saveOriginalSentences();
@@ -370,7 +370,7 @@ const useGrammarManagement = ({
       console.error("Error deleting rule:", err);
       setProcessingError();
 
-      // Enhanced error messages for per_languages issues
+      // Enhanced error messages for article_perlanguages issues
       if (err instanceof Error && err.message.includes('per_language')) {
         onError('Failed to save changes. Please ensure the content is translated first.');
       } else if (err instanceof Error && err.message.includes('content ID')) {
@@ -446,7 +446,7 @@ const useGrammarManagement = ({
         throw new Error(ERROR_MESSAGES.UPDATE_GRAMMAR_FAILED);
       }
 
-      // Also save to per_languages table with HSK preservation
+      // Also save to article_perlanguages table with HSK preservation
       await updateArticleWithProcessorData(articleId, updatedSentences);
 
       // Update the sentences state
@@ -462,7 +462,7 @@ const useGrammarManagement = ({
       console.error("Error bulk deleting rules:", err);
       setProcessingError();
 
-      // Enhanced error messages for per_languages issues
+      // Enhanced error messages for article_perlanguages issues
       if (err instanceof Error && err.message.includes('per_language')) {
         onError('Failed to save changes. Please ensure the content is translated first.');
       } else if (err instanceof Error && err.message.includes('content ID')) {

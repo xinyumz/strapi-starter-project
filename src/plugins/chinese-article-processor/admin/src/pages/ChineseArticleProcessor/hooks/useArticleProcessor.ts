@@ -15,8 +15,7 @@ interface UseArticleProcessorProps {
 }
 
 /**
- * FIXED: Base hook for managing article processor data
- * CRITICAL FIX: Corrected per_languages content ID retrieval
+ * Base hook for managing article processor data
  */
 const useArticleProcessor = ({
     articleId,
@@ -45,16 +44,16 @@ const useArticleProcessor = ({
     } = useStateWithHistory<GrammarRule[]>([]);
 
     /**
-     * FIXED: Get per_languages content entry (with proper ID)
+     * Get per_language content entry (with proper ID)
      */
     const getPerLanguageContent = useCallback(async (articleId: string): Promise<{ contentId: number, processedData: any }> => {
         try {
-            console.log(`Getting per_languages content for article ${articleId}`);
+            console.log(`Getting article_perlanguages content for article ${articleId}`);
 
             // Use the /content endpoint which has both ID and processed data
             const contentResponse = await fetch(`/per-language/article/${articleId}/content?language=zh`);
             if (!contentResponse.ok) {
-                throw new Error('Could not access per_languages content');
+                throw new Error('Could not access article_perlanguages content');
             }
 
             const contentData = await contentResponse.json();
@@ -62,26 +61,26 @@ const useArticleProcessor = ({
             const processedData = contentData.data?.processed_data || {};
 
             if (contentId) {
-                console.log(`✅ Found per_languages content ID: ${contentId}`);
+                console.log(`✅ Found article_perlanguages content ID: ${contentId}`);
                 return { contentId, processedData };
             } else {
                 console.log(`❌ No content ID found in response:`, contentData);
-                throw new Error('No per_languages content ID found');
+                throw new Error('No article_perlanguages content ID found');
             }
         } catch (error) {
-            console.error(`Error getting per_languages content:`, error);
+            console.error(`Error getting article_perlanguages content:`, error);
             throw error;
         }
     }, []);
 
     /**
-     * FIXED: Update the article with processor data - preserves ALL existing data
+     * Update the article with processor data - preserves ALL existing data
      */
     const updateArticleWithProcessorData = useCallback(async (articleId: string, grammarSentences: GrammarRule[]) => {
         try {
             console.log(`[ArticleProcessor] Starting updateArticleWithProcessorData for article ${articleId}`);
 
-            // STEP 1: Get per_languages content and existing processed data
+            // STEP 1: Get article_perlanguages content and existing processed data
             const { contentId, processedData: existingProcessedData } = await getPerLanguageContent(articleId);
             console.log(`[ArticleProcessor] Using content ID: ${contentId}`);
             console.log(`[ArticleProcessor] Existing data keys:`, Object.keys(existingProcessedData));
@@ -143,7 +142,7 @@ const useArticleProcessor = ({
                 `HSK ${mergedProcessorData.hsk.selectedLevel}` :
                 (mergedProcessorData.hsk?.calculatedLevel ? `HSK ${mergedProcessorData.hsk.calculatedLevel}` : null);
 
-            // STEP 6: Update per_languages table using the correct content ID
+            // STEP 6: Update article_perlanguages table using the correct content ID
             const updateResponse = await fetch(`/per-language/update-processed-data`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -157,11 +156,11 @@ const useArticleProcessor = ({
 
             if (!updateResponse.ok) {
                 const errorText = await updateResponse.text();
-                console.error('[ArticleProcessor] Error updating per_languages table:', errorText);
-                throw new Error(`Failed to update per_languages table: ${updateResponse.status}`);
+                console.error('[ArticleProcessor] Error updating article_perlanguages table:', errorText);
+                throw new Error(`Failed to update article_perlanguages table: ${updateResponse.status}`);
             }
 
-            console.log(`[ArticleProcessor] ✅ Successfully updated per_languages table with merged data`);
+            console.log(`[ArticleProcessor] ✅ Successfully updated article_perlanguages table with merged data`);
             return await updateResponse.json();
 
         } catch (error) {
@@ -202,7 +201,7 @@ const useArticleProcessor = ({
             console.error('Error loading grammar data:', err);
             setProcessingError();
 
-            // Enhanced error message for missing per_languages data
+            // Enhanced error message for missing article_perlanguages data
             if (err instanceof Error && err.message.includes('per_language')) {
                 onError('No translated content found. Please translate the content first using the Language Processor field.');
             } else {
@@ -213,7 +212,7 @@ const useArticleProcessor = ({
     }, [pluginId, get, setSentences, saveOriginalSentences, startProcessing, finishProcessing, setProcessingError, onError]);
 
     /**
-     * Save all changes to per_languages table ONLY
+     * Save all changes to article_perlanguages table ONLY
      */
     const saveArticleData = useCallback(async () => {
         if (!articleId || !hasDataChanges) return;
@@ -221,7 +220,7 @@ const useArticleProcessor = ({
         startProcessing();
 
         try {
-            console.log("Saving all article processor changes to per_languages table...");
+            console.log("Saving all article processor changes to article_perlanguages table...");
 
             // STEP 1: Save to grammar plugin database (sentence tables)
             const saveResponse = await post(`/${pluginId}/grammar/article/${articleId}`, {
@@ -234,9 +233,9 @@ const useArticleProcessor = ({
                 throw new Error(ERROR_MESSAGES.SAVE_TRANSLATIONS_FAILED);
             }
 
-            // STEP 2: The grammar service should have already updated per_languages table
+            // STEP 2: The grammar service should have already updated article_perlanguages table
             // But we can also update it here to ensure consistency
-            console.log("Ensuring per_languages table is updated with preserved HSK data...");
+            console.log("Ensuring article_perlanguages table is updated with preserved HSK data...");
             await updateArticleWithProcessorData(articleId, sentences);
 
             saveOriginalSentences();
@@ -248,9 +247,8 @@ const useArticleProcessor = ({
             console.error("Error saving article data:", err);
             setProcessingError();
 
-            // Enhanced error message for per_languages issues
             if (err instanceof Error && err.message.includes('per_language')) {
-                onError('Failed to save to per_languages table. Please ensure the content is translated first.');
+                onError('Failed to save to article_perlanguages table. Please ensure the content is translated first.');
             } else {
                 onError(err instanceof Error ? err.message : ERROR_MESSAGES.SAVE_TRANSLATIONS_FAILED);
             }

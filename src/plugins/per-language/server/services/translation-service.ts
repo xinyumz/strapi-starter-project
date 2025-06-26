@@ -58,9 +58,9 @@ export default ({ strapi }: { strapi: Strapi }) => {
 
                 console.log(`[TranslationService] Translation completed, length: ${translatedText.length}`);
 
-                // Step 3: Save to article_perlanguages table only
-                const contentService = strapi.plugin('per-language').service('contentService');
-                const perLanguageContent = await contentService.upsertLanguageContent(
+                // Step 3: Save to article_perlanguages table using articleService
+                const articleService = strapi.plugin('per-language').service('articleService');
+                const perLanguageContent = await articleService.upsertLanguageContent(
                     articleId,
                     targetLanguage,
                     translatedText
@@ -88,8 +88,8 @@ export default ({ strapi }: { strapi: Strapi }) => {
             try {
                 console.log(`[TranslationService] Getting content for article ${articleId} in ${languageCode}`);
 
-                const contentService = strapi.plugin('per-language').service('contentService');
-                const content = await contentService.getLanguageContent(articleId, languageCode);
+                const articleService = strapi.plugin('per-language').service('articleService');
+                const content = await articleService.getLanguageContent(articleId, languageCode);
 
                 if (!content?.per_language_text) {
                     throw new ApplicationError(

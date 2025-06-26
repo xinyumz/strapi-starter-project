@@ -43,7 +43,6 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
     const [bulkPublishState, setBulkPublishState] = useState<boolean>(false);
 
-    // FIXED: Move useState hooks to component level to avoid re-render issues
     const [showAllGrammar, setShowAllGrammar] = useState<Record<number, boolean>>({});
     const [showAllTranslations, setShowAllTranslations] = useState<Record<number, boolean>>({});
 
@@ -94,7 +93,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         }
     }, [articleId, fetchClient.get]); // SAFE: Proper dependencies
 
-    // SAFE: Only load data when articleId changes
+    // Only load data when articleId changes
     useEffect(() => {
         if (articleId) {
             loadLanguageData();
@@ -291,7 +290,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         }
     }, [articleId, languageData, fetchClient.put, loadLanguageData]);
 
-    // FIXED: Bulk publish handler that sets all to the desired state
+    // Bulk publish handler that sets all to the desired state
     const handleBulkPublish = useCallback(async (shouldPublish: boolean) => {
         try {
             console.log(`[ProcessedDataDisplay] Bulk publish: setting all languages to ${shouldPublish ? 'published' : 'draft'}`);
@@ -308,7 +307,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                     try {
                         setIsUpdating(prev => ({ ...prev, [`bulk_publish_${lang.id}`]: true }));
 
-                        // FIXED: Use fetchClient.put directly without extra data
+                        // Use fetchClient.put directly without extra data
                         const response = await fetch(`/per-language/content/${lang.id}/publish`, {
                             method: 'PUT',
                             headers: {

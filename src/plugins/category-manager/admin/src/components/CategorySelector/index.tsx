@@ -300,7 +300,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
         }
     }, [name, onChange]);
 
-    // Clear selection - MOVED UP to be available for validation
+    // Clear selection
     const handleClear = useCallback(() => {
         if (isLoadingValue) return;
 

@@ -63,7 +63,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     }, [error, success]);
 
     /**
-     * FIXED: Direct sync function that takes explicit parameters
+     * Direct sync function that takes explicit parameters
      */
     const syncContentToDatabase = useCallback(async (content: string, languageCode: string) => {
         if (!articleId || !languageCode) {
@@ -117,7 +117,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     }, [articleId]);
 
     /**
-     * FIXED: Create per_languages record with empty content only
+     * Create article_perlanguages record with empty content only
      */
     const createLanguageRecord = useCallback(async (languageCode: string) => {
         if (!articleId) {
@@ -131,7 +131,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
 
             const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === languageCode);
 
-            console.log('[LanguageProcessor] Creating per_languages record:', {
+            console.log('[LanguageProcessor] Creating article_perlanguages record:', {
                 articleId,
                 language: languageCode,
                 languageName: selectedLangInfo?.name
@@ -168,7 +168,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     }, [articleId]);
 
     /**
-     * FIXED: Language selection with proper content loading
+     * Language selection with proper content loading
      */
     const handleLanguageSelect = useCallback(async (selectedLanguage: string) => {
         console.log('[LanguageProcessor] Language selected:', selectedLanguage);
@@ -227,7 +227,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     }, [articleId, name, onChange, createLanguageRecord]);
 
     /**
-     * FIXED: Manual edit with proper debounced sync
+     * Manual edit with proper debounced sync
      */
     const handleManualEdit = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
@@ -253,7 +253,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     }, [name, onChange, articleId, targetLanguage, syncContentToDatabase]);
 
     /**
-     * FIXED: Translation with immediate database sync
+     * Translation with immediate database sync
      */
     const handleTranslate = useCallback(async () => {
         const sourceText = modifiedData.Base || modifiedData.base;

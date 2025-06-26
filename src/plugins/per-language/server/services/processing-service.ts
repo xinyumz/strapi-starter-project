@@ -25,9 +25,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 };
             }
 
-            // 2. Get content from per_languages table only
-            const contentService = strapi.plugin('per-language').service('contentService');
-            const content = await contentService.getLanguageContent(articleId, targetLanguage);
+            // 2. Get content from article_perlanguages table using articleService
+            const articleService = strapi.plugin('per-language').service('articleService');
+            const content = await articleService.getLanguageContent(articleId, targetLanguage);
 
             if (!content?.per_language_text) {
                 return {

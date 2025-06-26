@@ -91,7 +91,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             ctx.body = {
                 data: content,
-                source: 'per_languages'
+                source: 'article_perlanguages'
             };
         } catch (error: any) {
             console.error('[ArticleController] Error getting content:', error);
@@ -134,7 +134,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     content: perLanguageData.per_language_text,
                     processedData: {
                         data: perLanguageData.processed_data,
-                        source: 'per_languages'
+                        source: 'article_perlanguages'
                     },
                     difficultyData: perLanguageData.difficulty_data,
                     displaySkill: perLanguageData.display_skill,

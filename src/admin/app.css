@@ -1,8 +1,8 @@
 /* Apply to all CodeMirror editors (Markdown fields) */
 .CodeMirror {
-    min-height: 150px !important;
-    max-height: 300px !important;
-    height: 200px !important;
+    min-height: 200px !important;
+    max-height: 500px !important;
+    height: 300px !important;
     /* You can adjust this */
 }
 

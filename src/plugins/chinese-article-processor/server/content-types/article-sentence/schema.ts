@@ -27,11 +27,11 @@ export default {
             required: true,
         },
 
-        // Link to specific per_languages entry
+        // Link to specific article_perlanguages entry
         per_language_id: {
             type: 'integer',
             required: true,
-            unsigned: true, // ADDED: This should match per_languages.id type
+            unsigned: true,
         },
 
         // Store language code for easy filtering

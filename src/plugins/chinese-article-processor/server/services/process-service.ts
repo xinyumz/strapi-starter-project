@@ -7,28 +7,28 @@ const { ApplicationError } = errors;
 
 export default ({ strapi }: { strapi: Strapi }) => ({
     /**
-     * Get article content from per_languages table
+     * Get article content from article_perlanguages table
      */
     async getArticleContent(articleId: number, language: string = 'zh'): Promise<string> {
         try {
             console.log(`[ProcessService] Getting content for article ${articleId} in ${language}`);
 
-            if (!strapi.plugin('per-language')?.service('contentService')) {
-                throw new ApplicationError('per-language service not available');
+            if (!strapi.plugin('per-language')?.service('articleService')) {
+                throw new ApplicationError('per-language articleService not available');
             }
 
             const perLanguageContent = await strapi.plugin('per-language')
-                .service('contentService')
+                .service('articleService')
                 .getLanguageContent(articleId, language);
 
             if (perLanguageContent && perLanguageContent.per_language_text) {
-                console.log(`[ProcessService] ✅ Using content from per_languages table`);
+                console.log(`[ProcessService] ✅ Using content from article_perlanguages table`);
                 return perLanguageContent.per_language_text;
             }
 
             throw new ApplicationError(
                 `No content found for article ${articleId} in language ${language}. ` +
-                `Please ensure the content is translated and saved in the per_languages table first.`
+                `Please ensure the content is translated and saved in the article_perlanguages table first.`
             );
         } catch (error) {
             console.error('[ProcessService] Error getting article content:', error);
@@ -37,26 +37,26 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Get processed data from per_languages table
+     * Get processed data from article_perlanguages table
      */
     async getProcessedData(articleId: number, language: string = 'zh'): Promise<any> {
         try {
             console.log(`[ProcessService] Getting processed data for article ${articleId} in ${language}`);
 
-            if (!strapi.plugin('per-language')?.service('contentService')) {
-                throw new ApplicationError('per-language service not available');
+            if (!strapi.plugin('per-language')?.service('articleService')) {
+                throw new ApplicationError('per-language articleService not available');
             }
 
             const perLanguageContent = await strapi.plugin('per-language')
-                .service('contentService')
+                .service('articleService')
                 .getLanguageContent(articleId, language);
 
             if (perLanguageContent && perLanguageContent.processed_data) {
-                console.log(`[ProcessService] ✅ Using processed data from per_languages table`);
+                console.log(`[ProcessService] ✅ Using processed data from article_perlanguages table`);
                 return perLanguageContent.processed_data;
             }
 
-            console.log(`[ProcessService] No processed data found in per_languages table`);
+            console.log(`[ProcessService] No processed data found in article_perlanguages table`);
             return null;
         } catch (error) {
             console.error('[ProcessService] Error getting processed data:', error);
@@ -65,7 +65,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Save processed data to per_languages table
+     * Save processed data to article_perlanguages table
      * Enhanced with complete data preservation
      */
     async saveProcessedData(
@@ -77,18 +77,18 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             console.log(`[ProcessService] Saving processed data for article ${articleId}`);
 
-            if (!strapi.plugin('per-language')?.service('contentService')) {
-                throw new ApplicationError('per-language service not available');
+            if (!strapi.plugin('per-language')?.service('articleService')) {
+                throw new ApplicationError('per-language articleService not available');
             }
 
-            const contentService = strapi.plugin('per-language').service('contentService');
+            const articleService = strapi.plugin('per-language').service('articleService');
 
             // Get existing per_language entry
-            let existingContent = await contentService.getLanguageContent(articleId, language);
+            let existingContent = await articleService.getLanguageContent(articleId, language);
 
             if (!existingContent) {
                 throw new ApplicationError(
-                    `No per_language entry found for article ${articleId} in language ${language}. ` +
+                    `No article_perlanguages entry found for article ${articleId} in language ${language}. ` +
                     `Please ensure the content is translated and saved first.`
                 );
             }
@@ -97,18 +97,18 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             const difficultyData = this.extractDifficultyData(processedData);
 
             // Save using complete data preservation method
-            if (contentService.updateCompleteProcessedData) {
-                await contentService.updateCompleteProcessedData(
+            if (articleService.updateCompleteProcessedData) {
+                await articleService.updateCompleteProcessedData(
                     existingContent.id,
                     processedData,      // processed_data: Complete metadata
                     difficultyData,     // difficulty_data: Extracted difficulty  
                     displaySkill       // display_skill: UI display
                 );
-                console.log(`[ProcessService] ✅ Saved to per_languages table`);
+                console.log(`[ProcessService] ✅ Saved to article_perlanguages table`);
             } else {
                 // Fallback method
-                await contentService.updateProcessedData(existingContent.id, processedData, displaySkill);
-                console.log(`[ProcessService] ✅ Saved to per_languages table (fallback method)`);
+                await articleService.updateProcessedData(existingContent.id, processedData, displaySkill);
+                console.log(`[ProcessService] ✅ Saved to article_perlanguages table (fallback method)`);
             }
         } catch (error) {
             console.error('[ProcessService] Error saving processed data:', error);
@@ -117,7 +117,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Complete article processing workflow using per_languages table
+     * Complete article processing workflow using article_perlanguages table
      */
     async processArticleComplete(
         articleId: number,
@@ -127,9 +127,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             console.log(`[ProcessService] Complete processing for article ${articleId}`);
 
-            // 1. Get content from per_languages table ONLY
+            // 1. Get content from article_perlanguages table
             const content = await this.getArticleContent(articleId, language);
-            console.log(`[ProcessService] Found content from per_languages table`);
+            console.log(`[ProcessService] Found content from article_perlanguages table`);
 
             // 2. Validate content before processing
             if (!content || content.trim().length === 0) {
@@ -143,7 +143,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 targetLanguages
             );
 
-            // 4. Save processed data (per_languages ONLY)
+            // 4. Save processed data (article_perlanguages)
             await this.saveProcessedData(articleId, language, processedArticle);
 
             // 5. Save to sentence tables as well
@@ -171,7 +171,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 language,
                 content: {
                     text: content,
-                    source: 'per_languages' // We know it's always per_languages now
+                    source: 'article_perlanguages'
                 },
                 processedData: {
                     data: processedData,
@@ -179,7 +179,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 },
                 compatibility: {
                     canProcess: !!content && content.trim().length > 0,
-                    dataSource: 'per_languages', // We know it's always per_languages now
+                    dataSource: 'article_perlanguages',
                     isModern: true // We know it's always modern now
                 }
             };

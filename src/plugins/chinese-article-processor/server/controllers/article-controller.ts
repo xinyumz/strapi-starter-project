@@ -8,7 +8,7 @@ const { ApplicationError } = errors;
 
 export default ({ strapi }: { strapi: Strapi }) => ({
     // Main article processing endpoint
-    // This method gets content from per_languages table and processes it
+    // This method gets content from article_perlanguages table and processes it
     async processArticle(ctx: ExtendedContext) {
         try {
             const { id } = ctx.params;
@@ -68,7 +68,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                         'zh',
                         processedArticle
                     );
-                    console.log(`[Article Processing] Saved to per_languages table for article ${articleId}`);
+                    console.log(`[Article Processing] Saved to article_perlanguages table for article ${articleId}`);
                 } else {
                     console.error(`[Article Processing] Process service not available`);
                     return ctx.badRequest('Processing service not available');
@@ -123,7 +123,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
     },
 
-    // Update processed data in per_languages table only
+    // Update processed data in article_perlanguages table
     async updateArticleProcessedData(ctx: ExtendedContext) {
         try {
             const { id } = ctx.params;
@@ -143,7 +143,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             console.log(`[Article Processing] Updating processed data for article ${id}`);
 
-            // Use the process service to save to per_languages table only
+            // Use the process service to save to article_perlanguages table
             const processService = strapi.plugin('chinese-article-processor').service('processService');
 
             if (!processService) {
@@ -157,7 +157,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 displaySkill
             );
 
-            console.log(`[Article Processing] Successfully saved to per_languages table`);
+            console.log(`[Article Processing] Successfully saved to article_perlanguages table`);
 
             ctx.body = {
                 data: { success: true, message: 'Processed data updated successfully' }

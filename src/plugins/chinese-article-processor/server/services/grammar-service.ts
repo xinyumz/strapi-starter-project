@@ -182,20 +182,22 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             };
         }
 
-        // Get per_language_id for Chinese content
+        // Get per_language_id for Chinese content using new service structure
         let perLanguageId = null;
         try {
             const perLanguagePlugin = strapi.plugin('per-language');
-            const contentService = perLanguagePlugin?.service('contentService');
+            const articleService = perLanguagePlugin?.service('articleService');
 
-            if (contentService) {
-                const chineseContent = await contentService.getLanguageContent(articleId, 'zh');
+            if (articleService) {
+                const chineseContent = await articleService.getLanguageContent(articleId, 'zh');
                 if (chineseContent && chineseContent.id) {
                     perLanguageId = chineseContent.id;
                     strapi.log.info(`Found Chinese per_language_id: ${perLanguageId}`);
                 } else {
                     strapi.log.warn(`No Chinese per_language content found for article ${articleId}`);
                 }
+            } else {
+                strapi.log.warn(`Per-language articleService not available`);
             }
         } catch (error) {
             strapi.log.error(`Error getting per_language_id:`, error);
@@ -279,7 +281,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     sentenceId = newSentenceId;
                     processedSentenceIds.add(sentenceId);
 
-                    strapi.log.info(`Created new sentence ID ${sentenceId} at order ${i}`);
+                    strapi.log.info(`Created new sentence ID ${sentenceId} at order ${i} with per_language_id ${perLanguageId}`);
                 }
 
                 // 🎯 STEP 4: Update grammar rules for this sentence
@@ -320,22 +322,22 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             await trx.commit();
             strapi.log.info(`✅ Successfully saved grammar data for article ID: ${articleId} with stable sentence IDs`);
 
-            // Update per_languages table with HSK preservation (same as before)
+            // Update article_perlanguages table with HSK preservation using new service structure
             try {
-                console.log(`[Grammar Service] 🎯 Updating per_languages table with HSK preservation...`);
+                console.log(`[Grammar Service] 🎯 Updating article_perlanguages table with HSK preservation...`);
 
                 const perLanguagePlugin = strapi.plugin('per-language');
-                const contentService = perLanguagePlugin?.service('contentService');
+                const articleService = perLanguagePlugin?.service('articleService');
 
-                if (!contentService) {
-                    console.log(`[Grammar Service] ⚠️ per-language service not available`);
+                if (!articleService) {
+                    console.log(`[Grammar Service] ⚠️ per-language articleService not available`);
                     return { success: true };
                 }
 
-                const existingContent = await contentService.getLanguageContent(articleId, 'zh');
+                const existingContent = await articleService.getLanguageContent(articleId, 'zh');
 
                 if (!existingContent) {
-                    console.log(`[Grammar Service] ⚠️ No per_language entry found for article ${articleId}`);
+                    console.log(`[Grammar Service] ⚠️ No article_perlanguages entry found for article ${articleId}`);
                     return { success: true };
                 }
 
@@ -368,22 +370,23 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                     `HSK ${completeData.hsk.selectedLevel}` :
                     (completeData.hsk?.calculatedLevel ? `HSK ${completeData.hsk.calculatedLevel}` : null);
 
-                if (contentService.updateCompleteProcessedData) {
-                    await contentService.updateCompleteProcessedData(
+                // Use articleService methods
+                if (articleService.updateCompleteProcessedData) {
+                    await articleService.updateCompleteProcessedData(
                         existingContent.id,
                         completeData,
                         difficultyData,
                         displaySkill
                     );
-                    console.log(`[Grammar Service] ✅ Successfully updated per_languages table with complete data preservation`);
+                    console.log(`[Grammar Service] ✅ Successfully updated article_perlanguages table with complete data preservation`);
                 } else {
-                    await contentService.updateProcessedData(existingContent.id, completeData, displaySkill);
-                    console.log(`[Grammar Service] ✅ Updated per_languages table using fallback method`);
+                    await articleService.updateProcessedData(existingContent.id, completeData, displaySkill);
+                    console.log(`[Grammar Service] ✅ Updated article_perlanguages table using fallback method`);
                 }
 
             } catch (updateError) {
                 const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
-                console.error(`[Grammar Service] ❌ Error updating per_languages table: ${errorMessage}`);
+                console.error(`[Grammar Service] ❌ Error updating article_perlanguages table: ${errorMessage}`);
             }
 
             return { success: true };

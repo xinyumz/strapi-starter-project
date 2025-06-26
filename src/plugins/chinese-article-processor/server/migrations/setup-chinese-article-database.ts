@@ -1,12 +1,10 @@
 // src/plugins/chinese-article-processor/server/migrations/setup-chinese-article-database.ts
-// SAFE VERSION: Sets up tables for fresh installs, preserves existing data
 
 export async function up(knex: any): Promise<void> {
     try {
         console.log('[Migration] Starting safe database setup...');
 
-        // REMOVED: All dropTableIfExists calls to preserve existing data
-        // ONLY create tables if they don't exist
+
 
         // Create article_sentences table (only if missing)
         const hasArticleSentences = await knex.schema.hasTable('article_sentences');

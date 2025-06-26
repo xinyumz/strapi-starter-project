@@ -75,7 +75,7 @@ export default [
         config: {
             policies: [],
             auth: false,
-            description: 'Process article from per_languages table (main endpoint)'
+            description: 'Process article from article_perlanguages table (main endpoint)'
         }
     },
     {
@@ -105,7 +105,7 @@ export default [
         config: {
             policies: [],
             auth: false,
-            description: 'Update article processed data (per_languages only)'
+            description: 'Update article processed data'
         }
     }
 ];
