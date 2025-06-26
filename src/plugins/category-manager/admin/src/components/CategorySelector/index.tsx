@@ -311,7 +311,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
     }, [isLoadingValue, handleValueChange]);
 
 
-    // Validate saved category is still valid - ADD THIS NEW VALIDATION
+    // Validate saved category is still valid
     useEffect(() => {
         if (!selectedCategoryId || isLoadingValue || allCategories.length === 0) return;
 

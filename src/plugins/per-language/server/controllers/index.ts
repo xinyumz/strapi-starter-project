@@ -1,14 +1,14 @@
 // src/plugins/per-language/server/controllers/index.ts
 
-import myController from './my-controller';
 import perLanguageController from './per-language-controller';
-import contentController from './content-controller';
+import articleController from './article-controller';
+import collectionController from './collection-controller';
 
 // Export with consistent naming that matches routes
 const controllers = {
-  myController,
   perLanguage: perLanguageController,
-  content: contentController,
+  article: articleController,
+  collection: collectionController,
 };
 
 export default controllers;

@@ -51,8 +51,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
 
         try {
-            const contentService = strapi.plugin('per-language').service('contentService');
-            const content = await contentService.getLanguageContent(parseInt(articleId), language);
+            const articleService = strapi.plugin('per-language').service('articleService');
+            const content = await articleService.getLanguageContent(parseInt(articleId), language);
 
             if (!content) {
                 return ctx.notFound(`No content found for article ${articleId} in language ${language}`);
@@ -148,8 +148,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
 
         try {
-            const contentService = strapi.plugin('per-language').service('contentService');
-            const result = await contentService.setPublishStatus(parseInt(contentId), !!published);
+            const articleService = strapi.plugin('per-language').service('articleService');
+            const result = await articleService.setPublishStatus(parseInt(contentId), !!published);
 
             ctx.body = { data: result };
         } catch (error) {
@@ -170,8 +170,8 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         }
 
         try {
-            const contentService = strapi.plugin('per-language').service('contentService');
-            await contentService.deleteLanguageContent(parseInt(contentId));
+            const articleService = strapi.plugin('per-language').service('articleService');
+            await articleService.deleteLanguageContent(parseInt(contentId));
 
             ctx.body = { success: true };
         } catch (error) {
@@ -192,9 +192,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         try {
             console.log(`[Refresh] Refreshing data for article ${articleId}, language ${language}`);
 
-            // Use contentService instead of languageService
-            const contentService = strapi.plugin('per-language').service('contentService');
-            const refreshedData = await contentService.getLanguageContent(parseInt(articleId), language);
+            // Use articleService instead of languageService
+            const articleService = strapi.plugin('per-language').service('articleService');
+            const refreshedData = await articleService.getLanguageContent(parseInt(articleId), language);
 
             if (!refreshedData) {
                 return ctx.notFound(`No content found for article ${articleId} in language ${language}`);
