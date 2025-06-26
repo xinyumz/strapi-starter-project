@@ -18,4 +18,8 @@ export default ({ env }) => ({
         enabled: true,
         resolve: './src/plugins/chinese-article-processor'
     },
+    'collection-article-relation': {
+        enabled: true,
+        resolve: './src/plugins/collection-article-relation'
+    },
 });
