@@ -1,5 +1,7 @@
-import myController from './my-controller';
+// src/plugins/collection-article-relation/server/controllers/index.ts
+
+import collectionAutofill from './collection-autofill-controller';
 
 export default {
-  myController,
+  collectionAutofill,
 };
