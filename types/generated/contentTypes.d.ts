@@ -1161,9 +1161,9 @@ export interface ApiArticleArticle extends Schema.CollectionType {
       Attribute.CustomField<'plugin::per-language.language-processor'>;
     Category: Attribute.Integer &
       Attribute.CustomField<'plugin::category-manager.category-selector'>;
-    collection: Attribute.Relation<
+    collections: Attribute.Relation<
       'api::article.article',
-      'manyToOne',
+      'manyToMany',
       'api::collection.collection'
     >;
     createdAt: Attribute.DateTime;
@@ -1255,11 +1255,6 @@ export interface ApiCollectionCollection extends Schema.CollectionType {
           localized: true;
         };
       }>;
-    articles: Attribute.Relation<
-      'api::collection.collection',
-      'oneToMany',
-      'api::article.article'
-    >;
     Category: Attribute.Integer &
       Attribute.CustomField<'plugin::category-manager.category-selector'> &
       Attribute.SetPluginOptions<{
@@ -1274,6 +1269,11 @@ export interface ApiCollectionCollection extends Schema.CollectionType {
           localized: true;
         };
       }>;
+    articles: Attribute.Relation<
+      'api::collection.collection',
+      'manyToMany',
+      'api::article.article'
+    >;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

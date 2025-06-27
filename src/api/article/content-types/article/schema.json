@@ -64,9 +64,9 @@
       "type": "customField",
       "customField": "plugin::category-manager.category-selector"
     },
-    "collection": {
+    "collections": {
       "type": "relation",
-      "relation": "manyToOne",
+      "relation": "manyToMany",
       "target": "api::collection.collection",
       "inversedBy": "articles"
     }

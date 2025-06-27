@@ -1,7 +1,6 @@
 /*
- *
- * HomePage
- *
+ * HomePage - Collection Article Relation Plugin
+ * Informational dashboard only
  */
 
 import React from 'react';
@@ -12,15 +11,12 @@ import {
   ContentLayout,
   Box,
   Typography,
-  Button,
-  Flex,
   Grid,
   GridItem,
-  Alert,
-  LinkButton
+  Badge,
+  Link
 } from '@strapi/design-system';
-import { ExternalLink, Play, CheckCircle } from '@strapi/icons';
-import pluginId from '../../pluginId';
+import { CheckCircle, ExternalLink } from '@strapi/icons';
 
 const HomePage = () => {
   return (
@@ -28,100 +24,110 @@ const HomePage = () => {
       <Main>
         <HeaderLayout
           title="Collection Article Relation"
-          subtitle="Intelligent collection creation with auto-fill capabilities"
+          subtitle="Intelligent single-article collection creation with auto-fill capabilities"
         />
 
         <ContentLayout>
           <Grid gap={6}>
-            {/* Welcome Section */}
+            {/* Plugin Status */}
             <GridItem col={12}>
               <Box background="neutral0" padding={6} shadow="filterShadow" borderRadius="4px">
-                <Typography variant="alpha" textColor="neutral800" marginBottom={4}>
-                  🚀 Welcome to Collection Auto-Fill
-                </Typography>
+                <Box marginBottom={4}>
+                  <Typography variant="alpha" textColor="neutral800" marginBottom={2}>
+                    🚀 Quick Collection Creation
+                  </Typography>
+                  <Badge backgroundColor="success100" textColor="success700" size="M">
+                    ✅ Active & Working
+                  </Badge>
+                </Box>
 
                 <Typography variant="epsilon" textColor="neutral600" marginBottom={4}>
-                  This plugin enhances Strapi's collection creation with intelligent auto-fill
-                  capabilities. Create collections faster by automatically populating fields
-                  from selected articles.
+                  This plugin adds a floating "📚 Quick Collection" button to every article page.
+                  Click it to instantly create a collection with all fields auto-filled from the article.
                 </Typography>
 
-                <Alert title="Ready for Testing!" variant="success" marginBottom={4}>
-                  Your backend API endpoints are working perfectly. Time to test the frontend components!
-                </Alert>
-
-                <Flex gap={3}>
-                  <LinkButton to={`/plugins/${pluginId}/test`} startIcon={<Play />} size="L">
-                    Open Test Page
-                  </LinkButton>
-                </Flex>
+                <Box background="primary100" padding={4} borderRadius="4px">
+                  <Typography variant="omega" fontWeight="bold" textColor="primary700" marginBottom={2}>
+                    🎯 How to Use:
+                  </Typography>
+                  <Box as="ol" style={{ margin: 0, paddingLeft: '20px' }}>
+                    <li style={{ marginBottom: '8px' }}>
+                      <Typography variant="pi" textColor="primary700">
+                        Navigate to any article edit page
+                      </Typography>
+                    </li>
+                    <li style={{ marginBottom: '8px' }}>
+                      <Typography variant="pi" textColor="primary700">
+                        Look for the floating "📚 Quick Collection" button (top-right)
+                      </Typography>
+                    </li>
+                    <li style={{ marginBottom: '8px' }}>
+                      <Typography variant="pi" textColor="primary700">
+                        Click the button to create a collection instantly
+                      </Typography>
+                    </li>
+                    <li>
+                      <Typography variant="pi" textColor="primary700">
+                        You'll be redirected to the new collection with all fields pre-filled
+                      </Typography>
+                    </li>
+                  </Box>
+                </Box>
               </Box>
             </GridItem>
 
-            {/* Features Overview */}
+            {/* Features */}
             <GridItem col={12}>
               <Box background="neutral0" padding={4} shadow="filterShadow" borderRadius="4px">
                 <Typography variant="delta" marginBottom={3}>
-                  ✨ Features Implemented
+                  ✨ What Gets Auto-Filled
                 </Typography>
 
                 <Grid gap={4}>
                   <GridItem col={6}>
                     <Box padding={3} background="success100" borderRadius="4px">
-                      <Flex alignItems="center" gap={2} marginBottom={2}>
-                        <CheckCircle color="success600" />
-                        <Typography variant="omega" fontWeight="bold" textColor="success700">
-                          Auto-Fill Analysis
-                        </Typography>
-                      </Flex>
+                      <CheckCircle color="success600" marginBottom={2} />
+                      <Typography variant="omega" fontWeight="bold" textColor="success700" marginBottom={1}>
+                        Title & Date
+                      </Typography>
                       <Typography variant="pi" textColor="success700">
-                        Automatically analyze selected articles and suggest field values
-                        for new collections with intelligent conflict resolution.
+                        Collection title and date copied exactly from the source article.
                       </Typography>
                     </Box>
                   </GridItem>
 
                   <GridItem col={6}>
                     <Box padding={3} background="primary100" borderRadius="4px">
-                      <Flex alignItems="center" gap={2} marginBottom={2}>
-                        <CheckCircle color="primary600" />
-                        <Typography variant="omega" fontWeight="bold" textColor="primary700">
-                          Quick Collection Creation
-                        </Typography>
-                      </Flex>
+                      <CheckCircle color="primary600" marginBottom={2} />
+                      <Typography variant="omega" fontWeight="bold" textColor="primary700" marginBottom={1}>
+                        Cover & Category
+                      </Typography>
                       <Typography variant="pi" textColor="primary700">
-                        Create collections instantly from article pages with one click.
-                        All fields auto-populated from the source article.
+                        Cover image and category automatically copied from the article.
                       </Typography>
                     </Box>
                   </GridItem>
 
                   <GridItem col={6}>
                     <Box padding={3} background="warning100" borderRadius="4px">
-                      <Flex alignItems="center" gap={2} marginBottom={2}>
-                        <CheckCircle color="warning600" />
-                        <Typography variant="omega" fontWeight="bold" textColor="warning700">
-                          Conflict Resolution
-                        </Typography>
-                      </Flex>
+                      <CheckCircle color="warning600" marginBottom={2} />
+                      <Typography variant="omega" fontWeight="bold" textColor="warning700" marginBottom={1}>
+                        Article Relation
+                      </Typography>
                       <Typography variant="pi" textColor="warning700">
-                        Smart handling of conflicts when multiple articles have
-                        different categories, covers, or dates.
+                        The source article is automatically linked to the new collection.
                       </Typography>
                     </Box>
                   </GridItem>
 
                   <GridItem col={6}>
                     <Box padding={3} background="alternative100" borderRadius="4px">
-                      <Flex alignItems="center" gap={2} marginBottom={2}>
-                        <CheckCircle color="alternative600" />
-                        <Typography variant="omega" fontWeight="bold" textColor="alternative700">
-                          Enhanced UX
-                        </Typography>
-                      </Flex>
+                      <CheckCircle color="alternative600" marginBottom={2} />
+                      <Typography variant="omega" fontWeight="bold" textColor="alternative700" marginBottom={1}>
+                        Duplicate Prevention
+                      </Typography>
                       <Typography variant="pi" textColor="alternative700">
-                        Real-time preview, visual conflict indicators, and
-                        seamless integration with existing Strapi workflows.
+                        Detects existing single-article collections and redirects instead of creating duplicates.
                       </Typography>
                     </Box>
                   </GridItem>
@@ -129,38 +135,103 @@ const HomePage = () => {
               </Box>
             </GridItem>
 
-            {/* Testing Instructions */}
+            {/* Benefits */}
             <GridItem col={12}>
               <Box background="neutral0" padding={4} shadow="filterShadow" borderRadius="4px">
                 <Typography variant="delta" marginBottom={3}>
-                  🧪 Testing Guide
+                  🎉 Benefits
                 </Typography>
 
-                <Typography variant="omega" textColor="neutral600" marginBottom={3}>
-                  Use the test page to verify all components work correctly with your backend:
+                <Grid gap={4}>
+                  <GridItem col={4}>
+                    <Box textAlign="center">
+                      <Typography variant="beta" textColor="primary600" marginBottom={2}>
+                        90%
+                      </Typography>
+                      <Typography variant="omega" textColor="neutral700">
+                        Time Savings
+                      </Typography>
+                    </Box>
+                  </GridItem>
+
+                  <GridItem col={4}>
+                    <Box textAlign="center">
+                      <Typography variant="beta" textColor="success600" marginBottom={2}>
+                        1-Click
+                      </Typography>
+                      <Typography variant="omega" textColor="neutral700">
+                        Collection Creation
+                      </Typography>
+                    </Box>
+                  </GridItem>
+
+                  <GridItem col={4}>
+                    <Box textAlign="center">
+                      <Typography variant="beta" textColor="warning600" marginBottom={2}>
+                        Zero
+                      </Typography>
+                      <Typography variant="omega" textColor="neutral700">
+                        Learning Curve
+                      </Typography>
+                    </Box>
+                  </GridItem>
+                </Grid>
+              </Box>
+            </GridItem>
+
+            {/* API Status */}
+            <GridItem col={12}>
+              <Box background="neutral0" padding={4} shadow="filterShadow" borderRadius="4px">
+                <Typography variant="delta" marginBottom={3}>
+                  🔧 Technical Details
                 </Typography>
 
-                <Box as="ol" style={{ margin: 0, paddingLeft: '20px' }}>
-                  <li style={{ marginBottom: '8px' }}>
-                    <Typography variant="pi">
-                      **Single Article Test**: Test with article ID 20 to see exact field copying
+                <Grid gap={4}>
+                  <GridItem col={6}>
+                    <Typography variant="omega" fontWeight="bold" textColor="neutral800" marginBottom={1}>
+                      Plugin Version:
                     </Typography>
-                  </li>
-                  <li style={{ marginBottom: '8px' }}>
-                    <Typography variant="pi">
-                      **Multiple Articles Test**: Test with IDs 20,21 to see conflict resolution
+                    <Typography variant="pi" textColor="neutral600">
+                      2.0.0 (Simplified & Optimized)
                     </Typography>
-                  </li>
-                  <li style={{ marginBottom: '8px' }}>
-                    <Typography variant="pi">
-                      **Quick Creation Test**: Test one-click collection creation
+                  </GridItem>
+
+                  <GridItem col={6}>
+                    <Typography variant="omega" fontWeight="bold" textColor="neutral800" marginBottom={1}>
+                      API Endpoints:
                     </Typography>
-                  </li>
-                  <li>
-                    <Typography variant="pi">
-                      **Integration Validation**: Verify API responses and component behavior
+                    <Typography variant="pi" textColor="neutral600">
+                      /quick-create, /health
                     </Typography>
-                  </li>
+                  </GridItem>
+
+                  <GridItem col={6}>
+                    <Typography variant="omega" fontWeight="bold" textColor="neutral800" marginBottom={1}>
+                      Primary Use Case:
+                    </Typography>
+                    <Typography variant="pi" textColor="neutral600">
+                      Single-article collections (80% of use cases)
+                    </Typography>
+                  </GridItem>
+
+                  <GridItem col={6}>
+                    <Typography variant="omega" fontWeight="bold" textColor="neutral800" marginBottom={1}>
+                      Integration:
+                    </Typography>
+                    <Typography variant="pi" textColor="neutral600">
+                      Non-invasive floating button system
+                    </Typography>
+                  </GridItem>
+                </Grid>
+
+                <Box marginTop={4} padding={3} background="neutral100" borderRadius="4px">
+                  <Typography variant="omega" fontWeight="bold" textColor="neutral700" marginBottom={1}>
+                    💡 Multi-Article Collections:
+                  </Typography>
+                  <Typography variant="pi" textColor="neutral600">
+                    Use the quick button to create a collection from one article, then manually add more articles to it.
+                    This approach is still much faster than full manual creation!
+                  </Typography>
                 </Box>
               </Box>
             </GridItem>

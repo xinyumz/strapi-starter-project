@@ -50,12 +50,6 @@
         }
       }
     },
-    "articles": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::article.article",
-      "mappedBy": "collection"
-    },
     "Category": {
       "pluginOptions": {
         "i18n": {
@@ -73,6 +67,12 @@
       },
       "type": "customField",
       "customField": "plugin::per-language.collection-perlanguage"
+    },
+    "articles": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::article.article",
+      "mappedBy": "collections"
     }
   }
 }
