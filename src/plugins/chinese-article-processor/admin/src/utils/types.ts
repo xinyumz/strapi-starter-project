@@ -51,7 +51,7 @@ export interface SupportedLanguage {
   name: string;
 }
 
-// Enhanced sentence representation for API responses
+// Sentence representation for API responses
 export interface EnhancedSentence {
   chinese: string;
   translations: {
