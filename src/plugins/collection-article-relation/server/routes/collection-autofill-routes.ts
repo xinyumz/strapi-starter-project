@@ -1,19 +1,29 @@
 // src/plugins/collection-article-relation/server/routes/collection-autofill-routes.ts
 
 export default [
-    // Quick collection creation from single article (main functionality)
+    // Primary functionality - Quick collection creation from single article
     {
         method: 'POST',
         path: '/quick-create',
         handler: 'collectionAutofill.quickCreateCollection',
         config: {
             policies: [],
-            auth: false,
-            description: 'Create a new collection quickly from a single article with auto-filled fields'
+            auth: false, // Set to true if you want to require authentication
+            description: 'Create a new collection quickly from a single article with auto-filled fields',
+            tags: ['collection', 'article', 'auto-fill'],
+            validate: {
+                body: {
+                    articleId: {
+                        type: 'number',
+                        required: true,
+                        description: 'ID of the article to create collection from'
+                    }
+                }
+            }
         }
     },
 
-    // Health check
+    // Health check endpoint
     {
         method: 'GET',
         path: '/health',
@@ -21,7 +31,33 @@ export default [
         config: {
             policies: [],
             auth: false,
-            description: 'Health check endpoint for the collection-article-relation plugin'
+            description: 'Health check endpoint for the collection-article-relation plugin',
+            tags: ['health', 'monitoring']
         }
-    }
+    },
+
+    // Cache management endpoints
+    {
+        method: 'GET',
+        path: '/cache/stats',
+        handler: 'collectionAutofill.cacheStats',
+        config: {
+            policies: [],
+            auth: false, // Consider setting to true for production
+            description: 'Get cache statistics for monitoring and debugging',
+            tags: ['cache', 'monitoring', 'debug']
+        }
+    },
+
+    {
+        method: 'POST',
+        path: '/cache/clear',
+        handler: 'collectionAutofill.clearCache',
+        config: {
+            policies: [],
+            auth: false, // Consider setting to true for production
+            description: 'Clear the duplicate check cache',
+            tags: ['cache', 'maintenance']
+        }
+    },
 ];

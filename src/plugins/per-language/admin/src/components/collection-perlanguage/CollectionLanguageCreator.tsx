@@ -71,7 +71,7 @@ interface CollectionLanguageCreatorProps {
 }
 
 /**
- * Enhanced Collection Language Creator with backward compatibility
+ * Collection Language Creator with backward compatibility
  * 
  * Features:
  * - Backward compatible with original interface

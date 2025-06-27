@@ -201,7 +201,7 @@ const useArticleProcessor = ({
             console.error('Error loading grammar data:', err);
             setProcessingError();
 
-            // Enhanced error message for missing article_perlanguages data
+            // Error message for missing article_perlanguages data
             if (err instanceof Error && err.message.includes('per_language')) {
                 onError('No translated content found. Please translate the content first using the Language Processor field.');
             } else {

@@ -73,7 +73,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
         const knex = strapi.db.connection;
 
         try {
-            console.log(`[ChineseProcessor] Enhanced save: Article ${articleId}, ${processedSentences.length} sentences`);
+            console.log(`[ChineseProcessor] save: Article ${articleId}, ${processedSentences.length} sentences`);
 
             // STEP 1: Get the Chinese per_language_id for this article
             const perLanguageId = await this.getPerLanguageId(articleId, 'zh');
@@ -255,7 +255,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
                 grammarRules: rulesBySentenceId[sentence.id] || []
             }));
 
-            console.log(`[ChineseProcessor] ✅ Successfully retrieved ${result.length} enhanced sentences`);
+            console.log(`[ChineseProcessor] ✅ Successfully retrieved ${result.length} sentences`);
             return result;
 
         } catch (error) {

@@ -155,7 +155,7 @@ export default ({ strapi }: { strapi: Strapi }) => {
          */
         async deleteLanguageContent(contentId: number): Promise<void> {
             try {
-                console.log(`[ArticleService] Starting enhanced delete for content ID: ${contentId}`);
+                console.log(`[ArticleService] Starting delete for content ID: ${contentId}`);
 
                 const entityService = getEntityService();
 

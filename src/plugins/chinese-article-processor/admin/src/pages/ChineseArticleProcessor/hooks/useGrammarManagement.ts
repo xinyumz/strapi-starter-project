@@ -282,7 +282,7 @@ const useGrammarManagement = ({
       console.error("Error in grammar rule generation:", err);
       setProcessingError();
 
-      // Enhanced error messages for article_perlanguages issues
+      // Error messages for article_perlanguages issues
       if (err instanceof Error && err.message.includes('per_language')) {
         onError('No translated content found. Please translate the content first using the Language Processor field.');
       } else if (err instanceof Error && err.message.includes('content ID')) {
@@ -370,7 +370,7 @@ const useGrammarManagement = ({
       console.error("Error deleting rule:", err);
       setProcessingError();
 
-      // Enhanced error messages for article_perlanguages issues
+      // Error messages for article_perlanguages issues
       if (err instanceof Error && err.message.includes('per_language')) {
         onError('Failed to save changes. Please ensure the content is translated first.');
       } else if (err instanceof Error && err.message.includes('content ID')) {
@@ -462,7 +462,7 @@ const useGrammarManagement = ({
       console.error("Error bulk deleting rules:", err);
       setProcessingError();
 
-      // Enhanced error messages for article_perlanguages issues
+      // Error messages for article_perlanguages issues
       if (err instanceof Error && err.message.includes('per_language')) {
         onError('Failed to save changes. Please ensure the content is translated first.');
       } else if (err instanceof Error && err.message.includes('content ID')) {

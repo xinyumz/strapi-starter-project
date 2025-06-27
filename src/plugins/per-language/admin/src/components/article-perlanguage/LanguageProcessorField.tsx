@@ -331,7 +331,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     }, [modifiedData, targetLanguage, articleId, name, onChange, syncContentToDatabase]);
 
     /**
-     * Enhanced process handler with content verification
+     * Process handler with content verification
      */
     const handleProcess = useCallback(async () => {
         if (!articleId) {

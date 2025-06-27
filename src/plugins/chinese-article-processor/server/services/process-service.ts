@@ -66,7 +66,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
     /**
      * Save processed data to article_perlanguages table
-     * Enhanced with complete data preservation
+     * Complete data preservation
      */
     async saveProcessedData(
         articleId: number,
@@ -159,7 +159,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     },
 
     /**
-     * Enhanced compatibility method for Chinese processor UI
+     * Compatibility method for Chinese processor UI
      */
     async getDataForChineseProcessor(articleId: number, language: string = 'zh') {
         try {

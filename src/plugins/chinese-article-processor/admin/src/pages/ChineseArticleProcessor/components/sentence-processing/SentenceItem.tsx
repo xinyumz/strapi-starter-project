@@ -29,7 +29,7 @@ interface SentenceItemProps {
 
 /**
  * Component for displaying individual sentences and their grammar rules
- * Enhanced with multi-language translation support
+ * With multi-language translation support
  */
 const SentenceItem: React.FC<SentenceItemProps> = ({
   sentenceData,
