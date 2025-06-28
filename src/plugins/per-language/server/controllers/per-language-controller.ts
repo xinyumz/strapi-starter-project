@@ -1,7 +1,7 @@
 // src/plugins/per-language/server/controllers/per-language-controller.ts
-import { Strapi } from '@strapi/strapi';
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+
+export default ({ strapi }: any) => ({
     /**
      * Get all available languages with processor information
      */

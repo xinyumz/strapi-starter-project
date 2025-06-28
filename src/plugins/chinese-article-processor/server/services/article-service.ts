@@ -1,11 +1,11 @@
 // server/services/article-service.ts
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 import { EnhancedSentence } from './types';
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
     /**
      * Process an article by splitting it into sentences, generating grammar rules,
      * and translating to the target languages

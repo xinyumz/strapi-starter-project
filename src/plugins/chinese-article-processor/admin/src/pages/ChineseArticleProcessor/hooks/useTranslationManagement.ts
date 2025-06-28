@@ -1,10 +1,10 @@
 // hooks/useTranslationManagement.ts - Extracted from useGrammarManagement.ts to focus on translations
 
 import { useState, useCallback, useEffect } from 'react';
-import { useFetchClient } from '@strapi/helper-plugin';
 import { GrammarRule, Translation } from '../../../utils/types';
 import { ERROR_MESSAGES } from '../../../utils/constants';
 import { useLoadingState } from '../../../hooks';
+import { useFetchClient } from "@strapi/strapi/admin";
 
 interface UseTranslationManagementProps {
     articleId: string | null;

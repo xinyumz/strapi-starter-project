@@ -1,9 +1,9 @@
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => {
+export default ({ strapi }: any) => {
     const getEntityService = () => {
         if (!strapi.entityService) {
             throw new ApplicationError('Entity service is not available');

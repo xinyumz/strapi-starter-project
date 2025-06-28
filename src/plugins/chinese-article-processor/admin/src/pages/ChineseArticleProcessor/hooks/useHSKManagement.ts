@@ -1,7 +1,6 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/hooks/useHSKManagement.ts
 
 import { useCallback } from 'react';
-import { useFetchClient } from '@strapi/helper-plugin';
 import { HSKData } from '../../../utils/types';
 import {
   DEFAULT_HSK_DATA,
@@ -9,6 +8,7 @@ import {
   STATUS_MESSAGES
 } from '../../../utils/constants';
 import { useLoadingState, useStateWithHistory } from '../../../hooks';
+import { useFetchClient } from "@strapi/strapi/admin";
 
 interface UseHSKManagementParams {
   articleId: string | null;

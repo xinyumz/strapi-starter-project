@@ -70,11 +70,11 @@ const HSKAnalysisSection: React.FC<HSKAnalysisSectionProps> = ({
         </Box>
       ) : (
         <Grid gap={3}>
-          <GridItem col={6}>
+          <Grid.Item col={6}>
             <HSKDistributionChart distribution={hskData.distribution} />
-          </GridItem>
+          </Grid.Item>
 
-          <GridItem col={6}>
+          <Grid.Item col={6}>
             <HSKLevelSelector
               calculatedLevel={hskData.calculatedLevel}
               selectedLevel={hskData.selectedLevel}
@@ -83,7 +83,7 @@ const HSKAnalysisSection: React.FC<HSKAnalysisSectionProps> = ({
               onLevelChange={onLevelChange}
               onSave={onSaveLevel}
             />
-          </GridItem>
+          </Grid.Item>
         </Grid>
       )}
     </Box>

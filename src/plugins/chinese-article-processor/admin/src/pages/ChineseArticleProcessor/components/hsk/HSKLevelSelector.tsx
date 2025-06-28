@@ -1,6 +1,6 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/hsk/HSKLevelSelector.tsx
 import React from 'react';
-import { Box, Typography, Stack, Select, Option, Button, Badge, Flex } from '@strapi/design-system';
+import { Box, Typography, Flex, SingleSelect, SingleSelectOption, Button, Badge } from '@strapi/design-system';
 import { Check } from '@strapi/icons';
 import { HSK_LEVELS } from '../../../../utils/constants';
 
@@ -26,7 +26,7 @@ const HSKLevelSelector: React.FC<HSKLevelSelectorProps> = ({
 }) => {
   return (
     <Box background="neutral0" padding={4} hasRadius shadow="filterShadow">
-      <Stack spacing={4}>
+      <Flex gap={4}>
         <Box>
           <Flex gap={3}>
             <Typography variant="delta">
@@ -47,17 +47,17 @@ const HSKLevelSelector: React.FC<HSKLevelSelectorProps> = ({
         <Box>
           <Typography variant="delta">Manual Selection</Typography>
           <Box paddingTop={2}>
-            <Select
+            <SingleSelect
               label="Select Final HSK Level"
               value={selectedLevel?.toString() || "1"}
               onChange={onLevelChange}
             >
               {HSK_LEVELS.map((level) => (
-                <Option key={level} value={level.toString()}>
+                <SingleSelectOption key={level} value={level.toString()}>
                   HSK {level}
-                </Option>
+                </SingleSelectOption>
               ))}
-            </Select>
+            </SingleSelect>
           </Box>
 
           {hasChanges && (
@@ -81,7 +81,7 @@ const HSKLevelSelector: React.FC<HSKLevelSelectorProps> = ({
             </Typography>
           </Box>
         </Box>
-      </Stack>
+      </Flex>
     </Box>
   );
 };

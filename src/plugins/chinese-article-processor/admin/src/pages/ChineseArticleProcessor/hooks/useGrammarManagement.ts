@@ -1,10 +1,10 @@
 // hooks/useGrammarManagement.ts
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useFetchClient } from '@strapi/helper-plugin';
 import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../utils/types';
 import { ERROR_MESSAGES, STATUS_MESSAGES, GRAMMAR_ENGINE_OPTIONS } from '../../../utils/constants';
 import { useLoadingState } from '../../../hooks';
+import { useFetchClient } from "@strapi/strapi/admin";
 
 interface UseGrammarManagementProps {
   articleId: string | null;

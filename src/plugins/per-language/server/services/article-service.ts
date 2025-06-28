@@ -1,12 +1,12 @@
 // src/plugins/per-language/server/services/article-service.ts
 
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 import { PerLanguageContentType } from '../types';
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => {
+export default ({ strapi }: any) => {
     // Type guard helper function
     const getEntityService = () => {
         if (!strapi.entityService) {

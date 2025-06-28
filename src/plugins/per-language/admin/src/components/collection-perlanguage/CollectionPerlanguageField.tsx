@@ -1,9 +1,8 @@
 // src/plugins/per-language/admin/src/components/collection-perlanguage/CollectionPerlanguageField.tsx
 
 import React, { useCallback, useEffect } from 'react';
-import { Stack, Typography, Box } from '@strapi/design-system';
+import { Flex, Typography, Box } from '@strapi/design-system';
 import { useIntl } from 'react-intl';
-import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import { SUPPORTED_LANGUAGES } from '../shared';
 
 // Import custom hooks
@@ -19,6 +18,8 @@ import { CollectionLanguageCreator } from './CollectionLanguageCreator';
 import { CollectionLanguageCard } from './CollectionLanguageCard';
 
 interface CollectionPerlanguageFieldProps {
+    document?: any;
+    documentId?: string | number;
     name: string;
     value: string;
     onChange: (e: { target: { name: string; value: string } }) => void;
@@ -40,14 +41,17 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
     onChange,
     intlLabel,
     required,
+    document,
+    documentId,
+    ...Props
 }) => {
     if (!name || !onChange) {
         return null;
     }
 
     const { formatMessage } = useIntl();
-    const { modifiedData } = useCMEditViewDataManager();
-    const collectionId = modifiedData.id;
+    const modifiedData = document || Props || {};
+    const collectionId = documentId || modifiedData.id || modifiedData.documentId;
 
     // Custom hooks for state management
     const { error, success, setError, setSuccess } = useAlertMessages();
@@ -118,7 +122,7 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
     }, [deleteLanguage, clearPendingChanges]);
 
     return (
-        <Stack spacing={6}>
+        <Flex gap={6}>
             {/* Alert Messages */}
             <AlertMessages
                 error={error}
@@ -156,7 +160,7 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
                             Existing Collection Languages ({collectionLanguages.length})
                         </Typography>
                     </Box>
-                    <Stack spacing={4}>
+                    <Flex gap={4}>
                         {collectionLanguages.map((language) => (
                             <CollectionLanguageCard
                                 key={language.id}
@@ -171,10 +175,10 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
                                 onDelete={() => handleDeleteLanguage(language)}
                             />
                         ))}
-                    </Stack>
+                    </Flex>
                 </Box>
             )}
-        </Stack>
+        </Flex>
     );
 };
 

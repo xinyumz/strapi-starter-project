@@ -2,9 +2,7 @@
 
 import React from 'react';
 import {
-  Layout,
-  HeaderLayout,
-  ContentLayout,
+  Main,
   Box,
   Typography,
   Link,
@@ -15,9 +13,9 @@ import pluginId from '../../pluginId';
 
 const HomePage = () => {
   return (
-    <Layout>
-      <HeaderLayout title={`${pluginId} Plugin`} />
-      <ContentLayout>
+    <Main>
+      <Box title={`${pluginId} Plugin`} />
+      <Main>
         <Box padding={8}>
           <Typography variant="alpha" marginBottom={4}>
             Chinese Article Processor
@@ -76,8 +74,8 @@ const HomePage = () => {
             </Link>
           </Box>
         </Box>
-      </ContentLayout>
-    </Layout>
+      </Main>
+    </Main>
   );
 };
 

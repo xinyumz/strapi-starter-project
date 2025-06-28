@@ -1,11 +1,11 @@
 // src/plugins/per-language/server/services/processing-service.ts
 
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
     /**
      * Process article with single save to sentence tables
      * The article_perlanguages table gets updated automatically via the grammar service

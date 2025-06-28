@@ -1,7 +1,7 @@
 // src/plugins/per-language/server/bootstrap.ts
-import { Strapi } from '@strapi/strapi';
 
-export default ({ strapi }: { strapi: Strapi }) => {
+
+export default ({ strapi }: any) => {
   // Initialize language processors
   const languageService = strapi.plugin('per-language').service('languageService');
   const availableProcessors = languageService.initializeLanguageProcessors();

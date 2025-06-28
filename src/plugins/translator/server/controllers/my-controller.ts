@@ -1,10 +1,10 @@
 // src/plugins/translator/server/controllers/my-controller.ts
 
-import { Strapi } from '@strapi/strapi';
+
 
 console.log('[My Controller] Loading my-controller...');
 
-export default ({ strapi }: { strapi: Strapi }) => {
+export default ({ strapi }: any) => {
   console.log('[My Controller] Controller function called');
 
   return {

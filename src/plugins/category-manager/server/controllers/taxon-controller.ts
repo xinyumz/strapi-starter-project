@@ -1,6 +1,6 @@
-import { Strapi } from '@strapi/strapi';
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+
+export default ({ strapi }: any) => ({
     async find(ctx: any) {
         try {
             const data = await strapi

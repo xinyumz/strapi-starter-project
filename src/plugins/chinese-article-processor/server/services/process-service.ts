@@ -1,11 +1,11 @@
 // src/plugins/chinese-article-processor/server/services/process-service.ts
 
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
     /**
      * Get article content from article_perlanguages table
      */

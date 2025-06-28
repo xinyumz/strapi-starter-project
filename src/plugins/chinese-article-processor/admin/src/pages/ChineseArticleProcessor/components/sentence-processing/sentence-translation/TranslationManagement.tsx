@@ -8,12 +8,9 @@ import {
     Flex,
     Card,
     CardHeader,
-    CardBody,
-    CardCheckbox,
-    CardAction,
     CardContent,
+    CardAction,
     CardBadge,
-    Stack,
     Alert
 } from '@strapi/design-system';
 import { Plus, Trash } from '@strapi/icons';
@@ -73,7 +70,7 @@ const TranslationManagement: React.FC<TranslationManagementProps> = ({
             <Box paddingTop={4}>
                 <Typography variant="omega">Active Languages</Typography>
                 <Box paddingTop={2}>
-                    <Stack spacing={2}>
+                    <Flex gap={2}>
                         {activeLanguages.map(language => (
                             <Card key={language}>
                                 <CardHeader>
@@ -101,7 +98,7 @@ const TranslationManagement: React.FC<TranslationManagementProps> = ({
                         {activeLanguages.length === 0 && (
                             <Typography>No active languages found.</Typography>
                         )}
-                    </Stack>
+                    </Flex>
                 </Box>
             </Box>
 

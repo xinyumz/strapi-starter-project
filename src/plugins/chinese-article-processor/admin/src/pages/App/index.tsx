@@ -6,8 +6,8 @@
  */
 
 import React from 'react';
-import { Switch, Route } from 'react-router-dom';
-import { NotFound } from '@strapi/helper-plugin';
+import { Routes, Route } from 'react-router-dom';
+import { Page } from '@strapi/strapi/admin'; // NotFound equivalent
 import pluginId from '../../pluginId';
 import HomePage from '../HomePage';
 import ChineseArticleProcessor from '../ChineseArticleProcessor';
@@ -15,11 +15,11 @@ import ChineseArticleProcessor from '../ChineseArticleProcessor';
 const App = () => {
   return (
     <div>
-      <Switch>
-        <Route path={`/plugins/${pluginId}`} component={HomePage} exact />
-        <Route path={`/plugins/${pluginId}/chinese-processor`} component={ChineseArticleProcessor} exact />
-        <Route component={NotFound} />
-      </Switch>
+      <Routes>
+        <Route path={`/plugins/${pluginId}`} element={<HomePage />} />
+        <Route path={`/plugins/${pluginId}/chinese-processor`} element={<ChineseArticleProcessor />} />
+        <Route path="*" element={<Page.Error />} />
+      </Routes>
     </div>
   );
 };

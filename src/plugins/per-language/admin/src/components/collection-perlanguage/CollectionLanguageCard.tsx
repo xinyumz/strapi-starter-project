@@ -2,16 +2,15 @@
 
 import React from 'react';
 import {
-    Stack,
+    Flex,
     Textarea,
     Typography,
     Box,
-    Flex,
     Card,
     CardHeader,
     CardBody,
     Badge,
-    ToggleCheckbox,
+    Checkbox,
     SingleSelect,
     SingleSelectOption,
     Button
@@ -143,7 +142,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
 
             <CardBody>
                 <Box width="100%" padding={4}>
-                    <Stack spacing={4}>
+                    <Flex gap={4}>
                         {/* Description Field */}
                         <Textarea
                             label="Description"
@@ -152,7 +151,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
                                 onFieldChange('description', e.target.value);
                             }}
                             style={{ minHeight: '100px' }}
-                            hint="Collection description for this language (optional for single-article collections)"
+                            description="Collection description for this language (optional for single-article collections)"
                         />
 
                         {/* Controls Layout */}
@@ -200,7 +199,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
                                             alignItems: 'center'
                                         }}
                                     >
-                                        <ToggleCheckbox
+                                        <Checkbox
                                             checked={Boolean(getCurrentValue(language, 'published')) || false}
                                             onChange={() => {
                                                 const currentValue = Boolean(getCurrentValue(language, 'published'));
@@ -227,7 +226,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
                                 </Button>
                             </Flex>
                         )}
-                    </Stack>
+                    </Flex>
                 </Box>
             </CardBody>
         </Card>

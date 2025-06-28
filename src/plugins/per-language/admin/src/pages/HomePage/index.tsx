@@ -2,9 +2,9 @@
 
 import React from 'react';
 import {
-  Layout,
-  HeaderLayout,
-  ContentLayout,
+  Main,
+  Header,
+  Content,
   Box,
   Typography,
   Link
@@ -14,9 +14,9 @@ import pluginId from '../../pluginId';
 
 const HomePage: React.FC = () => {
   return (
-    <Layout>
-      <HeaderLayout title={`${pluginId} Plugin`} />
-      <ContentLayout>
+    <Main>
+      <Box title={`${pluginId} Plugin`} />
+      <Main>
         <Box padding={8}>
           <Typography variant="alpha" marginBottom={4}>
             Per-Language Content Management
@@ -61,8 +61,8 @@ const HomePage: React.FC = () => {
             </Link>
           </Box>
         </Box>
-      </ContentLayout>
-    </Layout>
+      </Main>
+    </Main>
   );
 };
 

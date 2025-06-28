@@ -311,7 +311,7 @@ export function addFloatingButton(articleId: string): void {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform: translateY(0);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    letter-spacing: 0.025em;
+    letter-gap: 0.025em;
     border: 1px solid rgba(255,255,255,0.1);
   `;
 

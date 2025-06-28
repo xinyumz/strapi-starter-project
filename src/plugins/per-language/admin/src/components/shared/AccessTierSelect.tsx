@@ -1,7 +1,7 @@
 // src/plugins/per-language/admin/src/components/shared/AccessTierSelect.tsx
 
 import React from 'react';
-import { Select, Option } from '@strapi/design-system';
+import { SingleSelect, SingleSelectOption } from '@strapi/design-system';
 import { ACCESS_TIERS } from './constants';
 
 interface AccessTierSelectProps {
@@ -27,7 +27,7 @@ export const AccessTierSelect: React.FC<AccessTierSelectProps> = ({
     };
 
     return (
-        <Select
+        <SingleSelect
             value={value || ''}
             onChange={handleChange}
             disabled={disabled}
@@ -36,14 +36,14 @@ export const AccessTierSelect: React.FC<AccessTierSelectProps> = ({
             hasError={!!error}
         >
             {ACCESS_TIERS.map(tier => (
-                <Option
+                <SingleSelectOption
                     key={tier.value}
                     value={tier.value}
                     disabled={tier.disabled}
                 >
                     {tier.label}
-                </Option>
+                </SingleSelectOption>
             ))}
-        </Select>
+        </SingleSelect>
     );
 };

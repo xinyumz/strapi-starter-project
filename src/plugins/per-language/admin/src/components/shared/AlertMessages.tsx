@@ -35,7 +35,7 @@ export const AlertMessages: React.FC<AlertMessagesProps> = ({
                 <Alert
                     variant="danger"
                     title="Error"
-                    closable
+
                     onClose={onErrorClose}
                 >
                     {error}
@@ -46,7 +46,7 @@ export const AlertMessages: React.FC<AlertMessagesProps> = ({
                 <Alert
                     variant="success"
                     title="Success"
-                    closable
+
                     onClose={onSuccessClose}
                 >
                     {success}

@@ -1,7 +1,7 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/grammar/BulkActions.tsx
 import React, { useState } from 'react';
 import {
-  Flex, Button, Dialog, DialogBody, DialogFooter, Typography, useTheme
+  Flex, Box, Button, Dialog, Typography, useDesignSystem
 } from '@strapi/design-system';
 import { Check, Trash } from '@strapi/icons';
 
@@ -32,7 +32,8 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   // Get the current theme mode to adjust text colors
-  const { themeColorMode } = useTheme();
+  const { theme } = useDesignSystem();
+  const themeColorMode = theme === 'dark' ? 'dark' : 'light'; // or however theme mode is determined
   const textColor = themeColorMode === 'light' ? 'neutral100' : 'neutral800';
 
   const handleDeleteClick = () => {
@@ -98,12 +99,12 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 
       {/* Delete Confirmation Dialog */}
       <Dialog onClose={handleCancelDelete} title="Confirm Bulk Deletion" isOpen={isDeleteModalVisible}>
-        <DialogBody>
+        <Box padding={4}>
           <Typography textColor={textColor}>
             Are you sure you want to delete {selectedRules.length} selected grammar rules? This action cannot be undone.
           </Typography>
-        </DialogBody>
-        <DialogFooter
+        </Box>
+        <Flex justifyContent="flex-end" gap={2} padding={4}>
           startAction={
             <Button onClick={handleCancelDelete} variant="tertiary">
               Cancel
@@ -114,7 +115,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
               Yes, delete {selectedRules.length} rules
             </Button>
           }
-        />
+        </Flex>
       </Dialog>
     </>
   );

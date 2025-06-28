@@ -3,15 +3,10 @@ import React from 'react';
 import {
   Box,
   Textarea,
-  Stack,
-  Typography,
   Flex,
+  Typography,
   Badge,
   Tabs,
-  Tab,
-  TabGroup,
-  TabPanel,
-  TabPanels
 } from '@strapi/design-system';
 import { GrammarRule, Translation } from '../../../../utils/types';
 import GrammarRuleItem from './grammar/GrammarRuleItem';
@@ -109,37 +104,34 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
       {/* Translations with tabs for each language */}
       <Box paddingTop={1} paddingBottom={2}>
         {translations.length > 0 ? (
-          <TabGroup
+          <Tabs.Root
+            defaultValue={translations[0]?.language || 'default'}
             id={`translations-${index}`}
-            label={`Translations for sentence ${index + 1}`}
-            variant="simple"
           >
-            <Tabs>
+            <Tabs.List aria-label={`Translations for sentence ${index + 1}`}>
               {translations.map((translation) => (
-                <Tab key={translation.language}>
+                <Tabs.Trigger key={translation.language} value={translation.language}>
                   {getLanguageName(translation.language)}
-                </Tab>
+                </Tabs.Trigger>
               ))}
-            </Tabs>
+            </Tabs.List>
 
-            <TabPanels>
-              {translations.map((translation) => (
-                <TabPanel key={translation.language}>
-                  <Flex gap={2}>
-                    <Box style={{ flexGrow: 1 }}>
-                      <Textarea
-                        name={`translation-${index}-${translation.language}`}
-                        placeholder={`Translation (${getLanguageName(translation.language)})`}
-                        value={translation.text}
-                        onChange={(e: any) => onTranslationChange(index, translation.language, e.target.value)}
-                        style={{ minHeight: simplified ? '60px' : '80px' }}
-                      />
-                    </Box>
-                  </Flex>
-                </TabPanel>
-              ))}
-            </TabPanels>
-          </TabGroup>
+            {translations.map((translation) => (
+              <Tabs.Content key={translation.language} value={translation.language}>
+                <Flex gap={2}>
+                  <Box style={{ flexGrow: 1 }}>
+                    <Textarea
+                      name={`translation-${index}-${translation.language}`}
+                      placeholder={`Translation (${getLanguageName(translation.language)})`}
+                      value={translation.text}
+                      onChange={(e: any) => onTranslationChange(index, translation.language, e.target.value)}
+                      style={{ minHeight: simplified ? '60px' : '80px' }}
+                    />
+                  </Box>
+                </Flex>
+              </Tabs.Content>
+            ))}
+          </Tabs.Root>
         ) : (
           <Box marginBottom={2}>
             <Typography>No translations available. Click 'Translate All' to generate translations.</Typography>
@@ -156,7 +148,7 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
             </Typography>
           )}
 
-          <Stack spacing={simplified ? 1 : 2} marginTop={1}>
+          <Flex gap={simplified ? 1 : 2} marginTop={1}>
             {sentenceData.rules.map((rule, ruleIndex) => (
               <GrammarRuleItem
                 key={`rule-${index}-${ruleIndex}`}
@@ -169,7 +161,7 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
                 simplified={simplified}
               />
             ))}
-          </Stack>
+          </Flex>
         </Box>
       )}
     </Box>

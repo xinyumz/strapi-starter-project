@@ -1,6 +1,6 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/sentence-processing/SentenceProcessingSection.tsx
 import React from 'react';
-import { Box, Typography, Alert, Grid, GridItem } from '@strapi/design-system';
+import { Box, Typography, Alert, Grid } from '@strapi/design-system';
 import { GrammarRule, GrammarEngineChoice, SelectedRule } from '../../../../utils/types';
 import { GrammarToolbar } from './grammar';
 import { SentenceItem } from './';
@@ -107,11 +107,11 @@ const SentenceProcessingSection: React.FC<SentenceProcessingSectionProps> = ({
     } else {
       // Compact view - two sentences per row using Grid
       return (
-        <Grid gap={4}> {/* Increased gap for more spacing between sentences */}
+        <Grid gap={4}> {/* Increased gap for more gap between sentences */}
           {sentences.map((item, index) => (
-            <GridItem key={`grid-sentence-${index}`} col={6}>
+            <Grid.Item key={`grid-sentence-${index}`} col={6}>
               {renderSentenceItem(item, index)}
-            </GridItem>
+            </Grid.Item>
           ))}
         </Grid>
       );

@@ -1,9 +1,15 @@
 // src/plugins/per-language/server/controllers/collection-controller.ts
 
-import { Strapi } from '@strapi/strapi';
 import { Context } from 'koa';
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+// Add proper typing for the request body
+interface RequestWithBody extends Context {
+    request: Context['request'] & {
+        body?: any;
+    };
+}
+
+export default ({ strapi }: any) => ({
     /**
      * Get auto-retrieval data for collection language creation
      */
@@ -72,10 +78,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Update collection content with auto-retrieval support
      */
-    async updateCollectionContent(ctx: Context) {
+    async updateCollectionContent(ctx: RequestWithBody) {
         try {
             const { id: collectionId } = ctx.params;
-            const { language, description, useAutoRetrieval = false } = ctx.request.body;
+            const { language, description, useAutoRetrieval = false } = ctx.request.body || {};
 
             console.log('[CollectionController] Updating collection content:', {
                 collectionId,
@@ -196,10 +202,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Update collection display skill
      */
-    async updateCollectionDisplaySkill(ctx: Context) {
+    async updateCollectionDisplaySkill(ctx: RequestWithBody) {
         try {
             const { id: languageId } = ctx.params;
-            const { display_skill } = ctx.request.body;
+            const { display_skill } = ctx.request.body || {};
 
             if (!languageId) {
                 return ctx.badRequest('Language ID is required');
@@ -230,10 +236,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Update collection language access tier
      */
-    async updateCollectionAccessTier(ctx: Context) {
+    async updateCollectionAccessTier(ctx: RequestWithBody) {
         try {
             const { id: languageId } = ctx.params;
-            const { access_tier } = ctx.request.body;
+            const { access_tier } = ctx.request.body || {};
 
             if (!languageId || !access_tier) {
                 return ctx.badRequest('Language ID and access tier are required');
@@ -264,10 +270,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Update collection language publish status
      */
-    async updateCollectionPublishStatus(ctx: Context) {
+    async updateCollectionPublishStatus(ctx: RequestWithBody) {
         try {
             const { id: languageId } = ctx.params;
-            const { published } = ctx.request.body;
+            const { published } = ctx.request.body || {};
 
             if (!languageId || published === undefined) {
                 return ctx.badRequest('Language ID and published status are required');

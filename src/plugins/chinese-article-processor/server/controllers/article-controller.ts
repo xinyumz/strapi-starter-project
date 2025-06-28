@@ -1,12 +1,12 @@
 // src/plugins/chinese-article-processor/server/controllers/article-controller.ts
 
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 import { ExtendedContext } from '../services/types';
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
     // Main article processing endpoint
     // This method gets content from article_perlanguages table and processes it
     async processArticle(ctx: ExtendedContext) {

@@ -1,8 +1,8 @@
 //server/register.ts
 
-import { Strapi } from '@strapi/strapi';
 
-export default ({ strapi }: { strapi: Strapi }) => {
+
+export default ({ strapi }: any) => {
   strapi.customFields.register({
     name: 'translator',
     plugin: 'translator',

@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@strapi/design-system": "^1.13.1",
-    "@strapi/helper-plugin": "^4.25.0",
     "@strapi/icons": "^1.13.1",
     "prop-types": "^15.7.2"
   },

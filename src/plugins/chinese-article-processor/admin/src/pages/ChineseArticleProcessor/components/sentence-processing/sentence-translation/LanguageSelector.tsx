@@ -1,14 +1,14 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/grammar/LanguageSelector.tsx
 import React, { useState, useEffect } from 'react';
 import {
-    Select,
-    Option,
+    SingleSelect,
+    SingleSelectOption,
     Flex,
     Button,
     Box
 } from '@strapi/design-system';
-import { useFetchClient } from '@strapi/helper-plugin';
 import { Plus } from '@strapi/icons';
+import { useFetchClient } from "@strapi/strapi/admin";
 
 interface LanguageSelectorProps {
     value: string;
@@ -79,18 +79,15 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 setIsLoading(true);
 
                 // Use chinese-article-processor's language endpoint directly (filtered on server)
-                const { data, error } = await get('/chinese-article-processor/languages', {
+                const response = await get('/chinese-article-processor/languages', {
                     signal: controller.signal
                 });
 
                 if (!isMounted) return;
 
-                if (error) {
-                    console.warn('Failed to fetch languages from server, using defaults', error);
-                    setLanguages(defaultLanguages);
-                } else if (data && Array.isArray(data.data)) {
-                    console.log(`Received ${data.data.length} languages from server`);
-                    setLanguages(data.data);
+                if (response.data && Array.isArray(response.data.data)) {
+                    console.log(`Received ${response.data.data.length} languages from server`);
+                    setLanguages(response.data.data);
                 } else {
                     console.warn('Invalid response format from language endpoint, using defaults');
                     setLanguages(defaultLanguages);
@@ -119,7 +116,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <Box>
             <Flex gap={2}>
                 <Box style={{ flexGrow: 1 }}>
-                    <Select
+                    <SingleSelect
                         id="language-selector"
                         name="language"
                         label={label}
@@ -131,11 +128,11 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                         hint={hint}
                     >
                         {languages.map((language) => (
-                            <Option key={language.code} value={language.code}>
+                            <SingleSelectOption key={language.code} value={language.code}>
                                 {language.name}
-                            </Option>
+                            </SingleSelectOption>
                         ))}
-                    </Select>
+                    </SingleSelect>
                 </Box>
 
                 {onAddNewLanguage && (

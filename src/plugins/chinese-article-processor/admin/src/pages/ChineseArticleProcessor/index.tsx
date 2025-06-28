@@ -3,28 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import {
     Box,
-    HeaderLayout,
-    ContentLayout,
-    Layout,
+    Typography,
     Button,
-    ToggleCheckbox,
+    Checkbox,
     Flex,
-    Typography
+    Main
 } from '@strapi/design-system';
 import { ArrowLeft } from '@strapi/icons';
-import { useFetchClient } from '@strapi/helper-plugin';
 import pluginId from '../../pluginId';
-
 // Components from shared directory
 import { LoadingOverlay, AlertMessages, ConfirmationDialog } from '../../components/common';
 
 // Feature-specific components
 import { HSKAnalysisSection } from './components/hsk';
-import { SentenceProcessingSection } from './components/sentence-processing';
 
+import { SentenceProcessingSection } from './components/sentence-processing';
 // Hooks - Import from the hooks directory
 import { useLoadingState } from '../../hooks';
+
 import { useHSKManagement, useArticleProcessor, useGrammarManagement, useTranslationManagement } from './hooks';
+import { useFetchClient } from "@strapi/strapi/admin";
 
 /**
  * Main component for processing Chinese articles
@@ -235,8 +233,8 @@ const ChineseArticleProcessor = () => {
     };
 
     return (
-        <Layout>
-            <HeaderLayout
+        <>
+            <Box
                 title={`Chinese Article Processor - ${articleTitle}`}
                 subtitle={`Article ID: ${articleId}`}
                 navigationAction={
@@ -251,7 +249,7 @@ const ChineseArticleProcessor = () => {
                 primaryAction={
                     <Flex alignItems="center" gap={3}>
                         <Typography variant="pi">Compact View</Typography>
-                        <ToggleCheckbox
+                        <Checkbox
                             onLabel="ON"
                             offLabel="OFF"
                             checked={simplified}
@@ -262,7 +260,7 @@ const ChineseArticleProcessor = () => {
                 }
             />
 
-            <ContentLayout>
+            <Main>
                 {isLoading && !isTranslating && !isCalculatingHSK && !isProcessing ? (
                     <LoadingOverlay isLoading={true} message="Loading data..." />
                 ) : (
@@ -314,7 +312,7 @@ const ChineseArticleProcessor = () => {
                         />
                     </>
                 )}
-            </ContentLayout>
+            </Main>
 
             {/* Delete Rule Confirmation Dialog */}
             <ConfirmationDialog
@@ -327,7 +325,7 @@ const ChineseArticleProcessor = () => {
                 onConfirm={handleDeleteRuleConfirmed}
                 onCancel={() => setIsDeleteModalVisible(false)}
             />
-        </Layout>
+        </>
     );
 };
 

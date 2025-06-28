@@ -1,5 +1,5 @@
 // server/services/pinyin-service.ts
-import { Strapi } from '@strapi/strapi';
+
 
 interface PinyinResult {
     json: {
@@ -17,7 +17,7 @@ interface PinyinResult {
     };
 }
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
     async generatePinyin(text: string): Promise<PinyinResult> {
         try {
             const response = await fetch('https://api.pandaist.com/api/v1/generatepinyin/', {

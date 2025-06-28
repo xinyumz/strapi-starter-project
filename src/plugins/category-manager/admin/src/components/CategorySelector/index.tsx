@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Stack,
-    Select,
-    Option,
+    Flex,
+    SingleSelect,
+    SingleSelectOption,
     Typography,
     Box,
-    Flex,
     Button,
     Alert
 } from '@strapi/design-system';
-import { useFetchClient, useNotification, useCMEditViewDataManager } from '@strapi/helper-plugin';
+import { useFetchClient } from "@strapi/strapi/admin";
 
 interface CategorySelectorProps {
     name?: string;
@@ -59,7 +58,21 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
         error = '',
         description,
         disabled = false,
+        // Remove these problematic props
+        attribute,
+        placeholder,
+        contentTypeUID,
+        multiple,
+        withDefaultValue,
+        type,
+        options,
+        labelAction,
+        hint,
+        // Get the rest of safe props
+        ...safeProps
     } = props || {};
+
+    console.log('[CategorySelector] Component rendered with props:', safeProps);
 
     // State management
     const [taxons, setTaxons] = useState<Taxon[]>([]);
@@ -74,8 +87,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
     const [isLoadingValue, setIsLoadingValue] = useState(false);
 
     const { get } = useFetchClient();
-    const toggleNotification = useNotification();
-    const { modifiedData } = useCMEditViewDataManager();
 
     // Parse value safely
     const parseValueToCategoryId = useCallback((rawValue: any): number | null => {
@@ -404,26 +415,26 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
 
     if (!isInitialized) {
         return (
-            <Stack spacing={4}>
+            <Flex gap={4}>
                 <Alert variant="danger" title="Configuration Error">
                     Component not properly initialized.
                 </Alert>
-            </Stack>
+            </Flex>
         );
     }
 
     return (
-        <Stack spacing={4}>
+        <Flex gap={4}>
             {/* Error Messages */}
             {(internalError || error) && (
-                <Alert variant="danger" title="Error" closable onClose={() => setInternalError(null)}>
+                <Alert variant="danger" title="Error" onClose={() => setInternalError(null)}>
                     {internalError || error}
                 </Alert>
             )}
 
             {/* Success Messages */}
             {success && (
-                <Alert variant="success" title="Success" closable onClose={() => setSuccess(null)}>
+                <Alert variant="success" title="Success" onClose={() => setSuccess(null)}>
                     {success}
                 </Alert>
             )}
@@ -439,7 +450,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
             <Flex gap={4} wrap="wrap">
                 {/* Taxonomy Selection */}
                 <Box flex="1" minWidth="200px">
-                    <Select
+                    <SingleSelect
                         label="Taxonomy"
                         placeholder="Select a taxonomy..."
                         value={selectedTaxonId?.toString() || ''}
@@ -450,16 +461,16 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
                         hint="Choose the content type category"
                     >
                         {taxons.map((taxon) => (
-                            <Option key={`taxon-${taxon.id}`} value={taxon.id.toString()}>
+                            <SingleSelectOption key={`taxon-${taxon.id}`} value={taxon.id.toString()}>
                                 {taxon.name}
-                            </Option>
+                            </SingleSelectOption>
                         ))}
-                    </Select>
+                    </SingleSelect>
                 </Box>
 
                 {/* Category Selection */}
                 <Box flex="1" minWidth="200px">
-                    <Select
+                    <SingleSelect
                         label="Category"
                         placeholder={
                             !selectedTaxonId
@@ -474,11 +485,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
                         hint={selectedTaxonId ? `Categories in ${selectedTaxonName}` : "Select a taxonomy first"}
                     >
                         {categories.map((category) => (
-                            <Option key={`category-${category.id}`} value={category.id.toString()}>
+                            <SingleSelectOption key={`category-${category.id}`} value={category.id.toString()}>
                                 {category.name} {category.order > 0 ? `(#${category.order})` : ''}
-                            </Option>
+                            </SingleSelectOption>
                         ))}
-                    </Select>
+                    </SingleSelect>
                 </Box>
             </Flex>
 
@@ -550,7 +561,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = (props) => {
                     {description.defaultMessage}
                 </Typography>
             )}
-        </Stack>
+        </Flex>
     );
 };
 

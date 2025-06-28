@@ -1,6 +1,6 @@
 // src/plugins/per-language/server/services/collection-service.ts
 
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 
 const { ApplicationError } = errors;
@@ -33,7 +33,7 @@ interface AutoRetrievalData {
     articleDetails?: CollectionArticleData[];
 }
 
-export default ({ strapi }: { strapi: Strapi }) => {
+export default ({ strapi }: any) => {
     // Type guard helper function
     const getEntityService = () => {
         if (!strapi.entityService) {

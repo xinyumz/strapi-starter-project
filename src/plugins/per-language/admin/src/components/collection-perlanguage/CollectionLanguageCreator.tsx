@@ -4,7 +4,6 @@ import React, { useState, useCallback, useEffect } from 'react';
 import {
     Button,
     Grid,
-    GridItem,
     SingleSelect,
     SingleSelectOption,
     Typography,
@@ -14,12 +13,8 @@ import {
     Alert,
     Loader,
     Badge,
-    Icon,
-    Stack,
-    Select,
-    Option
 } from '@strapi/design-system';
-import { Plus, Information, Lightbulb, ArticleCheck } from '@strapi/icons';
+import { Plus, Information, Lightbulb, CheckCircle } from '@strapi/icons';
 import { SUPPORTED_LANGUAGES } from '../shared';
 import { CollectionLanguageData } from '../hooks';
 
@@ -171,15 +166,15 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
     const getScenarioIcon = (scenario: string) => {
         switch (scenario) {
             case 'no_articles':
-                return <Icon as={Information} color="danger600" />;
+                return <Information style={{ color: 'var(--strapi-colors-danger600)' }} />;
             case 'no_language_data':
-                return <Icon as={Information} color="warning600" />;
+                return <Information style={{ color: 'var(--strapi-colors-warning600)' }} />;
             case 'single_article':
-                return <Icon as={Lightbulb} color="success600" />;
+                return <Lightbulb style={{ color: 'var(--strapi-colors-success600)' }} />;
             case 'multiple_articles':
-                return <Icon as={ArticleCheck} color="primary600" />;
+                return <CheckCircle style={{ color: 'var(--strapi-colors-primary600)' }} />;
             default:
-                return <Icon as={Information} color="neutral600" />;
+                return <Information style={{ color: 'var(--strapi-colors-neutral600)' }} />;
         }
     };
 
@@ -241,7 +236,7 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                 <Divider marginBottom={4} />
 
                 <Grid gap={4}>
-                    <GridItem col={12} md={6}>
+                    <Grid.Item col={12} md={6}>
                         <SingleSelect
                             label="Select Language"
                             placeholder="Choose a language to add..."
@@ -263,9 +258,9 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                                 </SingleSelectOption>
                             ))}
                         </SingleSelect>
-                    </GridItem>
+                    </Grid.Item>
 
-                    <GridItem col={12} md={6}>
+                    <Grid.Item col={12} md={6}>
                         <Flex direction="column" gap={2}>
                             <Typography variant="omega" fontWeight="semiBold">
                                 Auto-Retrieval Options
@@ -278,7 +273,7 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                                     onClick={() => setUseAutoRetrieval(true)}
                                     disabled={isCreatingRecord || !selectedLanguage}
                                 >
-                                    <Icon as={Lightbulb} />
+                                    <Lightbulb />
                                     Smart Create
                                 </Button>
 
@@ -299,7 +294,7 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                                 }
                             </Typography>
                         </Flex>
-                    </GridItem>
+                    </Grid.Item>
                 </Grid>
 
                 {/* Auto-Retrieval Preview */}
@@ -337,7 +332,7 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                                 {autoRetrievalData.collectionStats && (
                                     <Box marginBottom={3}>
                                         <Grid gap={2}>
-                                            <GridItem col={4}>
+                                            <Grid.Item col={4}>
                                                 <Box textAlign="center" padding={2} background="neutral100" borderRadius="4px">
                                                     <Typography variant="sigma" fontWeight="bold">
                                                         {autoRetrievalData.collectionStats.articleCount}
@@ -346,8 +341,8 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                                                         Articles
                                                     </Typography>
                                                 </Box>
-                                            </GridItem>
-                                            <GridItem col={4}>
+                                            </Grid.Item>
+                                            <Grid.Item col={4}>
                                                 <Box textAlign="center" padding={2} background="neutral100" borderRadius="4px">
                                                     <Typography variant="sigma" fontWeight="bold">
                                                         {autoRetrievalData.collectionStats.languageDataCount}
@@ -356,8 +351,8 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                                                         Translated
                                                     </Typography>
                                                 </Box>
-                                            </GridItem>
-                                            <GridItem col={4}>
+                                            </Grid.Item>
+                                            <Grid.Item col={4}>
                                                 <Box textAlign="center" padding={2} background="neutral100" borderRadius="4px">
                                                     <Typography variant="sigma" fontWeight="bold">
                                                         {autoRetrievalData.collectionStats.hasLanguageData ? '✓' : '✗'}
@@ -366,7 +361,7 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                                                         Ready
                                                     </Typography>
                                                 </Box>
-                                            </GridItem>
+                                            </Grid.Item>
                                         </Grid>
                                     </Box>
                                 )}
@@ -387,25 +382,25 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
 
                                         <Grid gap={2}>
                                             {autoRetrievalData.suggestedData.access_tier && (
-                                                <GridItem col={6}>
+                                                <Grid.Item col={6}>
                                                     <Typography variant="pi" textColor="neutral600">
                                                         Access Tier:
                                                     </Typography>
                                                     <Badge variant="secondary">
                                                         {autoRetrievalData.suggestedData.access_tier}
                                                     </Badge>
-                                                </GridItem>
+                                                </Grid.Item>
                                             )}
 
                                             {autoRetrievalData.suggestedData.display_skill && (
-                                                <GridItem col={6}>
+                                                <Grid.Item col={6}>
                                                     <Typography variant="pi" textColor="neutral600">
                                                         Skill Level:
                                                     </Typography>
                                                     <Badge variant="secondary">
                                                         {autoRetrievalData.suggestedData.display_skill}
                                                     </Badge>
-                                                </GridItem>
+                                                </Grid.Item>
                                             )}
                                         </Grid>
                                     </Box>
@@ -453,8 +448,8 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                 </Typography>
             </Box>
 
-            <Stack spacing={4}>
-                <Select
+            <Flex gap={4}>
+                <SingleSelect
                     label="Choose Collection Target Language"
                     placeholder="Select a language to create collection content"
                     value={selectedLanguage}
@@ -462,11 +457,11 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                     disabled={isCreatingRecord || !collectionId}
                 >
                     {availableOptions.map((lang) => (
-                        <Option key={lang.code} value={lang.code}>
+                        <SingleSelectOption key={lang.code} value={lang.code}>
                             {lang.name}
-                        </Option>
+                        </SingleSelectOption>
                     ))}
-                </Select>
+                </SingleSelect>
 
                 {/* No collection ID warning */}
                 {!collectionId && (
@@ -494,7 +489,7 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                         </Typography>
                     </Box>
                 )}
-            </Stack>
+            </Flex>
         </Box>
     );
 };

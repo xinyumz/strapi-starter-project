@@ -2,12 +2,12 @@
 
 import React from 'react';
 import {
+  Box,
+  Flex,
   Dialog,
-  DialogBody,
-  DialogFooter,
   Button,
   Typography,
-  useTheme
+  useDesignSystem
 } from '@strapi/design-system';
 
 interface ConfirmationDialogProps {
@@ -35,17 +35,18 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onCancel
 }) => {
   // Get the current theme mode to adjust text colors
-  const { themeColorMode } = useTheme();
+  const { theme } = useDesignSystem();
+  const themeColorMode = theme === 'dark' ? 'dark' : 'light'; // or however theme mode is determined
   const textColor = themeColorMode === 'light' ? 'neutral100' : 'neutral800';
 
   return (
     <Dialog onClose={onCancel} title={title} isOpen={isVisible}>
-      <DialogBody>
+      <Box padding={4}>
         <Typography textColor={textColor}>
           {message}
         </Typography>
-      </DialogBody>
-      <DialogFooter
+      </Box>
+      <Flex justifyContent="flex-end" gap={2} padding={4}>
         startAction={
           <Button onClick={onCancel} variant="tertiary">
             {cancelText}
@@ -56,7 +57,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             {confirmText}
           </Button>
         }
-      />
+      </Flex>
     </Dialog>
   );
 };

@@ -1,11 +1,4 @@
 export default ({ env }) => ({
-    seo: {
-        enabled: true,
-    },
-    'category-manager': {
-        enabled: true,
-        resolve: './src/plugins/category-manager'
-    },
     'translator': {
         enabled: true,
         resolve: './src/plugins/translator'
@@ -18,8 +11,13 @@ export default ({ env }) => ({
         enabled: true,
         resolve: './src/plugins/chinese-article-processor'
     },
+    'category-manager': {
+        enabled: true,
+        resolve: './src/plugins/category-manager'
+    },
     'collection-article-relation': {
         enabled: true,
         resolve: './src/plugins/collection-article-relation'
     },
+
 });

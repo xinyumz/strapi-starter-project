@@ -1,8 +1,8 @@
 // src/plugins/collection-article-relation/server/controllers/collection-autofill-controller.ts
 
-import { Strapi } from '@strapi/strapi';
+import type { Core } from '@strapi/strapi';
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
     /**
      * Create quick collection from single article
      * POST /collection-article-relation/quick-create

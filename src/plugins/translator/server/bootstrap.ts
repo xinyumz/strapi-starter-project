@@ -1,8 +1,8 @@
 // src/plugins/translator/server/bootstrap.ts
 
-import { Strapi } from '@strapi/strapi';
 
-export default async ({ strapi }: { strapi: Strapi }) => {
+
+export default async ({ strapi }: any) => {
   console.log('[Translator Bootstrap] Translator plugin initialized');
 
   // The translator plugin is now a pure service provider:

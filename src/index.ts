@@ -97,7 +97,7 @@ export default {
             queryParams.filters = params.filters;
           }
 
-          const articlesToDelete = await strapi.entityService.findMany(uid, queryParams);
+          const articlesToDelete = await strapi.documents(uid).findMany(queryParams);
           const articleIds = Array.isArray(articlesToDelete)
             ? articlesToDelete.map((article: any) => article.id)
             : [];
@@ -120,7 +120,7 @@ export default {
             queryParams.filters = params.filters;
           }
 
-          const collectionsToDelete = await strapi.entityService.findMany(uid, queryParams);
+          const collectionsToDelete = await strapi.documents(uid).findMany(queryParams);
           const collectionIds = Array.isArray(collectionsToDelete)
             ? collectionsToDelete.map((collection: any) => collection.id)
             : [];

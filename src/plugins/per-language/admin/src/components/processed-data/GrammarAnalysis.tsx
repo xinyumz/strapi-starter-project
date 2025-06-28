@@ -1,7 +1,7 @@
 // src/plugins/per-language/admin/src/components/processed-data/GrammarAnalysis.tsx
 
 import React from 'react';
-import { Box, Button, Flex, Typography, Badge, Stack } from '@strapi/design-system';
+import { Box, Button, Flex, Typography, Badge } from '@strapi/design-system';
 import { GrammarSentence, LanguageProcessor } from '../shared/types';
 
 interface GrammarAnalysisProps {
@@ -53,7 +53,7 @@ export const GrammarAnalysis: React.FC<GrammarAnalysisProps> = ({
                 <Badge backgroundColor="primary200" textColor="primary700">{totalRules} rules</Badge>
             </Flex>
 
-            <Stack spacing={3}>
+            <Flex gap={3}>
                 {displaySentences.map((sentence: GrammarSentence, index: number) => (
                     <Box key={index} padding={2} background="neutral100" borderRadius="4px">
                         <Typography variant="pi" fontWeight="bold" color="primary600" paddingBottom={2}>
@@ -87,7 +87,7 @@ export const GrammarAnalysis: React.FC<GrammarAnalysisProps> = ({
                         </Button>
                     </Box>
                 )}
-            </Stack>
+            </Flex>
         </Box>
     );
 };

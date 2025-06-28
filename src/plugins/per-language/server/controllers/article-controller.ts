@@ -1,16 +1,22 @@
 // src/plugins/per-language/server/controllers/article-controller.ts
 
-import { Strapi } from '@strapi/strapi';
 import { Context } from 'koa';
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+// Add proper typing for the request body
+interface RequestWithBody extends Context {
+    request: Context['request'] & {
+        body?: any;
+    };
+}
+
+export default ({ strapi }: any) => ({
     /**
      * Create or update content for a specific language
      */
-    async updateArticleContent(ctx: Context) {
+    async updateArticleContent(ctx: RequestWithBody) {
         try {
             const { id: articleId } = ctx.params;
-            const { language, content } = ctx.request.body;
+            const { language, content } = ctx.request.body || {};
 
             console.log('[ArticleController] Updating article content:', {
                 articleId,
@@ -155,9 +161,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Enhanced translate endpoint with manual content support
      */
-    async translateContent(ctx: Context) {
+    async translateContent(ctx: RequestWithBody) {
         try {
-            const { articleId, targetLanguage, text, isManualContent = false } = ctx.request.body;
+            const { articleId, targetLanguage, text, isManualContent = false } = ctx.request.body || {};
 
             console.log('[ArticleController] Translate request:', {
                 articleId,
@@ -278,9 +284,9 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Update processed data using the service method
      */
-    async updateProcessedData(ctx: Context) {
+    async updateProcessedData(ctx: RequestWithBody) {
         try {
-            const { contentId, processedData, difficultyData, displaySkill } = ctx.request.body;
+            const { contentId, processedData, difficultyData, displaySkill } = ctx.request.body || {};
 
             if (!contentId || !processedData) {
                 return ctx.badRequest('Content ID and processed data are required');
@@ -307,10 +313,10 @@ export default ({ strapi }: { strapi: Strapi }) => ({
     /**
      * Update access tier for language content
      */
-    async updateAccessTier(ctx: Context) {
+    async updateAccessTier(ctx: RequestWithBody) {
         try {
             const { contentId } = ctx.params;
-            const { access_tier } = ctx.request.body;
+            const { access_tier } = ctx.request.body || {};
 
             console.log('[ArticleController] Updating access tier:', {
                 contentId,

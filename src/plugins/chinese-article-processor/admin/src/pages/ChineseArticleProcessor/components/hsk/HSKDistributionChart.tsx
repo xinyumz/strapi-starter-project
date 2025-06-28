@@ -1,7 +1,7 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/hsk/HSKDistributionChart.tsx
 
 import React from 'react';
-import { Box, Typography, Stack, Flex } from '@strapi/design-system';
+import { Box, Typography, Flex } from '@strapi/design-system';
 import { COLORS, COLOR_THRESHOLDS } from '../../../../utils/constants';
 
 interface HSKDistributionChartProps {
@@ -23,7 +23,7 @@ const HSKDistributionChart: React.FC<HSKDistributionChartProps> = ({ distributio
     return (
         <Box background="neutral0" padding={4} hasRadius shadow="filterShadow">
             <Typography variant="delta" paddingBottom={2}>HSK Level Distribution</Typography>
-            <Stack spacing={2}>
+            <Flex gap={2}>
                 {distribution.map((percentage: number, index: number) => (
                     <Box key={index}>
                         <Flex justifyContent="space-between" paddingBottom={1}>
@@ -45,7 +45,7 @@ const HSKDistributionChart: React.FC<HSKDistributionChartProps> = ({ distributio
                         </Box>
                     </Box>
                 ))}
-            </Stack>
+            </Flex>
         </Box>
     );
 };

@@ -1,8 +1,8 @@
 // src/plugins/chinese-article-processor/server/bootstrap.ts
 
-import { Strapi } from '@strapi/strapi';
 
-export default async ({ strapi }: { strapi: Strapi }) => {
+
+export default async ({ strapi }: any) => {
   try {
     strapi.log.info('[Chinese Article Processor] Plugin loaded successfully');
 

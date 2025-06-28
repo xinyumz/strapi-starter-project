@@ -6,20 +6,20 @@
  */
 
 import React from 'react';
-import { Switch, Route } from 'react-router-dom';
-import { AnErrorOccurred } from '@strapi/helper-plugin';
+import { Routes, Route } from 'react-router-dom';
 import pluginId from '../../pluginId';
 import HomePage from '../HomePage';
+import { Page } from "@strapi/strapi/admin";
 
 const App = () => {
   console.log('[App] Component rendered - but FloatingCollectionButton should be mounted globally');
 
   return (
     <div>
-      <Switch>
-        <Route path={`/plugins/${pluginId}`} component={HomePage} exact />
-        <Route component={AnErrorOccurred} />
-      </Switch>
+      <Routes>
+        <Route path={`/plugins/${pluginId}`} element={<HomePage />} />
+        <Route path="*" element={<Page.Error />} />
+      </Routes>
     </div>
   );
 };

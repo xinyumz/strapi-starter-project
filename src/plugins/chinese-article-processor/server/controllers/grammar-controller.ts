@@ -1,11 +1,11 @@
 // server/controllers/grammar-controller.ts
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 import { ExtendedContext } from '../services/types';
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
     // Generate grammar rules
     async generateRules(ctx: ExtendedContext) {
         try {

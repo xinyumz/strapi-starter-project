@@ -9,12 +9,9 @@ import {
     Typography,
     Badge,
     Button,
-    ToggleCheckbox,
+    Checkbox,
     Box,
-    Stack,
     Divider,
-    Grid,
-    GridItem
 } from '@strapi/design-system';
 import {
     Refresh,
@@ -28,7 +25,6 @@ import {
 import { LanguageData, LanguageProcessor } from '../shared/types';
 import { ACCESS_TIERS } from '../shared/constants';
 import { AccessTierSelect } from '../shared/AccessTierSelect';
-import { HSKAnalysis, GrammarAnalysis, TranslationAnalysis } from './';
 
 interface LanguageCardProps {
     language: LanguageData;
@@ -56,7 +52,6 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
     isExpanded,
     isUpdating,
     showAllGrammar,
-    showAllTranslations,
     onToggleExpansion,
     onClose,
     onRefresh,
@@ -64,7 +59,6 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
     onAccessTierChange,
     onOpenProcessor,
     onGrammarExpansionToggle,
-    onTranslationExpansionToggle,
     onDelete
 }) => {
     // Helper function to get the correct icon for access tier
@@ -253,7 +247,7 @@ Are you sure you want to delete all ${processor.name} content?`;
 
             <CardBody>
                 <Box width="100%" padding={4}>
-                    <Stack spacing={4}>
+                    <Flex gap={4}>
                         {/* Status badges and action buttons - Flex with wrap */}
                         <Flex justifyContent="space-between" alignItems="flex-start" wrap="wrap" gap={3}>
                             <Flex gap={3} alignItems="center" wrap="wrap" style={{ minWidth: 'fit-content' }}>
@@ -307,7 +301,7 @@ Are you sure you want to delete all ${processor.name} content?`;
 
                                 <Flex gap={2} alignItems="center" style={{ flexShrink: 0 }}>
                                     {lang.published ? <Eye width="16px" height="16px" /> : <EyeStriked width="16px" height="16px" />}
-                                    <ToggleCheckbox
+                                    <Checkbox
                                         checked={lang.published || false}
                                         onChange={() => onPublishToggle(lang.id, lang.published)}
                                         disabled={isUpdating[`publish_${lang.id}`]}
@@ -357,7 +351,7 @@ Are you sure you want to delete all ${processor.name} content?`;
 
                                 {isExpanded && (
                                     <Box padding={4} background="neutral50" borderRadius="4px">
-                                        <Stack spacing={4}>
+                                        <Flex gap={4}>
                                             {/* 1. Difficulty Levels Section - Dynamic */}
                                             {lang.display_skill && (
                                                 <Flex gap={2} alignItems="center">
@@ -389,12 +383,12 @@ Are you sure you want to delete all ${processor.name} content?`;
                                                         Sentences
                                                     </Typography>
 
-                                                    <Stack spacing={4}>
+                                                    <Flex gap={4}>
                                                         {lang.processed_data.grammar.sentences
                                                             .slice(0, showAllGrammar[lang.id] ? undefined : 3)
                                                             .map((sentence: any, index: number) => (
                                                                 <Box key={index} padding={3} background="neutral0" borderRadius="4px" shadow="filterShadow">
-                                                                    <Stack spacing={2}>
+                                                                    <Flex gap={2}>
                                                                         {/* Original sentence */}
                                                                         <Typography variant="epsilon" fontWeight="semiBold">
                                                                             {sentence.sentence}
@@ -440,7 +434,7 @@ Are you sure you want to delete all ${processor.name} content?`;
                                                                                 ))}
                                                                             </Box>
                                                                         )}
-                                                                    </Stack>
+                                                                    </Flex>
                                                                 </Box>
                                                             ))}
 
@@ -459,15 +453,15 @@ Are you sure you want to delete all ${processor.name} content?`;
                                                                 </Button>
                                                             </Box>
                                                         )}
-                                                    </Stack>
+                                                    </Flex>
                                                 </Box>
                                             )}
-                                        </Stack>
+                                        </Flex>
                                     </Box>
                                 )}
                             </>
                         )}
-                    </Stack>
+                    </Flex>
                 </Box>
             </CardBody>
         </Card>

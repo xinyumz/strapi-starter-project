@@ -6,16 +6,13 @@ import {
     Button,
     Typography,
     Alert,
-    Stack,
-    EmptyStateLayout,
-    Tag
+    Flex,
+    EmptyStateLayout
 } from '@strapi/design-system';
 import {
     Refresh,
     ExclamationMarkCircle
 } from '@strapi/icons';
-import { useFetchClient } from '@strapi/helper-plugin';
-
 import {
     SUPPORTED_LANGUAGES,
     LanguageData,
@@ -25,6 +22,8 @@ import {
     BulkControls,
     LanguageCard
 } from '../processed-data';
+
+import { useFetchClient } from "@strapi/strapi/admin";
 
 interface ProcessedDataDisplayProps {
     articleId: string;
@@ -140,10 +139,8 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
             // Try to use del method, fallback to delete if not available
             let response;
             try {
-                if (fetchClient.del) {
+                if (fetchClient && fetchClient.del) {
                     response = await fetchClient.del(`/per-language/content/${languageId}`);
-                } else if (fetchClient.delete) {
-                    response = await fetchClient.delete(`/per-language/content/${languageId}`);
                 } else {
                     // Manual fetch as fallback
                     response = await fetch(`/per-language/content/${languageId}`, {
@@ -472,7 +469,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 onBulkAccessTier={handleBulkAccessTier}
                 bulkPublishState={bulkPublishState}
             />
-            <Stack spacing={4}>
+            <Flex gap={4}>
                 {languageData
                     .filter(lang => visibleCards.size === 0 || visibleCards.has(lang.id))
                     .map((lang, index) => {
@@ -510,7 +507,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                             />
                         );
                     })}
-            </Stack>
+            </Flex>
         </Box>
     );
 };

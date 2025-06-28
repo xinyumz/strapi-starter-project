@@ -1,7 +1,7 @@
 // src/plugins/per-language/server/register.ts
-import { Strapi } from '@strapi/strapi';
 
-export default ({ strapi }: { strapi: Strapi }) => {
+
+export default ({ strapi }: any) => {
   console.log('[Per-Language Register] Registering plugin API routes...');
 
   // Register the custom field on the server side

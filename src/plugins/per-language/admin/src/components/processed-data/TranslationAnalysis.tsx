@@ -1,7 +1,7 @@
 // src/plugins/per-language/admin/src/components/processed-data/TranslationAnalysis.tsx
 
 import React from 'react';
-import { Box, Button, Flex, Typography, Badge, Stack } from '@strapi/design-system';
+import { Box, Button, Flex, Typography, Badge } from '@strapi/design-system';
 import { GrammarSentence, Translation, LanguageProcessor } from '../shared/types';
 
 interface TranslationAnalysisProps {
@@ -39,7 +39,7 @@ export const TranslationAnalysis: React.FC<TranslationAnalysisProps> = ({
                 Translation Analysis
             </Typography>
 
-            <Stack spacing={2}>
+            <Flex gap={2}>
                 {displaySentences.map((sentence: GrammarSentence, index: number) => (
                     <Box key={index} padding={2} background="neutral100" borderRadius="4px">
                         <Typography variant="pi" fontWeight="bold" color="primary600">
@@ -92,7 +92,7 @@ export const TranslationAnalysis: React.FC<TranslationAnalysisProps> = ({
                         ))}
                     </Flex>
                 )}
-            </Stack>
+            </Flex>
         </Box>
     );
 };

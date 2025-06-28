@@ -1,11 +1,11 @@
 // server/services/translation-service.ts
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 import { BatchTranslationOptions } from './types';
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
     /**
      * Helper method to translate sentences in batches for better performance
      */

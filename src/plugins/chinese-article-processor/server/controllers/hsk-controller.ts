@@ -1,5 +1,5 @@
 // server/controllers/hsk-controller.ts
-import { Strapi } from '@strapi/strapi';
+
 import { Context } from 'koa';
 import { errors } from '@strapi/utils';
 
@@ -14,7 +14,7 @@ interface ExtendedContext extends Context {
   };
 }
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
   async calculateHSK(ctx: ExtendedContext) {
     try {
       const { text } = ctx.request.body;

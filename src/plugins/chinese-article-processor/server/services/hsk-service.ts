@@ -1,5 +1,5 @@
 // server/services/hsk-service.ts
-import { Strapi } from '@strapi/strapi';
+
 
 interface HSKResult {
   skillLevel: number;
@@ -12,7 +12,7 @@ interface HSKResponse {
   };
 }
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+export default ({ strapi }: any) => ({
   async calculateHSK(text: string): Promise<HSKResult> {
     try {
       // First get pinyin analysis

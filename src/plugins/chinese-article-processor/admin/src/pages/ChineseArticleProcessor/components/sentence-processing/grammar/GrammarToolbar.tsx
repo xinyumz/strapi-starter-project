@@ -6,10 +6,10 @@ import {
   Typography,
   Divider,
   Flex,
-  Select,
-  Option,
+  SingleSelect,
+  SingleSelectOption,
   Grid,
-  GridItem,
+
 } from '@strapi/design-system';
 import { Refresh, Play } from '@strapi/icons';
 import { GrammarEngineChoice } from '../../../../../utils/types';
@@ -54,8 +54,8 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
 
       <Grid gap={4}>
         {/* Engine Selection */}
-        <GridItem col={3}>
-          <Select
+        <Grid.Item col={3}>
+          <SingleSelect
             id="engine-select"
             name="engine"
             label="Grammar Engine"
@@ -63,24 +63,24 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
             onChange={(value: GrammarEngineChoice) => onEngineChange(value)}
             disabled={isLoading}
           >
-            <Option value="stanford">Stanford</Option>
-            <Option value="jieba">Jieba</Option>
-            <Option value="both">Both (Stanford + Jieba)</Option>
-          </Select>
-        </GridItem>
+            <SingleSelectOption value="stanford">Stanford</SingleSelectOption>
+            <SingleSelectOption value="jieba">Jieba</SingleSelectOption>
+            <SingleSelectOption value="both">Both (Stanford + Jieba)</SingleSelectOption>
+          </SingleSelect>
+        </Grid.Item>
 
         {/* Language Selection */}
-        <GridItem col={3}>
+        <Grid.Item col={3}>
           <LanguageSelector
             value={targetLanguage}
             onChange={onLanguageChange}
             disabled={isLoading || isTranslating || !hasSupportedLanguages}
             hint={!hasSupportedLanguages ? "Translator plugin not configured" : undefined}
           />
-        </GridItem>
+        </Grid.Item>
 
         {/* Action Buttons */}
-        <GridItem col={6}>
+        <Grid.Item col={6}>
           <Flex justifyContent="flex-end" alignItems="flex-end" gap={2} style={{ height: '100%' }}>
             <Button
               variant="secondary"
@@ -102,7 +102,7 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
               Translate All
             </Button>
           </Flex>
-        </GridItem>
+        </Grid.Item>
       </Grid>
 
       <Box paddingTop={4}>

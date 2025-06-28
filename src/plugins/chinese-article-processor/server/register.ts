@@ -1,7 +1,7 @@
 // server/register.ts
-import { Strapi } from '@strapi/strapi';
 
-export default ({ strapi }: { strapi: Strapi }) => {
+
+export default ({ strapi }: any) => {
   strapi.customFields.register({
     name: 'chinese-language-tools',
     plugin: 'chinese-article-processor',

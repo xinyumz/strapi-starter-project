@@ -1,6 +1,5 @@
-// src/plugins/chinese-article-processor/admin/src/utils/apiHelpers.ts
-import { useFetchClient } from '@strapi/helper-plugin';
 import { GrammarRule, Translation } from './types';
+import { useFetchClient } from "@strapi/strapi/admin";
 
 /**
  * Standardizes response data from grammar endpoints

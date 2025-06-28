@@ -1,6 +1,6 @@
 declare module '@strapi/design-system';
 declare module '@strapi/icons';
-declare module '@strapi/helper-plugin';
+// declare module '@strapi/strapi/admin'; // Removed in v5
 
 // admin/src/types.d.ts
 
@@ -10,7 +10,7 @@ declare module '@strapi/design-system' {
     export const Button: FC<ComponentProps<'button'>>;
     export const Box: FC<ComponentProps<'div'>>;
     export const Typography: FC<ComponentProps<'p'>>;
-    export const Stack: FC<ComponentProps<'div'>>;
+    export const Flex: FC<ComponentProps<'div'>>;
     export const TextInput: FC<ComponentProps<'input'>>;
     export const Radio: FC<ComponentProps<'input'>>;
     export const Accordion: FC<ComponentProps<'div'>>;

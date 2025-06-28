@@ -2,19 +2,17 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-    Stack,
+    Flex,
     Textarea,
     Button,
-    Select,
-    Option,
+    SingleSelect,
+    SingleSelectOption,
     Typography,
     Box,
-    Flex,
     Divider,
     Alert
 } from '@strapi/design-system';
 import { useIntl } from 'react-intl';
-import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 import { ProcessedDataDisplay } from './ProcessedDataDisplay';
 import { SUPPORTED_LANGUAGES } from '../shared';
 
@@ -24,6 +22,9 @@ interface LanguageProcessorFieldProps {
     onChange: (e: { target: { name: string; value: string } }) => void;
     intlLabel: { id: string; defaultMessage: string };
     required: boolean;
+    document?: any; // The document data (replaces modifiedData)
+    documentId?: string | number; // Document ID
+    attribute?: any; // Field attribute info
 }
 
 const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
@@ -32,6 +33,9 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     onChange,
     intlLabel,
     required,
+    document, // prop for document data
+    documentId, // prop for document ID
+    ...props
 }) => {
     const { formatMessage } = useIntl();
     const [targetLanguage, setTargetLanguage] = useState('');
@@ -40,7 +44,6 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     const [refreshKey, setRefreshKey] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const { modifiedData } = useCMEditViewDataManager();
 
     // Debounce timer for manual input
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
@@ -49,7 +52,8 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     const selectedLanguageInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
     const hasContent = Boolean(value && value.trim().length > 0);
     const hasSelectedLanguage = Boolean(targetLanguage);
-    const articleId = modifiedData.id;
+    const modifiedData = document || props || {};
+    const articleId = documentId || modifiedData.id || modifiedData.documentId;
 
     // Clear messages after 5 seconds
     useEffect(() => {
@@ -376,16 +380,16 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
     }, []);
 
     return (
-        <Stack spacing={6}>
+        <Flex gap={6} direction="column">
             {/* Error/Success Messages */}
             {error && (
-                <Alert variant="danger" title="Error" closable onClose={() => setError(null)}>
+                <Alert variant="danger" title="Error" onClose={() => setError(null)}>
                     {error}
                 </Alert>
             )}
 
             {success && (
-                <Alert variant="success" title="Success" closable onClose={() => setSuccess(null)}>
+                <Alert variant="success" title="Success" onClose={() => setSuccess(null)}>
                     {success}
                 </Alert>
             )}
@@ -397,9 +401,9 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                         Translation
                     </Typography>
                 </Box>
-                <Stack spacing={4}>
+                <Flex gap={4}>
                     {/* Language selection */}
-                    <Select
+                    <SingleSelect
                         label="Select Target Language"
                         placeholder="Choose a language to begin translation"
                         value={targetLanguage}
@@ -408,11 +412,11 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                         disabled={isCreatingRecord}
                     >
                         {SUPPORTED_LANGUAGES.map((lang) => (
-                            <Option key={lang.code} value={lang.code}>
+                            <SingleSelectOption key={lang.code} value={lang.code}>
                                 {lang.name} {lang.hasProcessor ? '⚙️' : '🚧'}
-                            </Option>
+                            </SingleSelectOption>
                         ))}
-                    </Select>
+                    </SingleSelect>
 
                     {!hasSelectedLanguage && (
                         <Box padding={3} background="neutral100" borderRadius="4px">
@@ -451,7 +455,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                                 required={required}
                                 disabled={isCreatingRecord}
                                 style={{ minHeight: '200px' }}
-                                hint={articleId
+                                description={articleId
                                     ? `Translated content for ${selectedLanguageInfo?.name}. Changes auto-sync to database.`
                                     : `Translated content for ${selectedLanguageInfo?.name}. Save article to enable auto-sync.`
                                 }
@@ -466,13 +470,13 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                             )}
                         </>
                     )}
-                </Stack>
+                </Flex>
             </Box>
 
             <Divider />
 
             {/* Multi-Language Processing Center */}
-            <Stack>
+            <Flex>
                 <Box paddingBottom={2}>
                     <Typography variant="delta">
                         Multi-Language Processing Center
@@ -496,8 +500,8 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = ({
                         </Typography>
                     </Box>
                 )}
-            </Stack>
-        </Stack>
+            </Flex>
+        </Flex>
     );
 };
 

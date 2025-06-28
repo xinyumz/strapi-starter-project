@@ -1,8 +1,8 @@
 //server/controllers/translation-controller.ts
 
-import { Strapi } from '@strapi/strapi';
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+
+export default ({ strapi }: any) => ({
     /**
      * Core translation method - used by per-language plugin
      */

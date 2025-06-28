@@ -1,11 +1,11 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/hooks/useArticleProcessor.ts
 
 import { useState, useCallback, useEffect } from 'react';
-import { useFetchClient } from '@strapi/helper-plugin';
 import { GrammarRule } from '../../../utils/types';
 import { ERROR_MESSAGES, STATUS_MESSAGES } from '../../../utils/constants';
 import { normalizeSentences } from '../../../utils/apiHelpers';
 import { useStateWithHistory, useLoadingState } from '../../../hooks';
+import { useFetchClient } from "@strapi/strapi/admin";
 
 interface UseArticleProcessorProps {
     articleId: string | null;

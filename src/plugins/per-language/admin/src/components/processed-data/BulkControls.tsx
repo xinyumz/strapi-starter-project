@@ -8,10 +8,9 @@ import {
     CardBody,
     Flex,
     Typography,
-    Select,
-    Option,
-    ToggleCheckbox,
-    Stack
+    SingleSelect,
+    SingleSelectOption,
+    Checkbox,
 } from '@strapi/design-system';
 import { Refresh } from '@strapi/icons';
 
@@ -34,26 +33,26 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
         <Card marginBottom={4}>
             <CardBody>
                 <Box width="100%" padding={4}>
-                    <Stack spacing={4}>
+                    <Flex gap={4}>
                         {/* Line 1: Open Language Card - Responsive inline/stacked */}
                         <Flex justifyContent="space-between" alignItems="flex-start" wrap="wrap" gap={3}>
                             <Flex gap={3} alignItems="center" wrap="wrap" style={{ minWidth: 'fit-content', maxWidth: '100%' }}>
                                 <Typography variant="pi" fontWeight="bold" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
                                     Open Language Card:
                                 </Typography>
-                                <Select
+                                <SingleSelect
                                     placeholder="Select language to view"
                                     size="S"
                                     onChange={(value: string) => onLanguageSelect(value)}
                                     style={{ minWidth: '200px', flexShrink: 1 }}
                                 >
-                                    <Option value="zh">Chinese (中文) ⚙️</Option>
-                                    <Option value="es">Spanish (Español) 🚧</Option>
-                                    <Option value="fr">French (Français) 🚧</Option>
-                                    <Option value="de">German (Deutsch) 🚧</Option>
-                                    <Option value="ja">Japanese (日本語) 🚧</Option>
-                                    <Option value="pt">Portuguese (Português) 🚧</Option>
-                                </Select>
+                                    <SingleSelectOption value="zh">Chinese (中文) ⚙️</SingleSelectOption>
+                                    <SingleSelectOption value="es">Spanish (Español) 🚧</SingleSelectOption>
+                                    <SingleSelectOption value="fr">French (Français) 🚧</SingleSelectOption>
+                                    <SingleSelectOption value="de">German (Deutsch) 🚧</SingleSelectOption>
+                                    <SingleSelectOption value="ja">Japanese (日本語) 🚧</SingleSelectOption>
+                                    <SingleSelectOption value="pt">Portuguese (Português) 🚧</SingleSelectOption>
+                                </SingleSelect>
                             </Flex>
                             <Button
                                 startIcon={<Refresh />}
@@ -74,7 +73,7 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
 
                             <Flex gap={2} alignItems="center" style={{ flexShrink: 0 }}>
                                 <Typography variant="pi" style={{ whiteSpace: 'nowrap' }}>Publish All:</Typography>
-                                <ToggleCheckbox
+                                <Checkbox
                                     checked={bulkPublishState}
                                     onChange={() => onBulkPublish(!bulkPublishState)}
                                 />
@@ -82,14 +81,14 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
 
                             <Flex gap={2} alignItems="center" style={{ flexShrink: 0 }}>
                                 <Typography variant="pi" style={{ whiteSpace: 'nowrap' }}>Set All:</Typography>
-                                <Select size="S" onChange={(value: string) => onBulkAccessTier(value)} style={{ minWidth: '140px' }}>
-                                    <Option value="Free">Free</Option>
-                                    <Option value="Login">Login Required</Option>
-                                    <Option value="Premium">Premium</Option>
-                                </Select>
+                                <SingleSelect size="S" onChange={(value: string) => onBulkAccessTier(value)} style={{ minWidth: '140px' }}>
+                                    <SingleSelectOption value="Free">Free</SingleSelectOption>
+                                    <SingleSelectOption value="Login">Login Required</SingleSelectOption>
+                                    <SingleSelectOption value="Premium">Premium</SingleSelectOption>
+                                </SingleSelect>
                             </Flex>
                         </Flex>
-                    </Stack>
+                    </Flex>
                 </Box>
             </CardBody>
         </Card>

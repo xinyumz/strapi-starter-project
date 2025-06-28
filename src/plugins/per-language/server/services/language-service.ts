@@ -1,5 +1,5 @@
 // src/plugins/per-language/server/services/language-service.ts
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 
 const { ApplicationError } = errors;
@@ -10,7 +10,7 @@ interface LanguageProcessor {
     pluginName: string;
 }
 
-export default ({ strapi }: { strapi: Strapi }) => {
+export default ({ strapi }: any) => {
     const getEntityService = () => {
         if (!strapi.entityService) {
             throw new ApplicationError('Entity service is not available');

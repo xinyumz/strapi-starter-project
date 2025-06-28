@@ -1,5 +1,5 @@
 // server/services/grammar-service.ts
-import { Strapi } from '@strapi/strapi';
+
 import { errors } from '@strapi/utils';
 import {
     GrammarRule,
@@ -8,7 +8,40 @@ import {
 
 const { ApplicationError } = errors;
 
-export default ({ strapi }: { strapi: Strapi }) => ({
+
+interface SentenceRow {
+    sentence_id: number;
+    sentence_text: string;
+    sentence_order: number;
+}
+
+interface GrammarRuleRow {
+    sentence_id: number;
+    rule: string;
+}
+
+interface TranslationRow {
+    sentence_id: number;
+    translation_language: string;
+    translation_text: string;
+}
+
+interface ExistingSentenceRow {
+    id: number;
+    sentence_text: string;
+    sentence_order: number;
+}
+
+interface ExistingRuleRow {
+    rule: string;
+}
+
+interface ExistingTranslationRow {
+    translation_language: string;
+    translation_text: string;
+}
+
+export default ({ strapi }: any) => ({
     // Generate grammar rules from external API
     async generateRules(text: string, engineChoice: 'stanford' | 'jieba' | 'both' = 'both'): Promise<GrammarRule[]> {
         try {
@@ -90,7 +123,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             // Group grammar rules by sentence_id
             const rulesBySentence: Record<number, string[]> = {};
-            grammarRules.forEach(rule => {
+            grammarRules.forEach((rule: GrammarRuleRow) => {
                 if (!rulesBySentence[rule.sentence_id]) {
                     rulesBySentence[rule.sentence_id] = [];
                 }
@@ -106,7 +139,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             // Group translations by sentence_id and language
             const translationsBySentence: Record<number, Record<string, string>> = {};
-            translations.forEach(translation => {
+            translations.forEach((translation: TranslationRow) => {
                 if (!translationsBySentence[translation.sentence_id]) {
                     translationsBySentence[translation.sentence_id] = {};
                 }
@@ -114,7 +147,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             });
 
             // Format sentences with their rules and translations
-            const formattedSentences: GrammarRule[] = sentences.map(sentence => {
+            const formattedSentences: GrammarRule[] = sentences.map((sentence: SentenceRow) => {
                 const rules = rulesBySentence[sentence.sentence_id] || [];
                 const translations = translationsBySentence[sentence.sentence_id] || {};
                 const englishTranslation = translations['en'] || '';
@@ -217,7 +250,7 @@ export default ({ strapi }: { strapi: Strapi }) => ({
 
             // 🎯 STEP 2: Create mappings for intelligent UPSERT
             const existingSentenceMap = new Map();
-            existingSentences.forEach(sentence => {
+            existingSentences.forEach((sentence: ExistingSentenceRow) => {
                 existingSentenceMap.set(sentence.sentence_order, {
                     id: sentence.id,
                     text: sentence.sentence_text
@@ -297,12 +330,12 @@ export default ({ strapi }: { strapi: Strapi }) => ({
             }
 
             // 🎯 STEP 6: Delete sentences that are no longer needed
-            const sentencesToDelete = existingSentences.filter(sentence =>
+            const sentencesToDelete = existingSentences.filter((sentence: ExistingSentenceRow) =>
                 !processedSentenceIds.has(sentence.id)
             );
 
             if (sentencesToDelete.length > 0) {
-                const deleteIds = sentencesToDelete.map(s => s.id);
+                const deleteIds = sentencesToDelete.map((s: ExistingSentenceRow) => s.id);
                 strapi.log.info(`Deleting ${deleteIds.length} unused sentences: ${deleteIds.join(', ')}`);
 
                 // Delete related data first (cascade delete)

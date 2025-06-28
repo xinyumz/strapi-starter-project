@@ -1,6 +1,6 @@
 // src/plugins/collection-article-relation/server/services/collection-autofill-service.ts
 
-import { Strapi } from '@strapi/strapi';
+import type { Core } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
 
 const { ApplicationError, ValidationError, NotFoundError } = errors;
@@ -32,7 +32,7 @@ interface CollectionResult {
 const duplicateCheckCache = new Map<number, { exists: boolean; collectionId?: number; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-export default ({ strapi }: { strapi: Strapi }) => {
+export default ({ strapi }: any) => {
     const getEntityService = () => {
         if (!strapi.entityService) {
             throw new ApplicationError('Entity service is not available');
