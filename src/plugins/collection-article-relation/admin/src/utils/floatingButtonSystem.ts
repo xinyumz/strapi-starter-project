@@ -239,18 +239,19 @@ class ButtonStateManager {
 }
 
 /**
- * API call with retry logic
+ * API call with retry logic - FIXED for documentId support
  */
 async function makeApiCall(articleId: string, retries: number = 2): Promise<any> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // FIXED: Don't parse articleId as integer - support both documentId and numeric ID
       const response = await fetch('/collection-article-relation/quick-create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ articleId: parseInt(articleId) })
+        body: JSON.stringify({ articleId: articleId }) // CHANGED: Don't parseInt here
       });
 
       if (!response.ok) {

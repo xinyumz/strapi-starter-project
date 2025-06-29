@@ -1,20 +1,11 @@
 // src/plugins/per-language/server/services/article-service.ts
 
-
 import { errors } from '@strapi/utils';
 import { PerLanguageContentType } from '../types';
 
 const { ApplicationError } = errors;
 
 export default ({ strapi }: any) => {
-    // Type guard helper function
-    const getEntityService = () => {
-        if (!strapi.entityService) {
-            throw new ApplicationError('Entity service is not available');
-        }
-        return strapi.entityService;
-    };
-
     return {
         /**
          * Create or update content for a specific language
@@ -25,8 +16,8 @@ export default ({ strapi }: any) => {
             content: string
         ): Promise<PerLanguageContentType> {
             try {
-                const entityService = getEntityService();
-                const existingContent = await entityService.findMany('plugin::per-language.article-perlanguage', {
+                // FIXED: Use Document Service API for Strapi v5
+                const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findMany({
                     filters: {
                         article_id: articleId,
                         language: languageCode
@@ -35,27 +26,24 @@ export default ({ strapi }: any) => {
 
                 if (existingContent && Array.isArray(existingContent) && existingContent.length > 0) {
                     // Update existing content
-                    const updated = await entityService.update(
-                        'plugin::per-language.article-perlanguage',
-                        existingContent[0].id,
-                        {
-                            data: {
-                                per_language_text: content,
-                                updated_at: new Date()
-                            } as any
+                    const updated = await strapi.documents('plugin::per-language.article-perlanguage').update({
+                        documentId: existingContent[0].documentId,
+                        data: {
+                            per_language_text: content,
+                            updated_at: new Date()
                         }
-                    );
+                    });
 
                     return updated as PerLanguageContentType;
                 } else {
                     // Create new content
-                    const created = await entityService.create('plugin::per-language.article-perlanguage', {
+                    const created = await strapi.documents('plugin::per-language.article-perlanguage').create({
                         data: {
                             article_id: articleId,
                             language: languageCode,
                             per_language_text: content,
                             published: false
-                        } as any
+                        }
                     });
 
                     return created as PerLanguageContentType;
@@ -72,8 +60,8 @@ export default ({ strapi }: any) => {
          */
         async getLanguageContent(articleId: number, languageCode: string): Promise<any> {
             try {
-                const entityService = getEntityService();
-                const existingContent = await entityService.findMany('plugin::per-language.article-perlanguage', {
+                // FIXED: Use Document Service API for Strapi v5
+                const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findMany({
                     filters: {
                         article_id: articleId,
                         language: languageCode
@@ -93,6 +81,53 @@ export default ({ strapi }: any) => {
         },
 
         /**
+         * ADDED: Get all languages for an article (missing method that controller calls)
+         */
+        async getAllLanguagesForArticle(articleId: number): Promise<any[]> {
+            try {
+                console.log(`[ArticleService] Getting all languages for article ${articleId}`);
+
+                // FIXED: Use Document Service API for Strapi v5
+                const languages = await strapi.documents('plugin::per-language.article-perlanguage').findMany({
+                    filters: {
+                        article_id: articleId
+                    }
+                });
+
+                console.log(`[ArticleService] Found ${languages?.length || 0} languages for article ${articleId}`);
+                return languages || [];
+            } catch (error) {
+                console.error(`[ArticleService] Error getting all languages for article:`, error);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                throw new ApplicationError(`Failed to get languages for article: ${errorMessage}`);
+            }
+        },
+
+        /**
+         * ADDED: Refresh language data (missing method that controller calls)
+         */
+        async refreshLanguageData(articleId: number, language: string): Promise<any> {
+            try {
+                console.log(`[ArticleService] Refreshing language data for article ${articleId}, language ${language}`);
+
+                // Get current language content
+                const currentContent = await this.getLanguageContent(articleId, language);
+
+                if (!currentContent) {
+                    throw new ApplicationError(`No content found for article ${articleId} in language ${language}`);
+                }
+
+                // For now, just return the current content
+                // This can be extended to perform actual refresh operations
+                return currentContent;
+            } catch (error) {
+                console.error(`[ArticleService] Error refreshing language data:`, error);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                throw new ApplicationError(`Failed to refresh language data: ${errorMessage}`);
+            }
+        },
+
+        /**
          * Update processed data for a language content
          */
         async updateProcessedData(
@@ -101,7 +136,16 @@ export default ({ strapi }: any) => {
             displaySkill?: string
         ): Promise<PerLanguageContentType> {
             try {
-                const entityService = getEntityService();
+                // FIXED: Use Document Service API for Strapi v5
+                // First find the document by its numeric ID
+                const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
+                    filters: { id: contentId }
+                });
+
+                if (!existingContent) {
+                    throw new ApplicationError(`Content with ID ${contentId} not found`);
+                }
+
                 const updateData: any = {
                     processed_data: processedData,
                     updated_at: new Date()
@@ -111,11 +155,10 @@ export default ({ strapi }: any) => {
                     updateData.display_skill = displaySkill;
                 }
 
-                const updated = await entityService.update(
-                    'plugin::per-language.article-perlanguage',
-                    contentId,
-                    { data: updateData as any }
-                );
+                const updated = await strapi.documents('plugin::per-language.article-perlanguage').update({
+                    documentId: existingContent.documentId,
+                    data: updateData
+                });
 
                 return updated as PerLanguageContentType;
             } catch (error) {
@@ -130,17 +173,22 @@ export default ({ strapi }: any) => {
          */
         async setPublishStatus(contentId: number, published: boolean): Promise<PerLanguageContentType> {
             try {
-                const entityService = getEntityService();
-                const updated = await entityService.update(
-                    'plugin::per-language.article-perlanguage',
-                    contentId,
-                    {
-                        data: {
-                            published,
-                            updated_at: new Date()
-                        } as any
+                // FIXED: Use Document Service API for Strapi v5
+                const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
+                    filters: { id: contentId }
+                });
+
+                if (!existingContent) {
+                    throw new ApplicationError(`Content with ID ${contentId} not found`);
+                }
+
+                const updated = await strapi.documents('plugin::per-language.article-perlanguage').update({
+                    documentId: existingContent.documentId,
+                    data: {
+                        published,
+                        updated_at: new Date()
                     }
-                );
+                });
 
                 return updated as PerLanguageContentType;
             } catch (error) {
@@ -157,10 +205,10 @@ export default ({ strapi }: any) => {
             try {
                 console.log(`[ArticleService] Starting delete for content ID: ${contentId}`);
 
-                const entityService = getEntityService();
-
-                // Get the language content first for logging and verification
-                const languageContent = await entityService.findOne('plugin::per-language.article-perlanguage', contentId);
+                // FIXED: Use Document Service API for Strapi v5
+                const languageContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
+                    filters: { id: contentId }
+                });
 
                 if (!languageContent) {
                     throw new ApplicationError(`Language content with ID ${contentId} not found`);
@@ -177,7 +225,9 @@ export default ({ strapi }: any) => {
                 await this.performManualCascadingDelete(contentId);
 
                 // Finally, delete the article_perlanguages record
-                await entityService.delete('plugin::per-language.article-perlanguage', contentId);
+                await strapi.documents('plugin::per-language.article-perlanguage').delete({
+                    documentId: languageContent.documentId
+                });
 
                 console.log(`[ArticleService] ✅ Successfully completed manual cascading delete:`, {
                     contentId,
@@ -271,10 +321,11 @@ export default ({ strapi }: any) => {
             uniqueTranslationLanguages: string[];
         }> {
             try {
-                const entityService = getEntityService();
+                // FIXED: Use Document Service API for Strapi v5
+                const languageContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
+                    filters: { id: contentId }
+                });
 
-                // Get the article-perlanguage record
-                const languageContent = await entityService.findOne('plugin::per-language.article-perlanguage', contentId);
                 if (!languageContent) {
                     throw new ApplicationError(`Language content with ID ${contentId} not found`);
                 }
@@ -348,7 +399,14 @@ export default ({ strapi }: any) => {
             displaySkill?: string
         ): Promise<PerLanguageContentType> {
             try {
-                const entityService = getEntityService();
+                // FIXED: Use Document Service API for Strapi v5
+                const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
+                    filters: { id: contentId }
+                });
+
+                if (!existingContent) {
+                    throw new ApplicationError(`Content with ID ${contentId} not found`);
+                }
 
                 const updateData: any = {
                     processed_data: processedData,
@@ -360,11 +418,10 @@ export default ({ strapi }: any) => {
                     updateData.display_skill = displaySkill;
                 }
 
-                const updated = await entityService.update(
-                    'plugin::per-language.article-perlanguage',
-                    contentId,
-                    { data: updateData }
-                );
+                const updated = await strapi.documents('plugin::per-language.article-perlanguage').update({
+                    documentId: existingContent.documentId,
+                    data: updateData
+                });
 
                 return updated as PerLanguageContentType;
             } catch (error) {
@@ -405,17 +462,22 @@ export default ({ strapi }: any) => {
          */
         async updateAccessTier(contentId: number, accessTier: string): Promise<PerLanguageContentType> {
             try {
-                const entityService = getEntityService();
-                const updated = await entityService.update(
-                    'plugin::per-language.article-perlanguage',
-                    contentId,
-                    {
-                        data: {
-                            access_tier: accessTier,
-                            updated_at: new Date()
-                        } as any
+                // FIXED: Use Document Service API for Strapi v5
+                const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
+                    filters: { id: contentId }
+                });
+
+                if (!existingContent) {
+                    throw new ApplicationError(`Content with ID ${contentId} not found`);
+                }
+
+                const updated = await strapi.documents('plugin::per-language.article-perlanguage').update({
+                    documentId: existingContent.documentId,
+                    data: {
+                        access_tier: accessTier,
+                        updated_at: new Date()
                     }
-                );
+                });
 
                 return updated as PerLanguageContentType;
             } catch (error) {

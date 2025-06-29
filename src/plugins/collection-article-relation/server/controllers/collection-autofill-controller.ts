@@ -34,20 +34,22 @@ export default ({ strapi }: any) => ({
                 return;
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID
+            // FIXED: Handle both documentId (string) and numeric ID with proper resolution
             let resolvedArticleId: number;
             let article: any;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5)
+                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
                 console.log('[CollectionController] Processing documentId:', articleId);
 
                 try {
-                    article = await strapi.documents('api::article.article').findFirst({
-                        documentId: articleId
+                    const articles = await strapi.documents('api::article.article').findMany({
+                        filters: {
+                            documentId: articleId
+                        }
                     });
 
-                    if (!article) {
+                    if (!articles || articles.length === 0) {
                         ctx.status = 404;
                         ctx.body = {
                             success: false,
@@ -61,6 +63,7 @@ export default ({ strapi }: any) => ({
                         return;
                     }
 
+                    article = articles[0];
                     resolvedArticleId = article.id; // Get the numeric ID for service
                     console.log('[CollectionController] Resolved documentId to numeric ID:', resolvedArticleId);
                 } catch (docError) {

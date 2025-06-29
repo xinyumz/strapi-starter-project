@@ -11,15 +11,6 @@ export default [
             auth: false, // Set to true if you want to require authentication
             description: 'Create a new collection quickly from a single article with auto-filled fields',
             tags: ['collection', 'article', 'auto-fill'],
-            validate: {
-                body: {
-                    articleId: {
-                        type: 'number',
-                        required: true,
-                        description: 'ID of the article to create collection from'
-                    }
-                }
-            }
         }
     },
 

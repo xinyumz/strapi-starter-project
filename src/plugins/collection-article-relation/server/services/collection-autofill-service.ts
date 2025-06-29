@@ -7,6 +7,7 @@ const { ApplicationError, ValidationError, NotFoundError } = errors;
 
 interface ArticleData {
     id: number;
+    documentId: string;
     Title: string | null;
     Date: string | null;
     Cover: any | null;
@@ -33,13 +34,6 @@ const duplicateCheckCache = new Map<number, { exists: boolean; collectionId?: nu
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export default ({ strapi }: any) => {
-    const getEntityService = () => {
-        if (!strapi.entityService) {
-            throw new ApplicationError('Entity service is not available');
-        }
-        return strapi.entityService;
-    };
-
     // Helper function to validate article ID
     const validateArticleId = (articleId: any): number => {
         const id = parseInt(articleId?.toString());
@@ -61,23 +55,23 @@ export default ({ strapi }: any) => {
 
     return {
         /**
-         * Method to get article data with validation
+         * Method to get article data with validation - FIXED for Strapi v5
          */
         async getArticleData(articleId: number): Promise<ArticleData | null> {
             try {
                 const validId = validateArticleId(articleId);
-                const entityService = getEntityService();
 
                 console.log(`[CollectionAutoFill] Fetching article data for ID: ${validId}`);
 
-                const article = await entityService.findOne('api::article.article', validId, {
+                // FIXED: Use Document Service API for Strapi v5
+                const article = await strapi.documents('api::article.article').findFirst({
+                    filters: { id: validId },
                     populate: {
-                        Cover: {
-                            fields: ['id', 'name', 'url', 'mime', 'size']
-                        },
-                        Category: {
-                            fields: ['id', 'name', 'slug']
-                        }
+                        Cover: true,
+                        // REMOVED: Category populate since it's a custom field that might cause issues
+                        // Category: {
+                        //     fields: ['id', 'name', 'slug']
+                        // }
                     }
                 });
 
@@ -88,6 +82,7 @@ export default ({ strapi }: any) => {
 
                 const articleData: ArticleData = {
                     id: parseInt(article.id.toString()),
+                    documentId: article.documentId,
                     Title: (article as any).Title || null,
                     Date: (article as any).Date || null,
                     Cover: (article as any).Cover || null,
@@ -98,6 +93,7 @@ export default ({ strapi }: any) => {
 
                 console.log(`[CollectionAutoFill] Article data retrieved:`, {
                     id: articleData.id,
+                    documentId: articleData.documentId,
                     title: articleData.Title,
                     hasDate: !!articleData.Date,
                     hasCover: !!articleData.Cover,
@@ -119,7 +115,7 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * Duplicate check with caching
+         * FIXED: Duplicate check with proper article ID filtering for Strapi v5
          */
         async checkExistingCollection(articleId: number): Promise<{ exists: boolean; collection?: any; fromCache: boolean }> {
             try {
@@ -136,8 +132,10 @@ export default ({ strapi }: any) => {
                     if (cached.exists && cached.collectionId) {
                         // Get the actual collection data (might have been updated)
                         try {
-                            const entityService = getEntityService();
-                            const collection = await entityService.findOne('api::collection.collection', cached.collectionId);
+                            // FIXED: Use Document Service API for Strapi v5
+                            const collection = await strapi.documents('api::collection.collection').findFirst({
+                                filters: { id: cached.collectionId }
+                            });
                             return { exists: true, collection, fromCache: true };
                         } catch (error) {
                             // Collection might have been deleted, invalidate cache
@@ -150,32 +148,41 @@ export default ({ strapi }: any) => {
 
                 console.log(`[CollectionAutoFill] Cache miss for article ${validId}, checking database`);
 
-                const entityService = getEntityService();
-
-                // Optimized query - only get collections with this specific article
-                const collections = await entityService.findMany('api::collection.collection', {
-                    filters: {
-                        articles: {
-                            id: {
-                                $eq: validId
-                            }
-                        }
-                    },
+                // FIXED: Proper query using Document Service API for Strapi v5
+                // Get all collections first, then filter in memory for precise control
+                const allCollections = await strapi.documents('api::collection.collection').findMany({
                     populate: {
                         articles: {
-                            fields: ['id']
+                            fields: ['id', 'documentId']
                         }
                     },
-                    pagination: {
-                        limit: 10 // Limit results for performance
-                    }
+                    limit: 100 // Reasonable limit to avoid performance issues
                 });
 
+                console.log(`[CollectionAutoFill] Found ${allCollections.length} total collections to check`);
+
                 // Find collection with exactly one article that matches this ID
-                const existingCollection = collections.find((collection: any) => {
+                let existingCollection = null;
+
+                for (const collection of allCollections) {
                     const articles = collection.articles || [];
-                    return articles.length === 1 && articles[0].id === validId;
-                });
+
+                    // Log for debugging
+                    console.log(`[CollectionAutoFill] Collection "${collection.Title}" has ${articles.length} articles:`,
+                        articles.map((art: any) => art.id));
+
+                    // Check if this collection has exactly one article and it matches our target article
+                    if (articles.length === 1) {
+                        const articleInCollection = articles[0];
+                        const articleIdInCollection = parseInt(articleInCollection.id.toString());
+
+                        if (articleIdInCollection === validId) {
+                            console.log(`[CollectionAutoFill] Found single-article collection for article ${validId}: "${collection.Title}"`);
+                            existingCollection = collection;
+                            break;
+                        }
+                    }
+                }
 
                 // Cache the result
                 if (existingCollection) {
@@ -184,12 +191,14 @@ export default ({ strapi }: any) => {
                         collectionId: parseInt(existingCollection.id.toString()),
                         timestamp: Date.now()
                     });
+                    console.log(`[CollectionAutoFill] Article ${validId} has existing single-article collection: "${existingCollection.Title}"`);
                     return { exists: true, collection: existingCollection, fromCache: false };
                 } else {
                     duplicateCheckCache.set(validId, {
                         exists: false,
                         timestamp: Date.now()
                     });
+                    console.log(`[CollectionAutoFill] Article ${validId} does NOT have an existing single-article collection`);
                     return { exists: false, fromCache: false };
                 }
 
@@ -206,7 +215,7 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * Quick collection creation with comprehensive error handling
+         * Quick collection creation with comprehensive error handling - FIXED for Strapi v5
          */
         async createQuickCollectionFromArticle(articleId: number): Promise<CollectionResult> {
             const startTime = Date.now();
@@ -222,12 +231,14 @@ export default ({ strapi }: any) => {
                     console.log(`[CollectionAutoFill] Collection already exists for article ${validId}`);
 
                     const processingTime = Date.now() - startTime;
+                    const collectionDocumentId = duplicateCheck.collection.documentId || duplicateCheck.collection.id;
+
                     return {
                         collection: duplicateCheck.collection,
                         isExisting: true,
                         article: await this.getArticleData(validId) as ArticleData,
                         message: `Collection "${duplicateCheck.collection.Title}" already exists for this article`,
-                        redirectUrl: `/admin/content-manager/collectionType/api::collection.collection/${duplicateCheck.collection.id}`,
+                        redirectUrl: `/admin/content-manager/collection-types/api::collection.collection/${collectionDocumentId}`,
                         metadata: {
                             processingTime,
                             cacheHit: duplicateCheck.fromCache,
@@ -242,15 +253,25 @@ export default ({ strapi }: any) => {
                     throw new NotFoundError(`Article with ID ${validId} not found`);
                 }
 
-                // Prepare collection data with defaults
-                const collectionData = {
+                // Prepare collection data with defaults - FIXED: Handle custom fields properly
+                const collectionData: any = {
                     Title: article.Title || `Collection - Article ${validId}`,
                     Date: article.Date || new Date().toISOString().split('T')[0],
-                    Cover: article.Cover?.id || article.Cover || null,
-                    Category: article.Category?.id || article.Category || null,
                     articles: [validId], // Pre-link the article
                     publishedAt: null // Start as draft
                 };
+
+                // FIXED: Only add Cover if it exists and has a valid ID
+                if (article.Cover?.id) {
+                    collectionData.Cover = article.Cover.id;
+                } else if (article.Cover && typeof article.Cover === 'number') {
+                    collectionData.Cover = article.Cover;
+                }
+
+                // FIXED: Only add Category if it exists and is a valid number (custom field value)
+                if (article.Category && typeof article.Category === 'number') {
+                    collectionData.Category = article.Category;
+                }
 
                 console.log(`[CollectionAutoFill] Creating collection with data:`, {
                     title: collectionData.Title,
@@ -260,12 +281,11 @@ export default ({ strapi }: any) => {
                     linkedArticles: collectionData.articles.length
                 });
 
-                const entityService = getEntityService();
-
+                // FIXED: Use Document Service API for Strapi v5
                 // Create new collection with transaction-like error handling
                 let collection;
                 try {
-                    collection = await entityService.create('api::collection.collection', {
+                    collection = await strapi.documents('api::collection.collection').create({
                         data: collectionData
                     });
                 } catch (createError) {
@@ -288,6 +308,7 @@ export default ({ strapi }: any) => {
                 duplicateCheckCache.delete(validId);
 
                 const processingTime = Date.now() - startTime;
+                const collectionDocumentId = collection.documentId || collection.id;
 
                 console.log(`[CollectionAutoFill] Collection created successfully with ID: ${collection.id} (${processingTime}ms)`);
 
@@ -296,7 +317,7 @@ export default ({ strapi }: any) => {
                     isExisting: false,
                     article,
                     message: `Collection "${collection.Title}" created successfully`,
-                    redirectUrl: `/admin/content-manager/collectionType/api::collection.collection/${collection.id}`,
+                    redirectUrl: `/admin/content-manager/collection-types/api::collection.collection/${collectionDocumentId}`,
                     metadata: {
                         processingTime,
                         cacheHit: duplicateCheck.fromCache,
@@ -321,22 +342,20 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * Health check method for monitoring
+         * Health check method for monitoring - FIXED for Strapi v5
          */
         async healthCheck(): Promise<{ status: string; details: any }> {
             try {
-                const entityService = getEntityService();
-
+                // FIXED: Use Document Service API for Strapi v5
                 // Test database connectivity
-                await entityService.findMany('api::article.article', {
-                    start: 0,
+                await strapi.documents('api::article.article').findMany({
                     limit: 1
                 });
 
                 return {
                     status: 'healthy',
                     details: {
-                        entityService: 'available',
+                        documentService: 'available',
                         cacheSize: duplicateCheckCache.size,
                         timestamp: new Date().toISOString()
                     }
@@ -346,7 +365,7 @@ export default ({ strapi }: any) => {
                     status: 'unhealthy',
                     details: {
                         error: error instanceof Error ? error.message : 'Unknown error',
-                        entityService: 'unavailable',
+                        documentService: 'unavailable',
                         timestamp: new Date().toISOString()
                     }
                 };

@@ -1,4 +1,5 @@
-// prefixPluginTranslations removed in v5 - handle manually if needed
+// src/plugins/chinese-article-processor/admin/src/index.tsx
+
 import pluginPkg from '../../package.json';
 import pluginId from './pluginId';
 import Initializer from './components/Initializer';
@@ -16,10 +17,7 @@ export default {
         id: `${pluginId}.plugin.name`,
         defaultMessage: 'Chinese Article Processor',
       },
-      Component: async () => {
-        const component = await import('./pages/App');
-        return component;
-      },
+      Component: () => import('./pages/App'), // FIXED: Direct import function
       permissions: [],
     });
 
@@ -40,10 +38,7 @@ export default {
           },
           id: 'chinese-processor',
           to: `/plugins/${pluginId}/chinese-processor`,
-          Component: async () => {
-            const component = await import('./pages/ChineseArticleProcessor');
-            return component;
-          },
+          Component: () => import('./pages/ChineseArticleProcessor'), // FIXED: Direct import function
         }
       ]
     );

@@ -1,7 +1,5 @@
 // src/plugins/collection-article-relation/admin/src/index.tsx
 
-// prefixPluginTranslations removed in v5 - handle manually if needed
-
 import pluginPkg from '../../package.json';
 import pluginId from './pluginId';
 import Initializer from './components/Initializer';
@@ -15,7 +13,7 @@ export default {
    * Register plugin with Strapi admin
    */
   register(app: any) {
-    // Add menu link
+    // FIXED: Add menu link with correct v5 syntax
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
@@ -23,10 +21,7 @@ export default {
         id: `${pluginId}.plugin.name`,
         defaultMessage: name,
       },
-      Component: async () => {
-        const component = await import('./pages/App');
-        return component;
-      },
+      Component: () => import('./pages/App'), // FIXED: Direct import function
       permissions: [],
     });
 

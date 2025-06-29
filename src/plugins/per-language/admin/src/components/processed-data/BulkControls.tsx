@@ -1,17 +1,6 @@
 // src/plugins/per-language/admin/src/components/processed-data/BulkControls.tsx
 
 import React from 'react';
-import {
-    Box,
-    Button,
-    Card,
-    CardBody,
-    Flex,
-    Typography,
-    SingleSelect,
-    SingleSelectOption,
-    Checkbox,
-} from '@strapi/design-system';
 import { Refresh } from '@strapi/icons';
 
 interface BulkControlsProps {
@@ -30,67 +19,160 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
     bulkPublishState
 }) => {
     return (
-        <Card marginBottom={4}>
-            <CardBody>
-                <Box width="100%" padding={4}>
-                    <Flex gap={4}>
-                        {/* Line 1: Open Language Card - Responsive inline/stacked */}
-                        <Flex justifyContent="space-between" alignItems="flex-start" wrap="wrap" gap={3}>
-                            <Flex gap={3} alignItems="center" wrap="wrap" style={{ minWidth: 'fit-content', maxWidth: '100%' }}>
-                                <Typography variant="pi" fontWeight="bold" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                    Open Language Card:
-                                </Typography>
-                                <SingleSelect
-                                    placeholder="Select language to view"
-                                    size="S"
-                                    onChange={(value: string) => onLanguageSelect(value)}
-                                    style={{ minWidth: '200px', flexShrink: 1 }}
-                                >
-                                    <SingleSelectOption value="zh">Chinese (中文) ⚙️</SingleSelectOption>
-                                    <SingleSelectOption value="es">Spanish (Español) 🚧</SingleSelectOption>
-                                    <SingleSelectOption value="fr">French (Français) 🚧</SingleSelectOption>
-                                    <SingleSelectOption value="de">German (Deutsch) 🚧</SingleSelectOption>
-                                    <SingleSelectOption value="ja">Japanese (日本語) 🚧</SingleSelectOption>
-                                    <SingleSelectOption value="pt">Portuguese (Português) 🚧</SingleSelectOption>
-                                </SingleSelect>
-                            </Flex>
-                            <Button
-                                startIcon={<Refresh />}
-                                variant="tertiary"
-                                onClick={onRefresh}
-                                size="S"
-                                style={{ flexShrink: 0 }}
+        <div style={{
+            background: 'white',
+            border: '1px solid #e0e0e0',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            padding: '16px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        }}>
+            <div style={{ width: "100%", padding: "16px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {/* Line 1: Open Language Card - Responsive inline/stacked */}
+                    <div style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        flexWrap: "wrap",
+                        gap: "12px"
+                    }}>
+                        <div style={{
+                            display: "flex",
+                            gap: "12px",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            minWidth: "fit-content",
+                            maxWidth: "100%"
+                        }}>
+                            <span style={{
+                                fontSize: "14px",
+                                fontWeight: "bold",
+                                whiteSpace: "nowrap",
+                                flexShrink: 0,
+                                color: "#32324d"
+                            }}>
+                                Open Language Card:
+                            </span>
+                            <select
+                                style={{
+                                    minWidth: "200px",
+                                    flexShrink: 1,
+                                    padding: "8px 12px",
+                                    border: "1px solid #dcdce4",
+                                    borderRadius: "4px",
+                                    fontSize: "14px",
+                                    backgroundColor: "white",
+                                    cursor: "pointer"
+                                }}
+                                onChange={(e) => onLanguageSelect(e.target.value)}
+                                defaultValue=""
                             >
-                                Refresh All
-                            </Button>
-                        </Flex>
+                                <option value="" disabled>Select language to view</option>
+                                <option value="zh">Chinese (中文) ⚙️</option>
+                                <option value="es">Spanish (Español) 🚧</option>
+                                <option value="fr">French (Français) 🚧</option>
+                                <option value="de">German (Deutsch) 🚧</option>
+                                <option value="ja">Japanese (日本語) 🚧</option>
+                                <option value="pt">Portuguese (Português) 🚧</option>
+                            </select>
+                        </div>
+                        <button
+                            onClick={onRefresh}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                padding: "8px 12px",
+                                border: "1px solid #dcdce4",
+                                borderRadius: "4px",
+                                backgroundColor: "white",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                flexShrink: 0
+                            }}
+                        >
+                            <Refresh width="16px" height="16px" />
+                            Refresh All
+                        </button>
+                    </div>
 
-                        {/* Line 2: Bulk Actions - Flex with wrap */}
-                        <Flex gap={4} alignItems="center" wrap="wrap">
-                            <Typography variant="pi" fontWeight="bold" style={{ whiteSpace: 'nowrap' }}>
-                                Bulk Actions:
-                            </Typography>
+                    {/* Line 2: Bulk Actions - Flex with wrap */}
+                    <div style={{
+                        display: "flex",
+                        gap: "16px",
+                        alignItems: "center",
+                        flexWrap: "wrap"
+                    }}>
+                        <span style={{
+                            fontSize: "14px",
+                            fontWeight: "bold",
+                            whiteSpace: "nowrap",
+                            color: "#32324d"
+                        }}>
+                            Bulk Actions:
+                        </span>
 
-                            <Flex gap={2} alignItems="center" style={{ flexShrink: 0 }}>
-                                <Typography variant="pi" style={{ whiteSpace: 'nowrap' }}>Publish All:</Typography>
-                                <Checkbox
-                                    checked={bulkPublishState}
-                                    onChange={() => onBulkPublish(!bulkPublishState)}
-                                />
-                            </Flex>
+                        <div style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                            flexShrink: 0
+                        }}>
+                            <span style={{
+                                fontSize: "14px",
+                                whiteSpace: "nowrap",
+                                color: "#666687"
+                            }}>
+                                Publish All:
+                            </span>
+                            <input
+                                type="checkbox"
+                                checked={bulkPublishState}
+                                onChange={() => onBulkPublish(!bulkPublishState)}
+                                style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    cursor: "pointer"
+                                }}
+                            />
+                        </div>
 
-                            <Flex gap={2} alignItems="center" style={{ flexShrink: 0 }}>
-                                <Typography variant="pi" style={{ whiteSpace: 'nowrap' }}>Set All:</Typography>
-                                <SingleSelect size="S" onChange={(value: string) => onBulkAccessTier(value)} style={{ minWidth: '140px' }}>
-                                    <SingleSelectOption value="Free">Free</SingleSelectOption>
-                                    <SingleSelectOption value="Login">Login Required</SingleSelectOption>
-                                    <SingleSelectOption value="Premium">Premium</SingleSelectOption>
-                                </SingleSelect>
-                            </Flex>
-                        </Flex>
-                    </Flex>
-                </Box>
-            </CardBody>
-        </Card>
+                        <div style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                            flexShrink: 0
+                        }}>
+                            <span style={{
+                                fontSize: "14px",
+                                whiteSpace: "nowrap",
+                                color: "#666687"
+                            }}>
+                                Set All:
+                            </span>
+                            <select
+                                style={{
+                                    minWidth: "140px",
+                                    padding: "6px 8px",
+                                    border: "1px solid #dcdce4",
+                                    borderRadius: "4px",
+                                    fontSize: "14px",
+                                    backgroundColor: "white",
+                                    cursor: "pointer"
+                                }}
+                                onChange={(e) => onBulkAccessTier(e.target.value)}
+                                defaultValue=""
+                            >
+                                <option value="" disabled>Select tier</option>
+                                <option value="Free">Free</option>
+                                <option value="Login">Login Required</option>
+                                <option value="Premium">Premium</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };

@@ -30,24 +30,26 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID, language, and content are required');
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID
+            // FIXED: Proper documentId resolution
             let resolvedArticleId: number;
             let article: any;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5)
+                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
-                // Use Document Service API to find by documentId
-                article = await strapi.documents('api::article.article').findFirst({
-                    documentId: articleId
+                const articles = await strapi.documents('api::article.article').findMany({
+                    filters: {
+                        documentId: articleId
+                    }
                 });
 
-                if (!article) {
+                if (!articles || articles.length === 0) {
                     return ctx.notFound('Article not found');
                 }
 
-                resolvedArticleId = article.id; // Get the numeric ID for legacy table
+                article = articles[0];
+                resolvedArticleId = article.id;
                 console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
                 // This is a numeric ID (v4 compatibility)
@@ -93,22 +95,25 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID
+            // FIXED: Proper documentId resolution
             let resolvedArticleId: number;
             let article: any;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5)
+                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
-                article = await strapi.documents('api::article.article').findFirst({
-                    documentId: articleId
+                const articles = await strapi.documents('api::article.article').findMany({
+                    filters: {
+                        documentId: articleId
+                    }
                 });
 
-                if (!article) {
+                if (!articles || articles.length === 0) {
                     return ctx.notFound('Article not found');
                 }
 
+                article = articles[0];
                 resolvedArticleId = article.id;
                 console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
@@ -182,21 +187,24 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID
+            // FIXED: Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5)
+                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
-                const article = await strapi.documents('api::article.article').findFirst({
-                    documentId: articleId
+                const articles = await strapi.documents('api::article.article').findMany({
+                    filters: {
+                        documentId: articleId
+                    }
                 });
 
-                if (!article) {
+                if (!articles || articles.length === 0) {
                     return ctx.notFound('Article not found');
                 }
 
+                const article = articles[0];
                 resolvedArticleId = article.id;
                 console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
@@ -240,20 +248,26 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID and language are required');
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID
+            // FIXED: Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5)
-                const article = await strapi.documents('api::article.article').findFirst({
-                    documentId: articleId
+                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                console.log('[ArticleController] Using documentId to find article:', articleId);
+
+                const articles = await strapi.documents('api::article.article').findMany({
+                    filters: {
+                        documentId: articleId
+                    }
                 });
 
-                if (!article) {
+                if (!articles || articles.length === 0) {
                     return ctx.notFound('Article not found');
                 }
 
+                const article = articles[0];
                 resolvedArticleId = article.id;
+                console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
                 // This is a numeric ID (v4 compatibility)
                 resolvedArticleId = parseInt(articleId);
@@ -293,20 +307,26 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID
+            // FIXED: Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5)
-                const article = await strapi.documents('api::article.article').findFirst({
-                    documentId: articleId
+                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                console.log('[ArticleController] Using documentId to find article:', articleId);
+
+                const articles = await strapi.documents('api::article.article').findMany({
+                    filters: {
+                        documentId: articleId
+                    }
                 });
 
-                if (!article) {
+                if (!articles || articles.length === 0) {
                     return ctx.notFound('Article not found');
                 }
 
+                const article = articles[0];
                 resolvedArticleId = article.id;
+                console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
                 // This is a numeric ID (v4 compatibility)
                 resolvedArticleId = parseInt(articleId);
@@ -368,20 +388,26 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID, target language, and text are required');
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID
+            // FIXED: Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5)
-                const article = await strapi.documents('api::article.article').findFirst({
-                    documentId: articleId
+                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                console.log('[ArticleController] Using documentId to find article:', articleId);
+
+                const articles = await strapi.documents('api::article.article').findMany({
+                    filters: {
+                        documentId: articleId
+                    }
                 });
 
-                if (!article) {
+                if (!articles || articles.length === 0) {
                     return ctx.notFound('Article not found');
                 }
 
+                const article = articles[0];
                 resolvedArticleId = article.id;
+                console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
                 // This is a numeric ID (v4 compatibility)
                 resolvedArticleId = parseInt(articleId);
@@ -448,21 +474,27 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID
+            // FIXED: Proper documentId resolution
             let resolvedArticleId: number;
             let article: any;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5)
-                article = await strapi.documents('api::article.article').findFirst({
-                    documentId: articleId
+                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                console.log('[ArticleController] Using documentId to find article:', articleId);
+
+                const articles = await strapi.documents('api::article.article').findMany({
+                    filters: {
+                        documentId: articleId
+                    }
                 });
 
-                if (!article) {
+                if (!articles || articles.length === 0) {
                     return ctx.notFound('Article not found');
                 }
 
+                article = articles[0];
                 resolvedArticleId = article.id;
+                console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
                 // This is a numeric ID (v4 compatibility)
                 resolvedArticleId = parseInt(articleId);

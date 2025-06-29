@@ -159,15 +159,14 @@ export default ({ strapi }: any) => ({
 
     /**
      * Helper method to get per_language_id for a specific language
+     * FIXED: Use Document Service API instead of Entity Service API
      */
     async getPerLanguageId(articleId: number, language: string): Promise<number | null> {
         try {
-            const entityService = strapi.entityService;
-            if (!entityService) {
-                throw new ApplicationError('Entity service is not available');
-            }
+            console.log(`[ChineseProcessor] Getting per_language_id for article ${articleId}, language ${language}`);
 
-            const perLanguageEntries = await entityService.findMany('plugin::per-language.article-perlanguage', {
+            // FIXED: Use Document Service API instead of Entity Service API
+            const perLanguageEntries = await strapi.documents('plugin::per-language.article-perlanguage').findMany({
                 filters: {
                     article_id: articleId,
                     language: language
@@ -175,9 +174,12 @@ export default ({ strapi }: any) => ({
             });
 
             if (Array.isArray(perLanguageEntries) && perLanguageEntries.length > 0) {
-                return parseInt(String(perLanguageEntries[0].id));
+                const perLanguageId = parseInt(String(perLanguageEntries[0].id));
+                console.log(`[ChineseProcessor] Found per_language_id: ${perLanguageId}`);
+                return perLanguageId;
             }
 
+            console.log(`[ChineseProcessor] No per_language entry found for article ${articleId}, language ${language}`);
             return null;
         } catch (error) {
             console.error(`[ChineseProcessor] Error getting per_language_id for article ${articleId}, language ${language}:`, error);

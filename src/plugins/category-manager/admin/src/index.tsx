@@ -55,7 +55,7 @@ export default {
 
     console.log('[Category Manager] ✅ Category selector field registered successfully as STRING type');
 
-    // Register plugin page
+    // FIXED: Register plugin page with correct v5 syntax
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
@@ -63,10 +63,7 @@ export default {
         id: `${pluginId}.plugin.name`,
         defaultMessage: name,
       },
-      Component: async () => {
-        const component = await import('./pages/App');
-        return component;
-      },
+      Component: () => import('./pages/App'), // FIXED: Direct import function
       permissions: [],
     });
 
