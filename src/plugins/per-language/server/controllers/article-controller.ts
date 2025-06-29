@@ -12,6 +12,7 @@ interface RequestWithBody extends Context {
 export default ({ strapi }: any) => ({
     /**
      * Create or update content for a specific language
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async updateArticleContent(ctx: RequestWithBody) {
         try {
@@ -21,16 +22,42 @@ export default ({ strapi }: any) => ({
             console.log('[ArticleController] Updating article content:', {
                 articleId,
                 language,
-                contentLength: content?.length || 0
+                contentLength: content?.length || 0,
+                idType: typeof articleId
             });
 
             if (!articleId || !language || !content) {
                 return ctx.badRequest('Article ID, language, and content are required');
             }
 
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedArticleId: number;
+            let article: any;
+
+            if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
+                // This is a documentId (Strapi v5)
+                console.log('[ArticleController] Using documentId to find article:', articleId);
+
+                // Use Document Service API to find by documentId
+                article = await strapi.documents('api::article.article').findFirst({
+                    documentId: articleId
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
+
+                resolvedArticleId = article.id; // Get the numeric ID for legacy table
+                console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedArticleId = parseInt(articleId);
+                console.log('[ArticleController] Using numeric ID:', resolvedArticleId);
+            }
+
             const articleService = strapi.plugin('per-language').service('articleService');
             const result = await articleService.upsertLanguageContent(
-                parseInt(articleId),
+                resolvedArticleId,
                 language,
                 content
             );
@@ -49,6 +76,7 @@ export default ({ strapi }: any) => ({
 
     /**
      * Get content for a specific language
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getArticleContent(ctx: Context) {
         try {
@@ -57,16 +85,49 @@ export default ({ strapi }: any) => ({
 
             console.log('[ArticleController] Getting article content:', {
                 articleId,
-                language
+                language,
+                idType: typeof articleId
             });
 
             if (!articleId) {
                 return ctx.badRequest('Article ID is required');
             }
 
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedArticleId: number;
+            let article: any;
+
+            if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
+                // This is a documentId (Strapi v5)
+                console.log('[ArticleController] Using documentId to find article:', articleId);
+
+                article = await strapi.documents('api::article.article').findFirst({
+                    documentId: articleId
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
+
+                resolvedArticleId = article.id;
+                console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedArticleId = parseInt(articleId);
+
+                // Still fetch the article to validate it exists
+                article = await strapi.documents('api::article.article').findFirst({
+                    filters: { id: resolvedArticleId }
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
+            }
+
             const articleService = strapi.plugin('per-language').service('articleService');
             const content = await articleService.getLanguageContent(
-                parseInt(articleId),
+                resolvedArticleId,
                 language as string
             );
 
@@ -74,13 +135,12 @@ export default ({ strapi }: any) => ({
                 // Try to get from articles table as fallback
                 console.log('[ArticleController] No per_language content found, checking articles table');
 
-                const article = await strapi.entityService?.findOne('api::article.article', parseInt(articleId));
-                const legacyContent = (article as any)?.translation || (article as any)?.Translation;
+                const legacyContent = article?.translation || article?.Translation;
 
                 if (legacyContent) {
                     // Create per_language entry from legacy data
                     const newContent = await articleService.upsertLanguageContent(
-                        parseInt(articleId),
+                        resolvedArticleId,
                         language as string,
                         legacyContent
                     );
@@ -106,7 +166,117 @@ export default ({ strapi }: any) => ({
     },
 
     /**
+     * Get all languages for an article (for ProcessedDataDisplay)
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
+     */
+    async getArticleLanguages(ctx: Context) {
+        try {
+            const { id: articleId } = ctx.params;
+
+            console.log('[ArticleController] Getting article languages:', {
+                articleId,
+                idType: typeof articleId
+            });
+
+            if (!articleId) {
+                return ctx.badRequest('Article ID is required');
+            }
+
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedArticleId: number;
+
+            if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
+                // This is a documentId (Strapi v5)
+                console.log('[ArticleController] Using documentId to find article:', articleId);
+
+                const article = await strapi.documents('api::article.article').findFirst({
+                    documentId: articleId
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
+
+                resolvedArticleId = article.id;
+                console.log('[ArticleController] Resolved documentId to numeric ID:', resolvedArticleId);
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedArticleId = parseInt(articleId);
+                console.log('[ArticleController] Using numeric ID:', resolvedArticleId);
+            }
+
+            const articleService = strapi.plugin('per-language').service('articleService');
+            const languages = await articleService.getAllLanguagesForArticle(resolvedArticleId);
+
+            console.log('[ArticleController] ✅ Retrieved languages:', {
+                count: languages?.length || 0,
+                languages: languages?.map(l => l.language) || []
+            });
+
+            ctx.body = {
+                data: languages || [],
+                message: 'Languages retrieved successfully'
+            };
+        } catch (error: any) {
+            console.error('[ArticleController] Error getting languages:', error);
+            ctx.throw(500, `Failed to get languages: ${error.message}`);
+        }
+    },
+
+    /**
+     * Refresh language data (for Chinese processor integration)
+     */
+    async refreshLanguage(ctx: Context) {
+        try {
+            const { id: articleId, language } = ctx.params;
+
+            console.log('[ArticleController] Refreshing language:', {
+                articleId,
+                language,
+                idType: typeof articleId
+            });
+
+            if (!articleId || !language) {
+                return ctx.badRequest('Article ID and language are required');
+            }
+
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedArticleId: number;
+
+            if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
+                // This is a documentId (Strapi v5)
+                const article = await strapi.documents('api::article.article').findFirst({
+                    documentId: articleId
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
+
+                resolvedArticleId = article.id;
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedArticleId = parseInt(articleId);
+            }
+
+            const articleService = strapi.plugin('per-language').service('articleService');
+            const refreshedData = await articleService.refreshLanguageData(resolvedArticleId, language);
+
+            console.log('[ArticleController] ✅ Language data refreshed');
+
+            ctx.body = {
+                data: refreshedData,
+                message: 'Language data refreshed successfully'
+            };
+        } catch (error: any) {
+            console.error('[ArticleController] Error refreshing language:', error);
+            ctx.throw(500, `Failed to refresh language data: ${error.message}`);
+        }
+    },
+
+    /**
      * Get processing data for Chinese processor
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getProcessingData(ctx: Context) {
         try {
@@ -115,18 +285,38 @@ export default ({ strapi }: any) => ({
 
             console.log('[ArticleController] Getting processing data:', {
                 articleId,
-                language
+                language,
+                idType: typeof articleId
             });
 
             if (!articleId) {
                 return ctx.badRequest('Article ID is required');
             }
 
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedArticleId: number;
+
+            if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
+                // This is a documentId (Strapi v5)
+                const article = await strapi.documents('api::article.article').findFirst({
+                    documentId: articleId
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
+
+                resolvedArticleId = article.id;
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedArticleId = parseInt(articleId);
+            }
+
             const articleService = strapi.plugin('per-language').service('articleService');
 
             // Get both content and processed data
             const perLanguageData = await articleService.getLanguageContent(
-                parseInt(articleId),
+                resolvedArticleId,
                 language as string
             );
 
@@ -160,6 +350,7 @@ export default ({ strapi }: any) => ({
 
     /**
      * Enhanced translate endpoint with manual content support
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async translateContent(ctx: RequestWithBody) {
         try {
@@ -169,11 +360,31 @@ export default ({ strapi }: any) => ({
                 articleId,
                 targetLanguage,
                 textLength: text?.length || 0,
-                isManualContent
+                isManualContent,
+                idType: typeof articleId
             });
 
             if (!articleId || !targetLanguage || !text) {
                 return ctx.badRequest('Article ID, target language, and text are required');
+            }
+
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedArticleId: number;
+
+            if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
+                // This is a documentId (Strapi v5)
+                const article = await strapi.documents('api::article.article').findFirst({
+                    documentId: articleId
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
+
+                resolvedArticleId = article.id;
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedArticleId = parseInt(articleId);
             }
 
             let translatedText = text;
@@ -197,7 +408,7 @@ export default ({ strapi }: any) => ({
             // Save to article_perlanguages table
             const articleService = strapi.plugin('per-language').service('articleService');
             const result = await articleService.upsertLanguageContent(
-                parseInt(articleId),
+                resolvedArticleId,
                 targetLanguage,
                 translatedText
             );
@@ -220,6 +431,7 @@ export default ({ strapi }: any) => ({
 
     /**
      * Get article data in format compatible with Chinese processor
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getCompatibleArticleData(ctx: Context) {
         try {
@@ -228,26 +440,46 @@ export default ({ strapi }: any) => ({
 
             console.log('[ArticleController] Getting compatible article data:', {
                 articleId,
-                language
+                language,
+                idType: typeof articleId
             });
 
             if (!articleId) {
                 return ctx.badRequest('Article ID is required');
             }
 
-            // Get article base data
-            const article = await strapi.entityService?.findOne('api::article.article', parseInt(articleId), {
-                populate: '*'
-            });
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedArticleId: number;
+            let article: any;
 
-            if (!article) {
-                return ctx.notFound('Article not found');
+            if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
+                // This is a documentId (Strapi v5)
+                article = await strapi.documents('api::article.article').findFirst({
+                    documentId: articleId
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
+
+                resolvedArticleId = article.id;
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedArticleId = parseInt(articleId);
+
+                article = await strapi.documents('api::article.article').findFirst({
+                    filters: { id: resolvedArticleId }
+                });
+
+                if (!article) {
+                    return ctx.notFound('Article not found');
+                }
             }
 
             // Get article_perlanguage data
             const articleService = strapi.plugin('per-language').service('articleService');
             const perLanguageData = await articleService.getLanguageContent(
-                parseInt(articleId),
+                resolvedArticleId,
                 language as string
             );
 
@@ -257,16 +489,16 @@ export default ({ strapi }: any) => ({
                     id: article.id,
                     attributes: {
                         // Base article data
-                        Title: (article as any).Title || (article as any).title,
-                        Base: (article as any).Base || (article as any).base,
-                        Date: (article as any).Date || (article as any).date,
+                        Title: article.Title || article.title,
+                        Base: article.Base || article.base,
+                        Date: article.Date || article.date,
 
                         // Language-specific data
                         LanguageProcessor: perLanguageData?.per_language_text || '',
 
                         // Legacy fields for backward compatibility
-                        Translation: perLanguageData?.per_language_text || (article as any).translation || (article as any).Translation || '',
-                        ChineseProcessor: perLanguageData?.processed_data || (article as any).chinese_processor || (article as any).ChineseProcessor
+                        Translation: perLanguageData?.per_language_text || article.translation || article.Translation || '',
+                        ChineseProcessor: perLanguageData?.processed_data || article.chinese_processor || article.ChineseProcessor
                     }
                 },
                 perLanguageData: perLanguageData

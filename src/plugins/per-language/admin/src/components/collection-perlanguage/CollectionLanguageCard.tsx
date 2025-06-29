@@ -1,21 +1,6 @@
 // src/plugins/per-language/admin/src/components/collection-perlanguage/CollectionLanguageCard.tsx
 
 import React from 'react';
-import {
-    Flex,
-    Textarea,
-    Typography,
-    Box,
-    Card,
-    CardHeader,
-    CardBody,
-    Badge,
-    Checkbox,
-    SingleSelect,
-    SingleSelectOption,
-    Button
-} from '@strapi/design-system';
-import { Check } from '@strapi/icons';
 import { SUPPORTED_LANGUAGES } from '../shared';
 import {
     getDisplaySkillOptions,
@@ -80,155 +65,221 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
     const skillOptions = getDisplaySkillOptions(language.language);
     const skillLabel = getSkillLabel(language.language);
 
+    const cardStyle: React.CSSProperties = {
+        border: '1px solid #e0e0e0',
+        borderRadius: '8px',
+        backgroundColor: '#ffffff',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        overflow: 'hidden',
+        minWidth: '300px',
+        maxWidth: '400px'
+    };
+
+    const headerStyle: React.CSSProperties = {
+        backgroundColor: '#f8f9fa',
+        borderBottom: '1px solid #e0e0e0',
+        padding: '12px'
+    };
+
+    const bodyStyle: React.CSSProperties = {
+        padding: '16px'
+    };
+
+    const badgeStyle = (backgroundColor: string, textColor: string): React.CSSProperties => ({
+        display: 'inline-block',
+        padding: '2px 8px',
+        borderRadius: '12px',
+        fontSize: '11px',
+        fontWeight: '600',
+        backgroundColor,
+        color: textColor,
+        marginRight: '4px'
+    });
+
     return (
-        <Card>
-            <CardHeader>
-                <Box width="100%" padding={3}>
-                    {/* Centered Title */}
-                    <Box paddingBottom={2} textAlign="center">
-                        <Typography variant="beta" fontWeight="semiBold">
-                            {langInfo.name} ({langInfo.code})
-                        </Typography>
-                    </Box>
+        <div style={cardStyle}>
+            {/* Header */}
+            <div style={headerStyle}>
+                {/* Centered Title */}
+                <div style={{ paddingBottom: '8px', textAlign: 'center' }}>
+                    <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#424242' }}>
+                        {langInfo.name} ({langInfo.code})
+                    </h4>
+                </div>
 
-                    {/* Badges and Delete Button */}
-                    <Flex justifyContent="space-between" alignItems="center" wrap="wrap" gap={2}>
-                        <Flex alignItems="center" gap={2} wrap="wrap" style={{ minWidth: 'fit-content' }}>
-                            <Badge
-                                backgroundColor={getCurrentValue(language, 'published') ? 'success100' : 'neutral100'}
-                                textColor={getCurrentValue(language, 'published') ? 'success600' : 'neutral600'}
-                            >
-                                {getCurrentValue(language, 'published') ? 'PUBLISHED' : 'DRAFT'}
-                            </Badge>
+                {/* Badges and Delete Button */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        <span style={badgeStyle(
+                            getCurrentValue(language, 'published') ? '#e8f5e8' : '#f5f5f5',
+                            getCurrentValue(language, 'published') ? '#2e7d32' : '#666'
+                        )}>
+                            {getCurrentValue(language, 'published') ? 'PUBLISHED' : 'DRAFT'}
+                        </span>
 
-                            {getCurrentValue(language, 'access_tier') && (
-                                <Badge
-                                    backgroundColor="primary100"
-                                    textColor="primary600"
-                                >
-                                    {getCurrentValue(language, 'access_tier')}
-                                </Badge>
-                            )}
+                        {getCurrentValue(language, 'access_tier') && (
+                            <span style={badgeStyle('#e3f2fd', '#1976d2')}>
+                                {getCurrentValue(language, 'access_tier')}
+                            </span>
+                        )}
 
-                            {getCurrentValue(language, 'display_skill') && (
-                                <Badge
-                                    backgroundColor="secondary100"
-                                    textColor="secondary600"
-                                >
-                                    {skillLabel} {getCurrentValue(language, 'display_skill')}
-                                </Badge>
-                            )}
+                        {getCurrentValue(language, 'display_skill') && (
+                            <span style={badgeStyle('#f3e5f5', '#7b1fa2')}>
+                                {skillLabel} {getCurrentValue(language, 'display_skill')}
+                            </span>
+                        )}
 
-                            {hasChanges && (
-                                <Badge
-                                    backgroundColor="warning100"
-                                    textColor="warning600"
-                                >
-                                    Unsaved Changes
-                                </Badge>
-                            )}
-                        </Flex>
+                        {hasChanges && (
+                            <span style={badgeStyle('#fff3e0', '#f57c00')}>
+                                Unsaved Changes
+                            </span>
+                        )}
+                    </div>
 
-                        <Button
-                            variant="danger-light"
-                            onClick={onDelete}
-                            size="S"
-                        >
-                            Delete
-                        </Button>
-                    </Flex>
-                </Box>
-            </CardHeader>
+                    <button
+                        onClick={onDelete}
+                        style={{
+                            padding: '4px 8px',
+                            border: '1px solid #f44336',
+                            borderRadius: '4px',
+                            backgroundColor: '#ffebee',
+                            color: '#f44336',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                        }}
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
 
-            <CardBody>
-                <Box width="100%" padding={4}>
-                    <Flex gap={4}>
-                        {/* Description Field */}
-                        <Textarea
-                            label="Description"
+            {/* Body */}
+            <div style={bodyStyle}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Description Field */}
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#424242', fontSize: '14px' }}>
+                            Description
+                        </label>
+                        <textarea
                             value={getCurrentValue(language, 'description') || ''}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                                 onFieldChange('description', e.target.value);
                             }}
-                            style={{ minHeight: '100px' }}
-                            description="Collection description for this language (optional for single-article collections)"
+                            style={{
+                                width: '100%',
+                                minHeight: '80px',
+                                padding: '8px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                fontSize: '14px',
+                                fontFamily: 'inherit',
+                                resize: 'vertical'
+                            }}
                         />
+                        <small style={{ color: '#666', fontSize: '12px' }}>
+                            Collection description for this language (optional for single-article collections)
+                        </small>
+                    </div>
 
-                        {/* Controls Layout */}
-                        <Flex gap={0} wrap="wrap" style={{ columnGap: '60px', rowGap: '16px' }}>
+                    {/* Controls Layout */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {/* Skill Level */}
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#424242', fontSize: '14px' }}>
+                                {skillLabel}
+                            </label>
+                            <select
+                                value={getCurrentValue(language, 'display_skill') as string || ''}
+                                onChange={(e) => onFieldChange('display_skill', e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                <option value="">Select level</option>
+                                {skillOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                            {/* Skill Level */}
-                            <Box style={{ minWidth: '160px', maxWidth: '200px' }}>
-                                <SingleSelect
-                                    label={skillLabel}
-                                    value={getCurrentValue(language, 'display_skill') as string || ''}
-                                    onChange={(value: string) => onFieldChange('display_skill', value)}
+                        {/* Access Tier */}
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#424242', fontSize: '14px' }}>
+                                Access Tier
+                            </label>
+                            <select
+                                value={getCurrentValue(language, 'access_tier') as string || ''}
+                                onChange={(e) => onFieldChange('access_tier', e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                <option value="">Select tier</option>
+                                <option value="Free">Free</option>
+                                <option value="Login">Login Required</option>
+                                <option value="Premium">Premium</option>
+                            </select>
+                        </div>
+
+                        {/* Published Toggle */}
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="checkbox"
+                                    id={`published-${language.id}`}
+                                    checked={Boolean(getCurrentValue(language, 'published')) || false}
+                                    onChange={() => {
+                                        const currentValue = Boolean(getCurrentValue(language, 'published'));
+                                        onFieldChange('published', !currentValue);
+                                    }}
+                                    style={{ width: '16px', height: '16px' }}
+                                />
+                                <label
+                                    htmlFor={`published-${language.id}`}
+                                    style={{ fontWeight: '500', color: '#424242', fontSize: '14px', cursor: 'pointer' }}
                                 >
-                                    <SingleSelectOption value="">Select level</SingleSelectOption>
-                                    {skillOptions.map(option => (
-                                        <SingleSelectOption key={option.value} value={option.value}>
-                                            {option.label}
-                                        </SingleSelectOption>
-                                    ))}
-                                </SingleSelect>
-                            </Box>
+                                    Published
+                                </label>
+                            </div>
+                        </div>
+                    </div>
 
-                            {/* Access Tier */}
-                            <Box style={{ minWidth: '200px', maxWidth: '240px' }}>
-                                <SingleSelect
-                                    label="Access Tier"
-                                    value={getCurrentValue(language, 'access_tier') as string || ''}
-                                    onChange={(value: string) => onFieldChange('access_tier', value)}
-                                >
-                                    <SingleSelectOption value="">Select tier</SingleSelectOption>
-                                    <SingleSelectOption value="Free">Free</SingleSelectOption>
-                                    <SingleSelectOption value="Login">Login Required</SingleSelectOption>
-                                    <SingleSelectOption value="Premium">Premium</SingleSelectOption>
-                                </SingleSelect>
-                            </Box>
-
-                            {/* Published Toggle */}
-                            <Box style={{ minWidth: '120px' }}>
-                                <Flex direction="column" gap={1} alignItems="flex-start">
-                                    <Typography variant="pi" fontWeight="bold">Published</Typography>
-                                    <Box
-                                        style={{
-                                            height: '40px',
-                                            width: '120px',
-                                            display: 'flex',
-                                            alignItems: 'center'
-                                        }}
-                                    >
-                                        <Checkbox
-                                            checked={Boolean(getCurrentValue(language, 'published')) || false}
-                                            onChange={() => {
-                                                const currentValue = Boolean(getCurrentValue(language, 'published'));
-                                                onFieldChange('published', !currentValue);
-                                            }}
-                                        />
-                                    </Box>
-                                </Flex>
-                            </Box>
-
-                        </Flex>
-
-                        {/* Save Button */}
-                        {hasChanges && (
-                            <Flex justifyContent="flex-end" paddingTop={2}>
-                                <Button
-                                    onClick={onSave}
-                                    disabled={isSaving}
-                                    loading={isSaving}
-                                    startIcon={<Check />}
-                                    size="S"
-                                >
-                                    Save Changes
-                                </Button>
-                            </Flex>
-                        )}
-                    </Flex>
-                </Box>
-            </CardBody>
-        </Card>
+                    {/* Save Button */}
+                    {hasChanges && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px' }}>
+                            <button
+                                onClick={onSave}
+                                disabled={isSaving}
+                                style={{
+                                    padding: '8px 16px',
+                                    border: '1px solid #4caf50',
+                                    borderRadius: '4px',
+                                    backgroundColor: isSaving ? '#f5f5f5' : '#4caf50',
+                                    color: isSaving ? '#999' : 'white',
+                                    cursor: isSaving ? 'not-allowed' : 'pointer',
+                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                            >
+                                {isSaving ? '⌛' : '✓'} {isSaving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 };

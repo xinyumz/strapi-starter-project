@@ -12,6 +12,7 @@ interface RequestWithBody extends Context {
 export default ({ strapi }: any) => ({
     /**
      * Get auto-retrieval data for collection language creation
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getCollectionAutoRetrieval(ctx: Context) {
         try {
@@ -20,16 +21,40 @@ export default ({ strapi }: any) => ({
 
             console.log('[CollectionController] Getting auto-retrieval data:', {
                 collectionId,
-                language
+                language,
+                idType: typeof collectionId
             });
 
             if (!collectionId || !language) {
                 return ctx.badRequest('Collection ID and language are required');
             }
 
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedCollectionId: number;
+
+            if (typeof collectionId === 'string' && isNaN(parseInt(collectionId))) {
+                // This is a documentId (Strapi v5)
+                console.log('[CollectionController] Using documentId to find collection:', collectionId);
+
+                const collection = await strapi.documents('api::collection.collection').findFirst({
+                    documentId: collectionId
+                });
+
+                if (!collection) {
+                    return ctx.notFound('Collection not found');
+                }
+
+                resolvedCollectionId = collection.id;
+                console.log('[CollectionController] Resolved documentId to numeric ID:', resolvedCollectionId);
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedCollectionId = parseInt(collectionId);
+                console.log('[CollectionController] Using numeric ID:', resolvedCollectionId);
+            }
+
             const collectionService = strapi.plugin('per-language').service('collectionService');
             const autoData = await collectionService.getAutoRetrievalData(
-                parseInt(collectionId),
+                resolvedCollectionId,
                 language as string
             );
 
@@ -46,21 +71,54 @@ export default ({ strapi }: any) => ({
 
     /**
      * Get collection statistics (article count, language data count)
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getCollectionStats(ctx: Context) {
         try {
             const { id: collectionId } = ctx.params;
 
+            console.log('[CollectionController] Getting collection stats:', {
+                collectionId,
+                idType: typeof collectionId
+            });
+
             if (!collectionId) {
                 return ctx.badRequest('Collection ID is required');
             }
 
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedCollectionId: number;
+
+            if (typeof collectionId === 'string' && isNaN(parseInt(collectionId))) {
+                // This is a documentId (Strapi v5)
+                console.log('[CollectionController] Using documentId to find collection:', collectionId);
+
+                const collection = await strapi.documents('api::collection.collection').findFirst({
+                    documentId: collectionId
+                });
+
+                if (!collection) {
+                    return ctx.notFound('Collection not found');
+                }
+
+                resolvedCollectionId = collection.id;
+                console.log('[CollectionController] Resolved documentId to numeric ID:', resolvedCollectionId);
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedCollectionId = parseInt(collectionId);
+                console.log('[CollectionController] Using numeric ID:', resolvedCollectionId);
+            }
+
             const collectionService = strapi.plugin('per-language').service('collectionService');
-            const articles = await collectionService.getCollectionArticles(parseInt(collectionId));
+            const articles = await collectionService.getCollectionArticles(resolvedCollectionId);
+
+            console.log('[CollectionController] ✅ Collection stats retrieved:', {
+                articleCount: articles.length
+            });
 
             ctx.body = {
                 data: {
-                    collectionId: parseInt(collectionId),
+                    collectionId: resolvedCollectionId,
                     articleCount: articles.length,
                     articles: articles.map(article => ({
                         id: article.id,
@@ -77,6 +135,7 @@ export default ({ strapi }: any) => ({
 
     /**
      * Update collection content with auto-retrieval support
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async updateCollectionContent(ctx: RequestWithBody) {
         try {
@@ -89,7 +148,8 @@ export default ({ strapi }: any) => ({
                 descriptionLength: description?.length || 0,
                 descriptionIsNull: description === null,
                 descriptionIsUndefined: description === undefined,
-                useAutoRetrieval
+                useAutoRetrieval,
+                idType: typeof collectionId
             });
 
             // Only require collectionId and language, description can be null/empty
@@ -97,12 +157,35 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Collection ID and language are required');
             }
 
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedCollectionId: number;
+
+            if (typeof collectionId === 'string' && isNaN(parseInt(collectionId))) {
+                // This is a documentId (Strapi v5)
+                console.log('[CollectionController] Using documentId to find collection:', collectionId);
+
+                const collection = await strapi.documents('api::collection.collection').findFirst({
+                    documentId: collectionId
+                });
+
+                if (!collection) {
+                    return ctx.notFound('Collection not found');
+                }
+
+                resolvedCollectionId = collection.id;
+                console.log('[CollectionController] Resolved documentId to numeric ID:', resolvedCollectionId);
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedCollectionId = parseInt(collectionId);
+                console.log('[CollectionController] Using numeric ID:', resolvedCollectionId);
+            }
+
             // Allow description to be null, undefined, or empty string
             const finalDescription = description || null;
 
             const collectionService = strapi.plugin('per-language').service('collectionService');
             const result = await collectionService.upsertCollectionContent(
-                parseInt(collectionId),
+                resolvedCollectionId,
                 language,
                 finalDescription,
                 useAutoRetrieval
@@ -115,7 +198,7 @@ export default ({ strapi }: any) => ({
             if (useAutoRetrieval) {
                 try {
                     autoRetrievalInfo = await collectionService.getAutoRetrievalData(
-                        parseInt(collectionId),
+                        resolvedCollectionId,
                         language
                     );
                 } catch (error) {
@@ -138,19 +221,45 @@ export default ({ strapi }: any) => ({
 
     /**
      * Get collection content for a specific language
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getCollectionContent(ctx: Context) {
         try {
             const { id: collectionId } = ctx.params;
             const { language } = ctx.query;
 
+            console.log('[CollectionController] Getting collection content:', {
+                collectionId,
+                language,
+                idType: typeof collectionId
+            });
+
             if (!collectionId || !language) {
                 return ctx.badRequest('Collection ID and language are required');
             }
 
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedCollectionId: number;
+
+            if (typeof collectionId === 'string' && isNaN(parseInt(collectionId))) {
+                // This is a documentId (Strapi v5)
+                const collection = await strapi.documents('api::collection.collection').findFirst({
+                    documentId: collectionId
+                });
+
+                if (!collection) {
+                    return ctx.notFound('Collection not found');
+                }
+
+                resolvedCollectionId = collection.id;
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedCollectionId = parseInt(collectionId);
+            }
+
             const collectionService = strapi.plugin('per-language').service('collectionService');
             const content = await collectionService.getCollectionContent(
-                parseInt(collectionId),
+                resolvedCollectionId,
                 language as string
             );
 
@@ -166,13 +275,38 @@ export default ({ strapi }: any) => ({
 
     /**
      * Get all languages for a collection
+     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getCollectionLanguages(ctx: Context) {
         try {
             const { id: collectionId } = ctx.params;
 
+            console.log('[CollectionController] Getting collection languages:', {
+                collectionId,
+                idType: typeof collectionId
+            });
+
             if (!collectionId) {
                 return ctx.badRequest('Collection ID is required');
+            }
+
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedCollectionId: number;
+
+            if (typeof collectionId === 'string' && isNaN(parseInt(collectionId))) {
+                // This is a documentId (Strapi v5)
+                const collection = await strapi.documents('api::collection.collection').findFirst({
+                    documentId: collectionId
+                });
+
+                if (!collection) {
+                    return ctx.notFound('Collection not found');
+                }
+
+                resolvedCollectionId = collection.id;
+            } else {
+                // This is a numeric ID (v4 compatibility)
+                resolvedCollectionId = parseInt(collectionId);
             }
 
             const entityService = strapi.entityService;
@@ -182,12 +316,17 @@ export default ({ strapi }: any) => ({
 
             const languageContent = await entityService.findMany('plugin::per-language.collection-perlanguage', {
                 filters: {
-                    collection_id: parseInt(collectionId)
+                    collection_id: resolvedCollectionId
                 }
             });
 
             // Fix the type checking issue
             const dataArray = Array.isArray(languageContent) ? languageContent : [];
+
+            console.log('[CollectionController] ✅ Collection languages retrieved:', {
+                count: dataArray.length,
+                languages: dataArray.map(l => l.language)
+            });
 
             ctx.body = {
                 data: dataArray,

@@ -6,7 +6,7 @@ export default ({ strapi }: any) => ({
     /**
      * Create quick collection from single article
      * POST /collection-article-relation/quick-create
-     * Body: { articleId: number }
+     * Body: { articleId: string | number } - FIXED: Support both documentId and numeric ID
      */
     async quickCreateCollection(ctx: any) {
         const startTime = Date.now();
@@ -14,8 +14,14 @@ export default ({ strapi }: any) => ({
         try {
             const { articleId } = ctx.request.body;
 
+            console.log('[CollectionController] Received quick create request:', {
+                articleId,
+                idType: typeof articleId,
+                bodyKeys: Object.keys(ctx.request.body || {})
+            });
+
             // Input validation
-            if (articleId === undefined || articleId === null) {
+            if (articleId === undefined || articleId === null || articleId === '') {
                 ctx.status = 400;
                 ctx.body = {
                     success: false,
@@ -28,22 +34,105 @@ export default ({ strapi }: any) => ({
                 return;
             }
 
-            const parsedId = parseInt(articleId?.toString());
-            if (isNaN(parsedId) || parsedId <= 0) {
-                ctx.status = 400;
-                ctx.body = {
-                    success: false,
-                    error: {
-                        type: 'VALIDATION_ERROR',
-                        message: 'Article ID must be a positive integer',
-                        code: 'INVALID_ARTICLE_ID',
-                        received: articleId
+            // FIXED: Handle both documentId (string) and numeric ID
+            let resolvedArticleId: number;
+            let article: any;
+
+            if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
+                // This is a documentId (Strapi v5)
+                console.log('[CollectionController] Processing documentId:', articleId);
+
+                try {
+                    article = await strapi.documents('api::article.article').findFirst({
+                        documentId: articleId
+                    });
+
+                    if (!article) {
+                        ctx.status = 404;
+                        ctx.body = {
+                            success: false,
+                            error: {
+                                type: 'NOT_FOUND',
+                                message: 'Article not found',
+                                code: 'ARTICLE_NOT_FOUND',
+                                details: `No article found with documentId: ${articleId}`
+                            }
+                        };
+                        return;
                     }
-                };
-                return;
+
+                    resolvedArticleId = article.id; // Get the numeric ID for service
+                    console.log('[CollectionController] Resolved documentId to numeric ID:', resolvedArticleId);
+                } catch (docError) {
+                    console.error('[CollectionController] Error finding article by documentId:', docError);
+                    ctx.status = 400;
+                    ctx.body = {
+                        success: false,
+                        error: {
+                            type: 'VALIDATION_ERROR',
+                            message: 'Invalid documentId format',
+                            code: 'INVALID_DOCUMENT_ID',
+                            details: docError instanceof Error ? docError.message : 'Unknown error'
+                        }
+                    };
+                    return;
+                }
+            } else {
+                // This is a numeric ID (v4 compatibility or internal ID)
+                const parsedId = parseInt(articleId?.toString());
+                if (isNaN(parsedId) || parsedId <= 0) {
+                    ctx.status = 400;
+                    ctx.body = {
+                        success: false,
+                        error: {
+                            type: 'VALIDATION_ERROR',
+                            message: 'Article ID must be a valid ID',
+                            code: 'INVALID_ARTICLE_ID',
+                            received: articleId
+                        }
+                    };
+                    return;
+                }
+
+                resolvedArticleId = parsedId;
+                console.log('[CollectionController] Using numeric ID:', resolvedArticleId);
+
+                // Verify the article exists
+                try {
+                    article = await strapi.documents('api::article.article').findFirst({
+                        filters: { id: resolvedArticleId }
+                    });
+
+                    if (!article) {
+                        ctx.status = 404;
+                        ctx.body = {
+                            success: false,
+                            error: {
+                                type: 'NOT_FOUND',
+                                message: 'Article not found',
+                                code: 'ARTICLE_NOT_FOUND',
+                                details: `No article found with ID: ${resolvedArticleId}`
+                            }
+                        };
+                        return;
+                    }
+                } catch (entityError) {
+                    console.error('[CollectionController] Error finding article by ID:', entityError);
+                    ctx.status = 400;
+                    ctx.body = {
+                        success: false,
+                        error: {
+                            type: 'VALIDATION_ERROR',
+                            message: 'Error finding article',
+                            code: 'ARTICLE_LOOKUP_FAILED',
+                            details: entityError instanceof Error ? entityError.message : 'Unknown error'
+                        }
+                    };
+                    return;
+                }
             }
 
-            console.log(`[CollectionController] Processing quick create request for article ${parsedId}`);
+            console.log(`[CollectionController] Processing quick create request for resolved article ${resolvedArticleId}`);
 
             // Get auto-fill service
             const autoFillService = strapi.plugin('collection-article-relation').service('collectionAutofill');
@@ -52,9 +141,16 @@ export default ({ strapi }: any) => ({
                 throw new Error('AutoFill service is not available');
             }
 
-            // Create or find existing collection
-            const result = await autoFillService.createQuickCollectionFromArticle(parsedId);
+            // Create or find existing collection using the resolved numeric ID
+            const result = await autoFillService.createQuickCollectionFromArticle(resolvedArticleId);
             const processingTime = Date.now() - startTime;
+
+            // FIXED: Build redirect URL using collection's documentId (v5) or fallback to ID
+            let redirectUrl = result.redirectUrl;
+            if (result.collection) {
+                const collectionDocumentId = result.collection.documentId || result.collection.id;
+                redirectUrl = `/admin/content-manager/collection-types/api::collection.collection/${collectionDocumentId}`;
+            }
 
             // Success response
             ctx.status = result.isExisting ? 200 : 201;
@@ -63,19 +159,24 @@ export default ({ strapi }: any) => ({
                 data: {
                     collection: {
                         id: result.collection.id,
+                        documentId: result.collection.documentId,
                         title: result.collection.Title,
-                        url: result.redirectUrl
+                        url: redirectUrl
                     },
                     article: {
                         id: result.article.id,
+                        documentId: article.documentId, // Include documentId in response
                         title: result.article.Title
                     },
                     isExisting: result.isExisting,
                     message: result.message,
-                    redirectUrl: result.redirectUrl,
+                    redirectUrl: redirectUrl,
                     metadata: {
                         processingTime,
                         timestamp: new Date().toISOString(),
+                        inputArticleId: articleId,
+                        resolvedArticleId: resolvedArticleId,
+                        idType: typeof articleId === 'string' && isNaN(parseInt(articleId)) ? 'documentId' : 'numeric',
                         ...(result.metadata || {})
                     }
                 }
@@ -187,8 +288,10 @@ export default ({ strapi }: any) => ({
                 success: true,
                 plugin: {
                     name: 'collection-article-relation',
-                    version: '2.0.0',
-                    status: 'healthy'
+                    version: '2.0.0-v5',
+                    status: 'healthy',
+                    strapiVersion: '5.x',
+                    documentServiceEnabled: true
                 },
                 services: {
                     autoFill: serviceHealth
@@ -208,7 +311,9 @@ export default ({ strapi }: any) => ({
                     'single-article-collection-creation',
                     'duplicate-prevention',
                     'auto-field-filling',
-                    'enhanced-error-handling'
+                    'enhanced-error-handling',
+                    'strapi-v5-document-service',
+                    'documentId-support'
                 ],
                 timestamp: new Date().toISOString(),
                 uptime: process.uptime()
@@ -222,7 +327,7 @@ export default ({ strapi }: any) => ({
                 success: false,
                 plugin: {
                     name: 'collection-article-relation',
-                    version: '2.0.0',
+                    version: '2.0.0-v5',
                     status: 'unhealthy'
                 },
                 error: {

@@ -1,20 +1,6 @@
 // src/plugins/per-language/admin/src/components/collection-perlanguage/CollectionLanguageCreator.tsx
 
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-    Button,
-    Grid,
-    SingleSelect,
-    SingleSelectOption,
-    Typography,
-    Flex,
-    Box,
-    Divider,
-    Alert,
-    Loader,
-    Badge,
-} from '@strapi/design-system';
-import { Plus, Information, Lightbulb, CheckCircle } from '@strapi/icons';
 import { SUPPORTED_LANGUAGES } from '../shared';
 import { CollectionLanguageData } from '../hooks';
 
@@ -142,7 +128,9 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
         setShowAutoRetrievalPreview(false);
     }, [selectedLanguage, collectionLanguages, onLanguageCreate, onError, useAutoRetrieval, isEnhancedMode]);
 
-    const handleLanguageSelect = useCallback(async (selectedLang: string) => {
+    const handleLanguageSelect = useCallback(async (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedLang = event.target.value;
+
         if (isEnhancedMode) {
             // Enhanced mode - just set selection, don't auto-create
             setSelectedLanguage(selectedLang);
@@ -166,30 +154,30 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
     const getScenarioIcon = (scenario: string) => {
         switch (scenario) {
             case 'no_articles':
-                return <Information style={{ color: 'var(--strapi-colors-danger600)' }} />;
+                return '⚠️';
             case 'no_language_data':
-                return <Information style={{ color: 'var(--strapi-colors-warning600)' }} />;
+                return '⚠️';
             case 'single_article':
-                return <Lightbulb style={{ color: 'var(--strapi-colors-success600)' }} />;
+                return '💡';
             case 'multiple_articles':
-                return <CheckCircle style={{ color: 'var(--strapi-colors-primary600)' }} />;
+                return '✅';
             default:
-                return <Information style={{ color: 'var(--strapi-colors-neutral600)' }} />;
+                return 'ℹ️';
         }
     };
 
-    const getScenarioVariant = (scenario: string) => {
+    const getScenarioColor = (scenario: string) => {
         switch (scenario) {
             case 'no_articles':
-                return 'danger';
+                return '#f44336';
             case 'no_language_data':
-                return 'warning';
+                return '#ff9800';
             case 'single_article':
-                return 'success';
+                return '#4caf50';
             case 'multiple_articles':
-                return 'default';
+                return '#2196f3';
             default:
-                return 'neutral';
+                return '#666';
         }
     };
 
@@ -198,298 +186,361 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
     // Render enhanced version if in enhanced mode
     if (isEnhancedMode) {
         return (
-            <Box
-                background="neutral0"
-                borderColor="neutral200"
-                borderWidth="1px"
-                borderStyle="solid"
-                borderRadius="4px"
-                padding={4}
-                marginBottom={4}
-            >
-                <Typography variant="beta" marginBottom={3}>
+            <div style={{
+                background: '#ffffff',
+                border: '1px solid #e0e0e0',
+                borderRadius: '4px',
+                padding: '16px',
+                marginBottom: '16px'
+            }}>
+                <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600', color: '#424242' }}>
                     Add New Language
-                </Typography>
+                </h3>
 
                 {/* Collection Statistics */}
                 {collectionStats && (
-                    <Box marginBottom={4}>
-                        <Flex gap={4} alignItems="center" marginBottom={2}>
-                            <Typography variant="omega" fontWeight="semiBold">
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#424242' }}>
                                 Collection Info:
-                            </Typography>
-                            <Badge>
+                            </span>
+                            <span style={{
+                                padding: '2px 8px',
+                                backgroundColor: '#e3f2fd',
+                                borderRadius: '12px',
+                                fontSize: '12px',
+                                color: '#1976d2'
+                            }}>
                                 {collectionStats.articleCount} article{collectionStats.articleCount !== 1 ? 's' : ''}
-                            </Badge>
-                        </Flex>
+                            </span>
+                        </div>
 
                         {collectionStats.articleCount > 0 && (
-                            <Box marginLeft={2}>
-                                <Typography variant="pi" textColor="neutral600">
+                            <div style={{ marginLeft: '8px' }}>
+                                <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
                                     Articles: {collectionStats.articles.map(a => a.title).join(', ')}
-                                </Typography>
-                            </Box>
+                                </p>
+                            </div>
                         )}
-                    </Box>
+                    </div>
                 )}
 
-                <Divider marginBottom={4} />
+                <hr style={{ border: 'none', borderTop: '1px solid #e0e0e0', margin: '16px 0' }} />
 
-                <Grid gap={4}>
-                    <Grid.Item col={12} md={6}>
-                        <SingleSelect
-                            label="Select Language"
-                            placeholder="Choose a language to add..."
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#424242' }}>
+                            Select Language
+                        </label>
+                        <select
                             value={selectedLanguage}
-                            onChange={setSelectedLanguage}
+                            onChange={handleLanguageSelect}
                             disabled={isCreatingRecord}
+                            style={{
+                                width: '100%',
+                                padding: '8px 12px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                fontSize: '14px',
+                                backgroundColor: isCreatingRecord ? '#f5f5f5' : 'white'
+                            }}
                         >
+                            <option value="">Choose a language to add...</option>
                             {availableOptions.map(language => (
-                                <SingleSelectOption key={language.code} value={language.code}>
-                                    <Flex alignItems="center" gap={2}>
-                                        {language.name}
-                                        <Typography variant="pi" textColor="neutral600">
-                                            ({language.nativeName})
-                                        </Typography>
-                                        {language.processorAvailable && (
-                                            <Badge variant="success" size="S">Processor</Badge>
-                                        )}
-                                    </Flex>
-                                </SingleSelectOption>
+                                <option key={language.code} value={language.code}>
+                                    {language.name} ({language.nativeName}) {language.processorAvailable ? '⚙️' : ''}
+                                </option>
                             ))}
-                        </SingleSelect>
-                    </Grid.Item>
+                        </select>
+                    </div>
 
-                    <Grid.Item col={12} md={6}>
-                        <Flex direction="column" gap={2}>
-                            <Typography variant="omega" fontWeight="semiBold">
-                                Auto-Retrieval Options
-                            </Typography>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#424242' }}>
+                            Auto-Retrieval Options
+                        </label>
 
-                            <Flex gap={2}>
-                                <Button
-                                    variant={useAutoRetrieval ? 'default' : 'secondary'}
-                                    size="S"
-                                    onClick={() => setUseAutoRetrieval(true)}
-                                    disabled={isCreatingRecord || !selectedLanguage}
-                                >
-                                    <Lightbulb />
-                                    Smart Create
-                                </Button>
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                            <button
+                                onClick={() => setUseAutoRetrieval(true)}
+                                disabled={isCreatingRecord || !selectedLanguage}
+                                style={{
+                                    padding: '6px 12px',
+                                    border: `1px solid ${useAutoRetrieval ? '#2196f3' : '#ddd'}`,
+                                    borderRadius: '4px',
+                                    backgroundColor: useAutoRetrieval ? '#2196f3' : 'white',
+                                    color: useAutoRetrieval ? 'white' : '#424242',
+                                    cursor: isCreatingRecord || !selectedLanguage ? 'not-allowed' : 'pointer',
+                                    fontSize: '12px'
+                                }}
+                            >
+                                💡 Smart Create
+                            </button>
 
-                                <Button
-                                    variant={!useAutoRetrieval ? 'default' : 'secondary'}
-                                    size="S"
-                                    onClick={() => setUseAutoRetrieval(false)}
-                                    disabled={isCreatingRecord}
-                                >
-                                    Manual Create
-                                </Button>
-                            </Flex>
+                            <button
+                                onClick={() => setUseAutoRetrieval(false)}
+                                disabled={isCreatingRecord}
+                                style={{
+                                    padding: '6px 12px',
+                                    border: `1px solid ${!useAutoRetrieval ? '#2196f3' : '#ddd'}`,
+                                    borderRadius: '4px',
+                                    backgroundColor: !useAutoRetrieval ? '#2196f3' : 'white',
+                                    color: !useAutoRetrieval ? 'white' : '#424242',
+                                    cursor: isCreatingRecord ? 'not-allowed' : 'pointer',
+                                    fontSize: '12px'
+                                }}
+                            >
+                                Manual Create
+                            </button>
+                        </div>
 
-                            <Typography variant="pi" textColor="neutral600">
-                                {useAutoRetrieval
-                                    ? 'Automatically populate fields based on articles'
-                                    : 'Create with empty fields for manual setup'
-                                }
-                            </Typography>
-                        </Flex>
-                    </Grid.Item>
-                </Grid>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
+                            {useAutoRetrieval
+                                ? 'Automatically populate fields based on articles'
+                                : 'Create with empty fields for manual setup'
+                            }
+                        </p>
+                    </div>
+                </div>
 
                 {/* Auto-Retrieval Preview */}
                 {showAutoRetrievalPreview && selectedLanguage && (
-                    <Box marginTop={4}>
-                        <Divider marginBottom={3} />
+                    <div style={{ marginTop: '16px' }}>
+                        <hr style={{ border: 'none', borderTop: '1px solid #e0e0e0', margin: '12px 0' }} />
 
-                        <Typography variant="omega" fontWeight="semiBold" marginBottom={2}>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600', color: '#424242' }}>
                             Auto-Retrieval Preview for {selectedLangInfo?.name}
-                        </Typography>
+                        </h4>
 
                         {isLoadingAutoRetrieval ? (
-                            <Flex justifyContent="center" alignItems="center" padding={4}>
-                                <Loader />
-                                <Typography variant="pi" marginLeft={2}>
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px' }}>
+                                <div style={{ marginRight: '8px' }}>⌛</div>
+                                <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
                                     Analyzing collection data...
-                                </Typography>
-                            </Flex>
+                                </p>
+                            </div>
                         ) : autoRetrievalData ? (
-                            <Box>
-                                <Alert
-                                    variant={getScenarioVariant(autoRetrievalData.scenario) as any}
-                                    title={`Scenario: ${autoRetrievalData.scenario.replace('_', ' ').toUpperCase()}`}
-                                    marginBottom={3}
-                                >
-                                    <Flex alignItems="center" gap={2}>
-                                        {getScenarioIcon(autoRetrievalData.scenario)}
-                                        <Typography variant="omega">
-                                            {autoRetrievalData.message}
-                                        </Typography>
-                                    </Flex>
-                                </Alert>
+                            <div>
+                                <div style={{
+                                    padding: '12px',
+                                    border: `1px solid ${getScenarioColor(autoRetrievalData.scenario)}`,
+                                    borderRadius: '4px',
+                                    backgroundColor: `${getScenarioColor(autoRetrievalData.scenario)}10`,
+                                    marginBottom: '12px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span>{getScenarioIcon(autoRetrievalData.scenario)}</span>
+                                        <span style={{ fontSize: '12px', fontWeight: '600' }}>
+                                            Scenario: {autoRetrievalData.scenario.replace('_', ' ').toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <p style={{ margin: '4px 0 0 20px', fontSize: '14px' }}>
+                                        {autoRetrievalData.message}
+                                    </p>
+                                </div>
 
                                 {/* Collection Stats Summary */}
                                 {autoRetrievalData.collectionStats && (
-                                    <Box marginBottom={3}>
-                                        <Grid gap={2}>
-                                            <Grid.Item col={4}>
-                                                <Box textAlign="center" padding={2} background="neutral100" borderRadius="4px">
-                                                    <Typography variant="sigma" fontWeight="bold">
-                                                        {autoRetrievalData.collectionStats.articleCount}
-                                                    </Typography>
-                                                    <Typography variant="pi" textColor="neutral600">
-                                                        Articles
-                                                    </Typography>
-                                                </Box>
-                                            </Grid.Item>
-                                            <Grid.Item col={4}>
-                                                <Box textAlign="center" padding={2} background="neutral100" borderRadius="4px">
-                                                    <Typography variant="sigma" fontWeight="bold">
-                                                        {autoRetrievalData.collectionStats.languageDataCount}
-                                                    </Typography>
-                                                    <Typography variant="pi" textColor="neutral600">
-                                                        Translated
-                                                    </Typography>
-                                                </Box>
-                                            </Grid.Item>
-                                            <Grid.Item col={4}>
-                                                <Box textAlign="center" padding={2} background="neutral100" borderRadius="4px">
-                                                    <Typography variant="sigma" fontWeight="bold">
-                                                        {autoRetrievalData.collectionStats.hasLanguageData ? '✓' : '✗'}
-                                                    </Typography>
-                                                    <Typography variant="pi" textColor="neutral600">
-                                                        Ready
-                                                    </Typography>
-                                                </Box>
-                                            </Grid.Item>
-                                        </Grid>
-                                    </Box>
+                                    <div style={{ marginBottom: '12px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                                            <div style={{ textAlign: 'center', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                                                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                                                    {autoRetrievalData.collectionStats.articleCount}
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#666' }}>
+                                                    Articles
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'center', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                                                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                                                    {autoRetrievalData.collectionStats.languageDataCount}
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#666' }}>
+                                                    Translated
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'center', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                                                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                                                    {autoRetrievalData.collectionStats.hasLanguageData ? '✓' : '✗'}
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#666' }}>
+                                                    Ready
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
 
                                 {/* Suggested Data Preview */}
                                 {autoRetrievalData.suggestedData && (
-                                    <Box
-                                        background="primary100"
-                                        borderColor="primary200"
-                                        borderWidth="1px"
-                                        borderStyle="solid"
-                                        borderRadius="4px"
-                                        padding={3}
-                                    >
-                                        <Typography variant="omega" fontWeight="semiBold" marginBottom={2}>
+                                    <div style={{
+                                        backgroundColor: '#e3f2fd',
+                                        border: '1px solid #bbdefb',
+                                        borderRadius: '4px',
+                                        padding: '12px'
+                                    }}>
+                                        <h5 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '600' }}>
                                             Will be auto-populated:
-                                        </Typography>
+                                        </h5>
 
-                                        <Grid gap={2}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                                             {autoRetrievalData.suggestedData.access_tier && (
-                                                <Grid.Item col={6}>
-                                                    <Typography variant="pi" textColor="neutral600">
+                                                <div>
+                                                    <span style={{ fontSize: '12px', color: '#666' }}>
                                                         Access Tier:
-                                                    </Typography>
-                                                    <Badge variant="secondary">
+                                                    </span>
+                                                    <div style={{
+                                                        display: 'inline-block',
+                                                        marginLeft: '4px',
+                                                        padding: '2px 6px',
+                                                        backgroundColor: '#fff',
+                                                        borderRadius: '8px',
+                                                        fontSize: '11px'
+                                                    }}>
                                                         {autoRetrievalData.suggestedData.access_tier}
-                                                    </Badge>
-                                                </Grid.Item>
+                                                    </div>
+                                                </div>
                                             )}
 
                                             {autoRetrievalData.suggestedData.display_skill && (
-                                                <Grid.Item col={6}>
-                                                    <Typography variant="pi" textColor="neutral600">
+                                                <div>
+                                                    <span style={{ fontSize: '12px', color: '#666' }}>
                                                         Skill Level:
-                                                    </Typography>
-                                                    <Badge variant="secondary">
+                                                    </span>
+                                                    <div style={{
+                                                        display: 'inline-block',
+                                                        marginLeft: '4px',
+                                                        padding: '2px 6px',
+                                                        backgroundColor: '#fff',
+                                                        borderRadius: '8px',
+                                                        fontSize: '11px'
+                                                    }}>
                                                         {autoRetrievalData.suggestedData.display_skill}
-                                                    </Badge>
-                                                </Grid.Item>
+                                                    </div>
+                                                </div>
                                             )}
-                                        </Grid>
-                                    </Box>
+                                        </div>
+                                    </div>
                                 )}
-                            </Box>
+                            </div>
                         ) : (
-                            <Alert variant="neutral" title="No preview available">
-                                Unable to get auto-retrieval data for this language.
-                            </Alert>
+                            <div style={{
+                                padding: '12px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                backgroundColor: '#f5f5f5'
+                            }}>
+                                <p style={{ margin: 0, fontSize: '14px' }}>
+                                    No preview available. Unable to get auto-retrieval data for this language.
+                                </p>
+                            </div>
                         )}
-                    </Box>
+                    </div>
                 )}
 
                 {/* Create Button */}
-                <Flex justifyContent="flex-end" marginTop={4}>
-                    <Button
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                    <button
                         onClick={handleCreateLanguage}
                         disabled={!selectedLanguage || isCreatingRecord}
-                        loading={isCreatingRecord}
-                        startIcon={<Plus />}
+                        style={{
+                            padding: '8px 16px',
+                            border: '1px solid #2196f3',
+                            borderRadius: '4px',
+                            backgroundColor: !selectedLanguage || isCreatingRecord ? '#f5f5f5' : '#2196f3',
+                            color: !selectedLanguage || isCreatingRecord ? '#999' : 'white',
+                            cursor: !selectedLanguage || isCreatingRecord ? 'not-allowed' : 'pointer',
+                            fontSize: '14px'
+                        }}
                     >
                         {isCreatingRecord
                             ? `Creating ${selectedLangInfo?.name || 'Language'}...`
-                            : `Add ${selectedLangInfo?.name || 'Language'}`
+                            : `➕ Add ${selectedLangInfo?.name || 'Language'}`
                         }
-                    </Button>
-                </Flex>
+                    </button>
+                </div>
 
                 {/* Help Text */}
                 {availableOptions.length === 0 && (
-                    <Alert variant="neutral" title="All languages added" marginTop={3}>
-                        All available languages have been added to this collection.
-                    </Alert>
+                    <div style={{
+                        padding: '12px',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        backgroundColor: '#f5f5f5',
+                        marginTop: '12px'
+                    }}>
+                        <p style={{ margin: 0, fontSize: '14px' }}>
+                            All available languages have been added to this collection.
+                        </p>
+                    </div>
                 )}
-            </Box>
+            </div>
         );
     }
 
     // Render original simple version for backward compatibility
     return (
-        <Box>
-            <Box paddingBottom={3}>
-                <Typography variant="delta">
+        <div>
+            <div style={{ paddingBottom: '12px' }}>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#424242' }}>
                     Collection Per-Language Management
-                </Typography>
-            </Box>
+                </h3>
+            </div>
 
-            <Flex gap={4}>
-                <SingleSelect
-                    label="Choose Collection Target Language"
-                    placeholder="Select a language to create collection content"
-                    value={selectedLanguage}
-                    onChange={handleLanguageSelect}
-                    disabled={isCreatingRecord || !collectionId}
-                >
-                    {availableOptions.map((lang) => (
-                        <SingleSelectOption key={lang.code} value={lang.code}>
-                            {lang.name}
-                        </SingleSelectOption>
-                    ))}
-                </SingleSelect>
+            <div style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
+                <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#424242' }}>
+                        Choose Collection Target Language
+                    </label>
+                    <select
+                        value={selectedLanguage}
+                        onChange={handleLanguageSelect}
+                        disabled={isCreatingRecord || !collectionId}
+                        style={{
+                            width: '100%',
+                            maxWidth: '300px',
+                            padding: '8px 12px',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            backgroundColor: isCreatingRecord || !collectionId ? '#f5f5f5' : 'white'
+                        }}
+                    >
+                        <option value="">Select a language to create collection content</option>
+                        {availableOptions.map((lang) => (
+                            <option key={lang.code} value={lang.code}>
+                                {lang.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 {/* No collection ID warning */}
                 {!collectionId && (
-                    <Box padding={3} background="neutral100" borderRadius="4px">
-                        <Typography variant="pi" color="neutral600">
+                    <div style={{ padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                        <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
                             Please save the collection first to enable per-language management.
-                        </Typography>
-                    </Box>
+                        </p>
+                    </div>
                 )}
 
                 {/* Creating record loading state */}
                 {isCreatingRecord && (
-                    <Box padding={2} background="primary100" borderRadius="4px">
-                        <Typography variant="pi" color="primary600">
+                    <div style={{ padding: '8px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>
+                        <p style={{ margin: 0, fontSize: '14px', color: '#1976d2' }}>
                             Creating collection language record...
-                        </Typography>
-                    </Box>
+                        </p>
+                    </div>
                 )}
 
                 {/* No more languages available */}
                 {collectionId && availableOptions.length === 0 && (
-                    <Box padding={3} background="neutral100" borderRadius="4px">
-                        <Typography variant="pi" color="neutral600">
+                    <div style={{ padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                        <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
                             All supported languages have been added to this collection.
-                        </Typography>
-                    </Box>
+                        </p>
+                    </div>
                 )}
-            </Flex>
-        </Box>
+            </div>
+        </div>
     );
 };
