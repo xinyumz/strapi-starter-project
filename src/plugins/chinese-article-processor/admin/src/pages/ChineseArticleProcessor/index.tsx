@@ -1,31 +1,22 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/index.tsx
 
 import React, { useState, useEffect } from 'react';
-import {
-    Box,
-    Typography,
-    Button,
-    Checkbox,
-    Flex,
-    Main
-} from '@strapi/design-system';
-import { ArrowLeft } from '@strapi/icons';
 import pluginId from '../../pluginId';
-// Components from shared directory
+
+// Import native HTML components only
 import { LoadingOverlay, AlertMessages, ConfirmationDialog } from '../../components/common';
 
-// Feature-specific components
+// Feature-specific components - using native HTML versions
 import { HSKAnalysisSection } from './components/hsk';
-
 import { SentenceProcessingSection } from './components/sentence-processing';
+
 // Hooks - Import from the hooks directory
 import { useLoadingState } from '../../hooks';
-
 import { useHSKManagement, useArticleProcessor, useGrammarManagement, useTranslationManagement } from './hooks';
 import { useFetchClient } from "@strapi/strapi/admin";
 
 /**
- * Main component for processing Chinese articles
+ * Main component for processing Chinese articles - Native HTML Version
  */
 const ChineseArticleProcessor = () => {
     // Common state
@@ -36,8 +27,8 @@ const ChineseArticleProcessor = () => {
     const [successMessage, setSuccessMessage] = useState('Operation completed successfully');
     const [isInitialized, setIsInitialized] = useState(false);
 
-    // Simplified mode toggle
-    const [simplified, setSimplified] = useState(true); // Default to simplified mode
+    // Always use simplified mode to avoid complex component dependencies
+    const simplified = true;
 
     // Main loading state
     const {
@@ -154,6 +145,8 @@ const ChineseArticleProcessor = () => {
         const id = params.get('articleId');
         const engine = params.get('engine') || 'both';
 
+        console.log('[ChineseArticleProcessor] URL params:', { id, engine, fullUrl: window.location.href });
+
         if (id) {
             setArticleId(id);
             handleEngineChange(engine as any);
@@ -165,7 +158,15 @@ const ChineseArticleProcessor = () => {
                 loadHSKData(id)
             ]).then(() => {
                 setIsInitialized(true);
+            }).catch((err) => {
+                console.error('[ChineseArticleProcessor] Error loading data:', err);
+                setError('Failed to load article data. Please try refreshing the page.');
+                setIsInitialized(true);
             });
+        } else {
+            console.warn('[ChineseArticleProcessor] No articleId found in URL parameters');
+            setError('No article ID provided. Please access this page from an article editor.');
+            setIsInitialized(true);
         }
     }, []);  // Empty dependency array - only run once
 
@@ -199,11 +200,6 @@ const ChineseArticleProcessor = () => {
         setSuccess(false);
     };
 
-    // Toggle simplified mode
-    const handleToggleSimplified = () => {
-        setSimplified(prev => !prev);
-    };
-
     // Navigate back to the article edit page with updated data
     const handleNavigateBack = async () => {
         try {
@@ -233,36 +229,88 @@ const ChineseArticleProcessor = () => {
     };
 
     return (
-        <>
-            <Box
-                title={`Chinese Article Processor - ${articleTitle}`}
-                subtitle={`Article ID: ${articleId}`}
-                navigationAction={
-                    <Button
-                        startIcon={<ArrowLeft />}
-                        variant="tertiary"
-                        onClick={handleNavigateBack}
-                    >
-                        Back
-                    </Button>
-                }
-                primaryAction={
-                    <Flex alignItems="center" gap={3}>
-                        <Typography variant="pi">Compact View</Typography>
-                        <Checkbox
-                            onLabel="ON"
-                            offLabel="OFF"
-                            checked={simplified}
-                            onChange={handleToggleSimplified}
-                            aria-label="Toggle simplified view"
-                        />
-                    </Flex>
-                }
-            />
+        <div style={{ padding: '1rem', backgroundColor: '#f9f9f9', minHeight: '100vh' }}>
+            {/* Header */}
+            <div style={{
+                backgroundColor: 'white',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                marginBottom: '1.5rem',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem'
+            }}>
+                <div>
+                    <h1 style={{
+                        fontSize: '1.5rem',
+                        fontWeight: '600',
+                        color: '#212134',
+                        margin: '0 0 0.25rem 0'
+                    }}>
+                        Chinese Article Processor - {articleTitle}
+                    </h1>
+                    <p style={{
+                        fontSize: '0.875rem',
+                        color: '#666687',
+                        margin: 0
+                    }}>
+                        Article ID: {articleId}
+                    </p>
+                </div>
 
-            <Main>
-                {isLoading && !isTranslating && !isCalculatingHSK && !isProcessing ? (
-                    <LoadingOverlay isLoading={true} message="Loading data..." />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    {/* Status indicator */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 1rem',
+                        backgroundColor: '#d4edda',
+                        color: '#155724',
+                        borderRadius: '6px',
+                        fontSize: '0.875rem'
+                    }}>
+                        <span>✓</span>
+                        <span>Simplified Mode</span>
+                    </div>
+
+                    {/* Back button */}
+                    <button
+                        onClick={handleNavigateBack}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            backgroundColor: '#f6f6f9',
+                            color: '#4a4a6a',
+                            border: '1px solid #dcdce4',
+                            borderRadius: '4px',
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = '#e6e6e6';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f6f6f9';
+                        }}
+                    >
+                        <span>←</span>
+                        Back to Article
+                    </button>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div>
+                {/* Show loading only for initial load */}
+                {!isInitialized ? (
+                    <LoadingOverlay isLoading={true} message="Loading article data..." />
                 ) : (
                     <>
                         <AlertMessages
@@ -273,46 +321,79 @@ const ChineseArticleProcessor = () => {
                             onSuccessDismiss={handleSuccessDismiss}
                         />
 
-                        {/* HSK Level Analysis Section */}
-                        <HSKAnalysisSection
-                            hskData={hskData}
-                            isCalculatingHSK={isCalculatingHSK}
-                            hasHskChanges={hasHskChanges}
-                            isLoading={isLoading || isProcessing}
-                            onCalculate={calculateHSK}
-                            onLevelChange={handleHSKLevelChange}
-                            onSaveLevel={saveHSKLevel}
-                        />
+                        {/* Show content only if we have an articleId */}
+                        {articleId ? (
+                            <>
+                                {/* HSK Level Analysis Section */}
+                                <HSKAnalysisSection
+                                    hskData={hskData}
+                                    isCalculatingHSK={isCalculatingHSK}
+                                    hasHskChanges={hasHskChanges}
+                                    isLoading={isLoading || isProcessing}
+                                    onCalculate={calculateHSK}
+                                    onLevelChange={handleHSKLevelChange}
+                                    onSaveLevel={saveHSKLevel}
+                                />
 
-                        {/* Grammar and Translation Section */}
-                        <SentenceProcessingSection
-                            sentences={sentences}
-                            engineChoice={engineChoice}
-                            activeLanguage={activeLanguage}
-                            supportedLanguages={supportedLanguages}
-                            hasSupportedLanguages={hasSupportedLanguages}
-                            isLoading={isLoading || isProcessing}
-                            isTranslating={isTranslating}
-                            hasTranslationChanges={hasDataChanges}
-                            selectedRulesCount={selectedRulesCount}
-                            selectedRules={selectedRules}
-                            onEngineChange={handleEngineChange}
-                            onLanguageChange={handleLanguageChange}
-                            onGenerateClick={generateGrammarRules}
-                            onTranslateClick={translateAllSentences}
-                            onTranslationChange={handleTranslationChange}
-                            onAddBulkTranslation={addBulkTranslation}
-                            onRemoveBulkTranslation={removeBulkTranslation}
-                            onToggleRuleSelection={toggleRuleSelection}
-                            onDeleteRuleClick={handleShowDeleteConfirm}
-                            onSaveTranslations={saveArticleData}
-                            onDeleteSelected={handleBulkDeleteConfirmed}
-                            isRuleSelected={isRuleSelected}
-                            simplified={simplified}
-                        />
+                                {/* Grammar and Translation Section */}
+                                <SentenceProcessingSection
+                                    sentences={sentences}
+                                    engineChoice={engineChoice}
+                                    activeLanguage={activeLanguage}
+                                    supportedLanguages={supportedLanguages}
+                                    hasSupportedLanguages={hasSupportedLanguages}
+                                    isLoading={isLoading || isProcessing}
+                                    isTranslating={isTranslating}
+                                    hasTranslationChanges={hasDataChanges}
+                                    selectedRulesCount={selectedRulesCount}
+                                    selectedRules={selectedRules}
+                                    onEngineChange={handleEngineChange}
+                                    onLanguageChange={handleLanguageChange}
+                                    onGenerateClick={generateGrammarRules}
+                                    onTranslateClick={translateAllSentences}
+                                    onTranslationChange={handleTranslationChange}
+                                    onAddBulkTranslation={addBulkTranslation}
+                                    onRemoveBulkTranslation={removeBulkTranslation}
+                                    onToggleRuleSelection={toggleRuleSelection}
+                                    onDeleteRuleClick={handleShowDeleteConfirm}
+                                    onSaveTranslations={saveArticleData}
+                                    onDeleteSelected={handleBulkDeleteConfirmed}
+                                    isRuleSelected={isRuleSelected}
+                                    simplified={simplified}
+                                />
+                            </>
+                        ) : (
+                            <div style={{
+                                backgroundColor: 'white',
+                                padding: '2rem',
+                                borderRadius: '8px',
+                                textAlign: 'center' as const
+                            }}>
+                                <h2 style={{ color: '#666687', marginBottom: '1rem' }}>
+                                    No Article Selected
+                                </h2>
+                                <p style={{ color: '#4a4a6a', marginBottom: '1.5rem' }}>
+                                    Please access this page from an article editor to process Chinese content.
+                                </p>
+                                <a
+                                    href="/admin/content-manager/collection-types/api::article.article"
+                                    style={{
+                                        display: 'inline-block',
+                                        padding: '0.75rem 1.5rem',
+                                        backgroundColor: '#4945ff',
+                                        color: 'white',
+                                        textDecoration: 'none',
+                                        borderRadius: '6px',
+                                        fontWeight: '500'
+                                    }}
+                                >
+                                    Go to Articles
+                                </a>
+                            </div>
+                        )}
                     </>
                 )}
-            </Main>
+            </div>
 
             {/* Delete Rule Confirmation Dialog */}
             <ConfirmationDialog
@@ -325,7 +406,7 @@ const ChineseArticleProcessor = () => {
                 onConfirm={handleDeleteRuleConfirmed}
                 onCancel={() => setIsDeleteModalVisible(false)}
             />
-        </>
+        </div>
     );
 };
 

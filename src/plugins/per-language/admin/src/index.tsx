@@ -11,7 +11,6 @@ export default {
   register(app: any) {
     console.log('[per-language admin] Registering language processor field...');
 
-    // Register the language processor custom field
     app.customFields.register({
       name: 'language-processor',
       pluginId: 'per-language',
@@ -53,7 +52,6 @@ export default {
       },
     });
 
-    // Register the collection perlanguage custom field
     app.customFields.register({
       name: 'collection-perlanguage',
       pluginId: 'per-language',
@@ -95,7 +93,7 @@ export default {
       },
     });
 
-    // FIXED: Register the menu link with correct v5 syntax
+    // FIXED: Simple plugin - direct HomePage import
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
@@ -103,19 +101,19 @@ export default {
         id: `${pluginId}.plugin.name`,
         defaultMessage: 'Language Processing Hub',
       },
-      Component: () => import('./pages/App'), // FIXED: Direct import function
+      Component: async () => {
+        const { default: HomePage } = await import('./pages/HomePage');
+        return HomePage;
+      },
       permissions: [],
     });
 
-    // Register the plugin
-    const plugin = {
+    app.registerPlugin({
       id: pluginId,
       initializer: Initializer,
       isReady: false,
       name,
-    };
-
-    app.registerPlugin(plugin);
+    });
   },
 
   bootstrap(app: any) {
@@ -126,21 +124,10 @@ export default {
     const importedTrads = await Promise.all(
       locales.map((locale) => {
         return import(`./translations/${locale}.json`)
-          .then(({ default: data }) => {
-            return {
-              data: data,
-              locale,
-            };
-          })
-          .catch(() => {
-            return {
-              data: {},
-              locale,
-            };
-          });
+          .then(({ default: data }) => ({ data, locale }))
+          .catch(() => ({ data: {}, locale }));
       })
     );
-
     return Promise.resolve(importedTrads);
   },
 };

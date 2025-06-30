@@ -1,6 +1,5 @@
 // src/plugins/category-manager/admin/src/index.tsx
 
-// prefixPluginTranslations removed in v5 - handle manually if needed
 import pluginPkg from '../../package.json';
 import pluginId from './pluginId';
 import Initializer from './components/Initializer';
@@ -53,9 +52,7 @@ export default {
       },
     });
 
-    console.log('[Category Manager] ✅ Category selector field registered successfully as STRING type');
-
-    // FIXED: Register plugin page with correct v5 syntax
+    // FIXED: Simple plugin - direct HomePage import
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
@@ -63,19 +60,19 @@ export default {
         id: `${pluginId}.plugin.name`,
         defaultMessage: name,
       },
-      Component: () => import('./pages/App'), // FIXED: Direct import function
+      Component: async () => {
+        const { default: HomePage } = await import('./pages/HomePage');
+        return HomePage;
+      },
       permissions: [],
     });
 
-    // Register the plugin
-    const plugin = {
+    app.registerPlugin({
       id: pluginId,
       initializer: Initializer,
       isReady: false,
       name,
-    };
-
-    app.registerPlugin(plugin);
+    });
 
     console.log('[Category Manager] ✅ Plugin registered successfully');
   },
@@ -88,21 +85,10 @@ export default {
     const importedTrads = await Promise.all(
       locales.map((locale) => {
         return import(`./translations/${locale}.json`)
-          .then(({ default: data }) => {
-            return {
-              data: data,
-              locale,
-            };
-          })
-          .catch(() => {
-            return {
-              data: {},
-              locale,
-            };
-          });
+          .then(({ default: data }) => ({ data, locale }))
+          .catch(() => ({ data: {}, locale }));
       })
     );
-
     return Promise.resolve(importedTrads);
   },
 };

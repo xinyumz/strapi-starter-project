@@ -1,7 +1,5 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/hsk/HSKLevelSelector.tsx
 import React from 'react';
-import { Box, Typography, Flex, SingleSelect, SingleSelectOption, Button, Badge } from '@strapi/design-system';
-import { Check } from '@strapi/icons';
 import { HSK_LEVELS } from '../../../../utils/constants';
 
 interface HSKLevelSelectorProps {
@@ -14,7 +12,7 @@ interface HSKLevelSelectorProps {
 }
 
 /**
- * Component for displaying and selecting HSK level
+ * Native HTML component for displaying and selecting HSK level
  */
 const HSKLevelSelector: React.FC<HSKLevelSelectorProps> = ({
   calculatedLevel,
@@ -25,64 +23,138 @@ const HSKLevelSelector: React.FC<HSKLevelSelectorProps> = ({
   onSave,
 }) => {
   return (
-    <Box background="neutral0" padding={4} hasRadius shadow="filterShadow">
-      <Flex gap={4}>
-        <Box>
-          <Flex gap={3}>
-            <Typography variant="delta">
+    <div style={{
+      backgroundColor: 'white',
+      padding: '1rem',
+      borderRadius: '6px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+    }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+        {/* Calculated Level Section */}
+        <div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            marginBottom: '0.5rem'
+          }}>
+            <h3 style={{
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: '#212134',
+              margin: 0
+            }}>
               Calculated HSK Level
-            </Typography>
-            {calculatedLevel ? (
-              <Badge backgroundColor="primary200" textColor="neutral800">
-                HSK {calculatedLevel}
-              </Badge>
-            ) : (
-              <Badge backgroundColor="neutral200" textColor="neutral800">
-                N/A
-              </Badge>
-            )}
-          </Flex>
-        </Box>
+            </h3>
 
-        <Box>
-          <Typography variant="delta">Manual Selection</Typography>
-          <Box paddingTop={2}>
-            <SingleSelect
-              label="Select Final HSK Level"
+            <span style={{
+              display: 'inline-block',
+              padding: '0.25rem 0.5rem',
+              backgroundColor: calculatedLevel ? '#e3f2fd' : '#f0f0f0',
+              color: calculatedLevel ? '#1976d2' : '#666687',
+              borderRadius: '12px',
+              fontSize: '0.75rem',
+              fontWeight: '500'
+            }}>
+              {calculatedLevel ? `HSK ${calculatedLevel}` : 'N/A'}
+            </span>
+          </div>
+        </div>
+
+        {/* Manual Selection Section */}
+        <div>
+          <h3 style={{
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: '#212134',
+            margin: '0 0 0.5rem 0'
+          }}>
+            Manual Selection
+          </h3>
+
+          <div style={{ marginBottom: '0.75rem' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '0.875rem',
+              color: '#4a4a6a',
+              marginBottom: '0.25rem'
+            }}>
+              Select Final HSK Level
+            </label>
+
+            <select
               value={selectedLevel?.toString() || "1"}
-              onChange={onLevelChange}
+              onChange={(e) => onLevelChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #dcdce4',
+                borderRadius: '4px',
+                backgroundColor: 'white',
+                fontSize: '0.875rem',
+                color: '#212134'
+              }}
             >
               {HSK_LEVELS.map((level) => (
-                <SingleSelectOption key={level} value={level.toString()}>
+                <option key={level} value={level.toString()}>
                   HSK {level}
-                </SingleSelectOption>
+                </option>
               ))}
-            </SingleSelect>
-          </Box>
+            </select>
+          </div>
 
           {hasChanges && (
-            <Box paddingTop={2}>
-              <Button
+            <div style={{ marginBottom: '0.75rem' }}>
+              <button
                 onClick={onSave}
                 disabled={!hasChanges || isLoading}
-                startIcon={<Check />}
-                size="S"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  backgroundColor: (!hasChanges || isLoading) ? '#f6f6f9' : '#10b981',
+                  color: (!hasChanges || isLoading) ? '#666687' : 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: (!hasChanges || isLoading) ? 'not-allowed' : 'pointer',
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  if (hasChanges && !isLoading) {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (hasChanges && !isLoading) {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                  }
+                }}
               >
+                <span>✓</span>
                 Save HSK Level
-              </Button>
-            </Box>
+              </button>
+            </div>
           )}
 
-          <Box paddingTop={2}>
-            <Typography variant="omega">
-              {hasChanges
-                ? "Click 'Save HSK Level' to save your selection"
-                : "The selected HSK level has been saved to the article."}
-            </Typography>
-          </Box>
-        </Box>
-      </Flex>
-    </Box>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#666687',
+            lineHeight: '1.4'
+          }}>
+            {hasChanges
+              ? "Click 'Save HSK Level' to save your selection"
+              : "The selected HSK level has been saved to the article."}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -9,11 +9,8 @@ import { initializePageMonitoring } from './utils/pageMonitorSystem';
 const name = pluginPkg.strapi.name;
 
 export default {
-  /**
-   * Register plugin with Strapi admin
-   */
   register(app: any) {
-    // FIXED: Add menu link with correct v5 syntax
+    // FIXED: Simple plugin - direct HomePage import
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
@@ -21,28 +18,24 @@ export default {
         id: `${pluginId}.plugin.name`,
         defaultMessage: name,
       },
-      Component: () => import('./pages/App'), // FIXED: Direct import function
+      Component: async () => {
+        const { default: HomePage } = await import('./pages/HomePage');
+        return HomePage;
+      },
       permissions: [],
     });
 
-    // Register plugin
-    const plugin = {
+    app.registerPlugin({
       id: pluginId,
       initializer: Initializer,
       isReady: false,
       name,
-    };
-
-    app.registerPlugin(plugin);
+    });
   },
 
-  /**
-   * Bootstrap plugin functionality
-   */
   bootstrap(app: any) {
     console.log('[Collection Article Relation] Bootstrap started');
 
-    // Initialize floating button system with delay to ensure DOM is ready
     setTimeout(() => {
       console.log('[Collection Article Relation] Initializing floating button system');
       initializePageMonitoring();
@@ -51,30 +44,16 @@ export default {
     console.log('[Collection Article Relation] Bootstrap completed');
   },
 
-  /**
-   * Register translations
-   */
   async registerTrads(app: any) {
     const { locales } = app;
 
     const importedTrads = await Promise.all(
       (locales as any[]).map((locale) => {
         return import(`./translations/${locale}.json`)
-          .then(({ default: data }) => {
-            return {
-              data: data,
-              locale,
-            };
-          })
-          .catch(() => {
-            return {
-              data: {},
-              locale,
-            };
-          });
+          .then(({ default: data }) => ({ data, locale }))
+          .catch(() => ({ data: {}, locale }));
       })
     );
-
     return Promise.resolve(importedTrads);
   },
 };

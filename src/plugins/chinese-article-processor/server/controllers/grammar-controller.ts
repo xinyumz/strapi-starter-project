@@ -53,16 +53,34 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // Make sure it's a valid number
-            const parsedId = parseInt(articleId, 10);
+            // Helper function to resolve documentId to numeric ID
+            const resolveArticleId = async (id: string): Promise<number> => {
+                // If it's already a number, use it directly
+                const numericId = parseInt(id, 10);
+                if (!isNaN(numericId)) {
+                    return numericId;
+                }
 
-            if (isNaN(parsedId)) {
-                strapi.log.error(`Invalid article ID: ${articleId}`);
-                return ctx.badRequest(`Invalid article ID: ${articleId}`);
-            }
+                // Otherwise, it's a documentId - resolve it to numeric ID
+                try {
+                    const article = await strapi.documents('api::article.article').findOne({
+                        documentId: id
+                    });
+
+                    if (!article) {
+                        throw new Error(`Article not found with documentId: ${id}`);
+                    }
+
+                    return article.id;
+                } catch (error) {
+                    throw new Error(`Failed to resolve article ID: ${error}`);
+                }
+            };
+
+            const numericId = await resolveArticleId(articleId);
 
             const grammarService = strapi.plugin('chinese-article-processor').service('grammarService');
-            const result = await grammarService.getArticleGrammar(parsedId);
+            const result = await grammarService.getArticleGrammar(numericId);
 
             if (!result.success) {
                 strapi.log.error(`Failed to get grammar data: ${result.error}`);
@@ -96,20 +114,38 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // Make sure it's a valid number
-            const parsedId = parseInt(articleId, 10);
+            // Helper function to resolve documentId to numeric ID
+            const resolveArticleId = async (id: string): Promise<number> => {
+                // If it's already a number, use it directly
+                const numericId = parseInt(id, 10);
+                if (!isNaN(numericId)) {
+                    return numericId;
+                }
 
-            if (isNaN(parsedId)) {
-                strapi.log.error(`Invalid article ID: ${articleId}`);
-                return ctx.badRequest(`Invalid article ID: ${articleId}`);
-            }
+                // Otherwise, it's a documentId - resolve it to numeric ID
+                try {
+                    const article = await strapi.documents('api::article.article').findOne({
+                        documentId: id
+                    });
+
+                    if (!article) {
+                        throw new Error(`Article not found with documentId: ${id}`);
+                    }
+
+                    return article.id;
+                } catch (error) {
+                    throw new Error(`Failed to resolve article ID: ${error}`);
+                }
+            };
+
+            const numericId = await resolveArticleId(articleId);
 
             if (!sentences || !Array.isArray(sentences)) {
                 return ctx.badRequest('Valid sentences array is required');
             }
 
             const grammarService = strapi.plugin('chinese-article-processor').service('grammarService');
-            const result = await grammarService.saveArticleGrammar(parsedId, sentences);
+            const result = await grammarService.saveArticleGrammar(numericId, sentences);
 
             if (!result.success) {
                 strapi.log.error(`Failed to save grammar data: ${result.error}`);
