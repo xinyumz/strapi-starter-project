@@ -2,6 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFetchClient } from "@strapi/strapi/admin";
+import {
+    Box,
+    Typography,
+    Flex,
+    Button,
+    SingleSelect,
+    SingleSelectOption,
+    Field
+} from '@strapi/design-system';
 
 interface CategorySelectorProps {
     name?: string;
@@ -299,13 +308,12 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
     }, [isLoadingValue, handleValueChange]);
 
     // Handle taxon selection
-    const handleTaxonChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleTaxonChange = useCallback((value: string) => {
         if (!isInitialized || isLoadingValue) return;
 
-        const taxonId = event.target.value;
-        console.log('[CategorySelector] Taxon changed to:', taxonId);
+        console.log('[CategorySelector] Taxon changed to:', value);
 
-        const numericTaxonId = taxonId ? parseInt(taxonId, 10) : null;
+        const numericTaxonId = value ? parseInt(value, 10) : null;
 
         setSelectedTaxonId(numericTaxonId);
 
@@ -325,13 +333,12 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
     }, [isInitialized, isLoadingValue, selectedCategoryId, selectedTaxonId, taxons, handleValueChange]);
 
     // Handle category selection
-    const handleCategoryChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleCategoryChange = useCallback((value: string) => {
         if (!isInitialized || isLoadingValue) return;
 
-        const categoryId = event.target.value;
-        console.log('[CategorySelector] Category changed to:', categoryId);
+        console.log('[CategorySelector] Category changed to:', value);
 
-        const numericCategoryId = categoryId ? parseInt(categoryId, 10) : null;
+        const numericCategoryId = value ? parseInt(value, 10) : null;
 
         setSelectedCategoryId(numericCategoryId);
         handleValueChange(numericCategoryId);
@@ -355,181 +362,221 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
 
     if (!isInitialized) {
         return (
-            <div style={{ padding: '16px', border: '1px solid #f28b82', borderRadius: '4px', backgroundColor: '#ffeaa7' }}>
-                <strong style={{ color: '#d63031' }}>Configuration Error</strong>
-                <p style={{ margin: '8px 0 0 0', color: '#2d3436' }}>Component not properly initialized.</p>
-            </div>
+            <Box
+                padding={4}
+                background="danger100"
+                borderRadius="4px"
+                style={{ border: '1px solid #f28b82' }}
+            >
+                <Typography variant="omega" fontWeight="bold" textColor="danger600">
+                    Configuration Error
+                </Typography>
+                <Typography variant="pi" textColor="neutral700" marginTop={1}>
+                    Component not properly initialized.
+                </Typography>
+            </Box>
         );
     }
 
-    // COMPLETELY AVOID STRAPI DESIGN SYSTEM - Use native HTML elements
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+        <Box padding={0}>
             {/* Error Messages */}
             {(internalError || error) && (
-                <div style={{ padding: '12px', border: '1px solid #f28b82', borderRadius: '4px', backgroundColor: '#ffebee' }}>
-                    <strong style={{ color: '#c62828' }}>Error</strong>
-                    <p style={{ margin: '4px 0 0 0', color: '#424242' }}>{internalError || error}</p>
-                    <button
-                        style={{ marginTop: '8px', padding: '4px 8px', border: 'none', background: '#f5f5f5', borderRadius: '2px', cursor: 'pointer' }}
-                        onClick={() => setInternalError(null)}
-                    >
-                        ✕
-                    </button>
-                </div>
+                <Box
+                    padding={3}
+                    marginBottom={4}
+                    background="danger100"
+                    borderRadius="4px"
+                    style={{ border: '1px solid #f28b82' }}
+                >
+                    <Flex justifyContent="space-between" alignItems="flex-start">
+                        <Box>
+                            <Typography variant="omega" fontWeight="bold" textColor="danger600">
+                                Error
+                            </Typography>
+                            <Typography variant="pi" textColor="neutral700" marginTop={1}>
+                                {internalError || error}
+                            </Typography>
+                        </Box>
+                        <Button
+                            variant="tertiary"
+                            onClick={() => setInternalError(null)}
+                            size="S"
+                        >
+                            ✕
+                        </Button>
+                    </Flex>
+                </Box>
             )}
 
             {/* Success Messages */}
             {success && (
-                <div style={{ padding: '12px', border: '1px solid #4caf50', borderRadius: '4px', backgroundColor: '#e8f5e8' }}>
-                    <strong style={{ color: '#2e7d32' }}>Success</strong>
-                    <p style={{ margin: '4px 0 0 0', color: '#424242' }}>{success}</p>
-                    <button
-                        style={{ marginTop: '8px', padding: '4px 8px', border: 'none', background: '#f5f5f5', borderRadius: '2px', cursor: 'pointer' }}
-                        onClick={() => setSuccess(null)}
-                    >
-                        ✕
-                    </button>
-                </div>
+                <Box
+                    padding={3}
+                    marginBottom={4}
+                    background="success100"
+                    borderRadius="4px"
+                    style={{ border: '1px solid #4caf50' }}
+                >
+                    <Flex justifyContent="space-between" alignItems="flex-start">
+                        <Box>
+                            <Typography variant="omega" fontWeight="bold" textColor="success600">
+                                Success
+                            </Typography>
+                            <Typography variant="pi" textColor="neutral700" marginTop={1}>
+                                {success}
+                            </Typography>
+                        </Box>
+                        <Button
+                            variant="tertiary"
+                            onClick={() => setSuccess(null)}
+                            size="S"
+                        >
+                            ✕
+                        </Button>
+                    </Flex>
+                </Box>
             )}
 
             {/* Loading Value Indicator */}
             {isLoadingValue && (
-                <div style={{ padding: '12px', border: '1px solid #2196f3', borderRadius: '4px', backgroundColor: '#e3f2fd' }}>
-                    <strong style={{ color: '#1976d2' }}>Loading</strong>
-                    <p style={{ margin: '4px 0 0 0', color: '#424242' }}>Loading saved category selection...</p>
-                </div>
+                <Box
+                    padding={3}
+                    marginBottom={4}
+                    background="primary100"
+                    borderRadius="4px"
+                    style={{ border: '1px solid #2196f3' }}
+                >
+                    <Typography variant="omega" fontWeight="bold" textColor="primary600">
+                        Loading saved category selection...
+                    </Typography>
+                </Box>
             )}
 
-            {/* Taxonomy and Category Selection */}
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                {/* Taxonomy Selection */}
-                <div style={{ flex: '1', minWidth: '200px' }}>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#424242' }}>
-                        Taxonomy {required && <span style={{ color: '#f44336' }}>*</span>}
-                    </label>
-                    <select
-                        value={selectedTaxonId?.toString() || ''}
-                        onChange={handleTaxonChange}
-                        disabled={loading || taxons.length === 0 || disabled || isLoadingValue}
-                        style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            backgroundColor: disabled || isLoadingValue ? '#f5f5f5' : 'white'
-                        }}
-                    >
-                        <option value="">Select a taxonomy...</option>
-                        {taxons.map((taxon) => (
-                            <option key={`taxon-${taxon.id}`} value={taxon.id.toString()}>
-                                {taxon.name}
-                            </option>
-                        ))}
-                    </select>
-                    <small style={{ color: '#666', fontSize: '12px' }}>Choose the content type category</small>
-                </div>
+            {/* Main Selection Interface */}
+            <Flex direction="column" gap={4} width="100%">
+                {/* Taxonomy and Category Selection Row */}
+                <Flex gap={4} wrap="wrap" width="100%">
+                    {/* Taxonomy Selection */}
+                    <Box flex="1" style={{ minWidth: '250px' }}>
+                        <Field.Root error={error} required={required} name={`${name}_taxon`}>
+                            <Field.Label>Taxonomy</Field.Label>
+                            <SingleSelect
+                                value={selectedTaxonId?.toString() || ''}
+                                onChange={handleTaxonChange}
+                                disabled={loading || taxons.length === 0 || disabled || isLoadingValue}
+                                placeholder="Select a taxonomy..."
+                            >
+                                {taxons.map((taxon) => (
+                                    <SingleSelectOption key={`taxon-${taxon.id}`} value={taxon.id.toString()}>
+                                        {taxon.name}
+                                    </SingleSelectOption>
+                                ))}
+                            </SingleSelect>
+                            <Field.Hint>Choose the content type category</Field.Hint>
+                            <Field.Error />
+                        </Field.Root>
+                    </Box>
 
-                {/* Category Selection */}
-                <div style={{ flex: '1', minWidth: '200px' }}>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', color: '#424242' }}>
-                        Category
-                    </label>
-                    <select
-                        value={selectedCategoryId?.toString() || ''}
-                        onChange={handleCategoryChange}
-                        disabled={loading || !selectedTaxonId || categories.length === 0 || disabled || isLoadingValue}
-                        style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            backgroundColor: disabled || isLoadingValue || !selectedTaxonId ? '#f5f5f5' : 'white'
-                        }}
-                    >
-                        <option value="">
-                            {!selectedTaxonId
-                                ? "First select a taxonomy"
-                                : categories.length === 0 && !loading
-                                    ? "No categories available"
-                                    : "Choose a category..."}
-                        </option>
-                        {categories.map((category) => (
-                            <option key={`category-${category.id}`} value={category.id.toString()}>
-                                {category.name} {category.order > 0 ? `(#${category.order})` : ''}
-                            </option>
-                        ))}
-                    </select>
-                    <small style={{ color: '#666', fontSize: '12px' }}>
-                        {selectedTaxonId ? `Categories in ${selectedTaxonName}` : "Select a taxonomy first"}
-                    </small>
-                </div>
-            </div>
+                    {/* Category Selection */}
+                    <Box flex="1" style={{ minWidth: '250px' }}>
+                        <Field.Root error={error} required={false} name={name}>
+                            <Field.Label>Category</Field.Label>
+                            <SingleSelect
+                                value={selectedCategoryId?.toString() || ''}
+                                onChange={handleCategoryChange}
+                                disabled={loading || !selectedTaxonId || categories.length === 0 || disabled || isLoadingValue}
+                                placeholder={
+                                    !selectedTaxonId
+                                        ? "First select a taxonomy"
+                                        : categories.length === 0 && !loading
+                                            ? "No categories available"
+                                            : "Choose a category..."
+                                }
+                            >
+                                {categories.map((category) => (
+                                    <SingleSelectOption key={`category-${category.id}`} value={category.id.toString()}>
+                                        {category.name} {category.order > 0 ? `(#${category.order})` : ''}
+                                    </SingleSelectOption>
+                                ))}
+                            </SingleSelect>
+                            <Field.Hint>
+                                {selectedTaxonId ? `Categories in ${selectedTaxonName}` : "Select a taxonomy first"}
+                            </Field.Hint>
+                            <Field.Error />
+                        </Field.Root>
+                    </Box>
+                </Flex>
 
-            {/* Current Selection Display */}
-            {selectedTaxonId && selectedCategoryId && !isLoadingValue && (
-                <div style={{ padding: '12px', backgroundColor: '#e3f2fd', borderRadius: '4px', width: '100%' }}>
-                    <span style={{ color: '#1976d2', fontSize: '14px' }}>
-                        Selected: {selectedTaxonName} → {selectedCategoryName}
-                    </span>
-                </div>
-            )}
+                {/* Selection Display and Clear Button */}
+                {selectedTaxonId && selectedCategoryId && !isLoadingValue && (
+                    <Flex direction="column" gap={3} width="100%">
+                        {/* Selection Display */}
+                        <Box
+                            padding={3}
+                            background="primary100"
+                            borderRadius="4px"
+                            style={{ border: '1px solid #e3f2fd' }}
+                            width="100%"
+                        >
+                            <Typography variant="omega" textColor="primary600">
+                                ✓ Selected: {selectedTaxonName} → {selectedCategoryName}
+                            </Typography>
+                        </Box>
 
-            {/* Action Buttons */}
-            {(selectedTaxonId || selectedCategoryId) && !disabled && !isLoadingValue && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                    <button
-                        onClick={handleClear}
-                        style={{
-                            padding: '8px 16px',
-                            border: '1px solid #ddd',
-                            borderRadius: '4px',
-                            backgroundColor: 'white',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}
-                    >
-                        Clear Selection
-                    </button>
-                </div>
-            )}
+                        {/* Clear Button */}
+                        <Flex justifyContent="flex-end" width="100%">
+                            <Button
+                                variant="tertiary"
+                                onClick={handleClear}
+                                size="S"
+                            >
+                                Clear Selection
+                            </Button>
+                        </Flex>
+                    </Flex>
+                )}
 
-            {/* Loading State */}
-            {loading && (
-                <div style={{ padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                    <span style={{ color: '#666', fontSize: '14px' }}>Loading...</span>
-                </div>
-            )}
+                {/* Clear Button Only (when partially selected) */}
+                {(selectedTaxonId || selectedCategoryId) && !(selectedTaxonId && selectedCategoryId) && !disabled && !isLoadingValue && (
+                    <Flex justifyContent="flex-end" gap={2} width="100%">
+                        <Button
+                            variant="tertiary"
+                            onClick={handleClear}
+                            size="S"
+                        >
+                            Clear Selection
+                        </Button>
+                    </Flex>
+                )}
 
-            {/* Helpful Messages */}
-            {taxons.length === 0 && !loading && !internalError && (
-                <div style={{ padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px', width: '100%' }}>
-                    <span style={{ color: '#666', fontSize: '14px' }}>
-                        No taxonomies found. Create taxonomies first in Category Manager.
-                    </span>
-                </div>
-            )}
+                {/* Loading State */}
+                {loading && (
+                    <Box padding={3} background="neutral100" borderRadius="4px">
+                        <Typography variant="omega" textColor="neutral600">
+                            Loading...
+                        </Typography>
+                    </Box>
+                )}
 
-            {selectedTaxonId && categories.length === 0 && !loading && !internalError && (
-                <div style={{ padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px', width: '100%' }}>
-                    <span style={{ color: '#666', fontSize: '14px' }}>
-                        No categories found for {selectedTaxonName}. Create categories in Category Manager.
-                    </span>
-                </div>
-            )}
+                {/* Helpful Messages */}
+                {taxons.length === 0 && !loading && !internalError && (
+                    <Box padding={3} background="neutral100" borderRadius="4px">
+                        <Typography variant="omega" textColor="neutral600">
+                            No taxonomies found. Create taxonomies first in Category Manager.
+                        </Typography>
+                    </Box>
+                )}
 
-            {/* Debug Info */}
-            {process.env.NODE_ENV === 'development' && (
-                <div style={{ padding: '8px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-                    <span style={{ color: '#666', fontSize: '11px' }}>
-                        Debug: TaxonID={selectedTaxonId}, CategoryID={selectedCategoryId},
-                        Value="{value}", Loading={isLoadingValue ? 'YES' : 'NO'}
-                    </span>
-                </div>
-            )}
-        </div>
+                {selectedTaxonId && categories.length === 0 && !loading && !internalError && (
+                    <Box padding={3} background="neutral100" borderRadius="4px">
+                        <Typography variant="omega" textColor="neutral600">
+                            No categories found for {selectedTaxonName}. Create categories in Category Manager.
+                        </Typography>
+                    </Box>
+                )}
+            </Flex>
+        </Box>
     );
 };
 
