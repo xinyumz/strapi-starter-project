@@ -1,349 +1,403 @@
 // src/plugins/collection-article-relation/admin/src/pages/HomePage/index.tsx
 
 import React from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+} from '@strapi/design-system';
+import styled from 'styled-components';
+
+// Styled components using Design System v2 color tokens
+const PageContainer = styled(Box).attrs({
+  background: "neutral0"
+})`
+  padding: 3rem;
+  min-height: 100vh;
+`;
+
+const ContentWrapper = styled(Box)`
+  max-width: 1200px;
+  margin: 0 auto;
+`;
+
+const HeaderSection = styled(Box)`
+  margin-bottom: 2rem;
+`;
+
+const StatusCard = styled(Box).attrs({
+  background: "success100"
+})`
+  padding: 3rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+`;
+
+const WhiteCard = styled(Box).attrs({
+  background: "neutral0"
+})`
+  padding: 3rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  width: 100%
+`;
+
+const StepCard = styled(Box).attrs({
+  background: "neutral100"
+})`
+  text-align: center;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 100%
+`;
+
+const StepNumber = styled(Box)`
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  text-align: center;
+`;
+
+const FeatureCard = styled(Box)`
+  padding: 2rem;
+  border-radius: 8px;
+  width: 100%
+`;
+
+const BenefitCard = styled(Box)`
+  margin-bottom: 1.5rem;
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const BenefitMetric = styled(Box)`
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+`;
+
+const InfoCard = styled(Box)`
+  padding: 3rem;
+  border-radius: 12px;
+  width: 100%
+`;
+
+const TechnicalDetailItem = styled(Box)`
+  margin-bottom: 0.75rem;
+`;
+
+const ReadyBadge = styled(Box).attrs({
+  background: "success200"
+})`
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
 
 const HomePage = () => {
   return (
-    <div style={{ padding: '2rem', backgroundColor: '#f9f9f9', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-
+    <PageContainer>
+      <ContentWrapper>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{
-            fontSize: '2.5rem',
-            fontWeight: 'bold',
-            color: '#212134',
-            marginBottom: '0.5rem'
-          }}>
-            Collection Auto-Fill Plugin
-          </h1>
-          <p style={{
-            fontSize: '1.1rem',
-            color: '#666687',
-            marginBottom: '2rem'
-          }}>
-            Streamline your content workflow with intelligent collection creation
-          </p>
-        </div>
+        <HeaderSection>
+          <Box marginBottom={4}>
+            <Typography
+              variant="alpha"
+              fontWeight="bold"
+              textColor="neutral800"
+            >
+              Collection Auto-Fill Plugin
+            </Typography>
+          </Box>
+          <Box marginBottom={8}>
+            <Typography
+              variant="epsilon"
+              textColor="neutral600"
+            >
+              Streamline your content workflow with intelligent collection creation
+            </Typography>
+          </Box>
+        </HeaderSection>
 
         {/* Status Section */}
-        <div style={{
-          backgroundColor: '#d4edda',
-          padding: '2rem',
-          borderRadius: '12px',
-          marginBottom: '2rem',
-          border: '1px solid #c3e6cb',
-          textAlign: 'center'
-        }}>
-          <h2 style={{
-            fontSize: '1.75rem',
-            color: '#155724',
-            marginBottom: '1rem',
-            fontWeight: '600'
-          }}>
-            ✅ Plugin Active & Working
-          </h2>
-          <p style={{
-            fontSize: '1rem',
-            color: '#155724',
-            marginBottom: '1rem',
-            lineHeight: '1.6'
-          }}>
-            The floating "📚 Quick Collection" button is now available on all article edit pages.
-            Click it to instantly create collections with auto-filled fields.
-          </p>
-          <div style={{
-            display: 'inline-block',
-            padding: '0.5rem 1rem',
-            backgroundColor: '#c3e6cb',
-            color: '#155724',
-            borderRadius: '20px',
-            fontSize: '0.875rem',
-            fontWeight: '500'
-          }}>
-            Ready to Use
-          </div>
-        </div>
+        <StatusCard>
+          <Box marginBottom={4}>
+            <Typography
+              variant="beta"
+              textColor="success700"
+              fontWeight="semiBold"
+            >
+              ✅ Plugin Active & Working
+            </Typography>
+          </Box>
+          <Box marginBottom={4}>
+            <Typography
+              variant="omega"
+              textColor="success700"
+              style={{ lineHeight: '1.6' }}
+            >
+              The floating "📚 Quick Collection" button is now available on all article edit pages.
+              Click it to instantly create collections with auto-filled fields.
+            </Typography>
+          </Box>
+          <ReadyBadge>
+            <Typography variant="pi" textColor="success700" fontWeight="medium">
+              Ready to Use
+            </Typography>
+          </ReadyBadge>
+        </StatusCard>
 
         {/* How to Use Section */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '2rem',
-          borderRadius: '12px',
-          marginBottom: '2rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{
-            fontSize: '1.5rem',
-            color: '#212134',
-            marginBottom: '1.5rem',
-            fontWeight: '600'
-          }}>
-            🎯 How to Use
-          </h2>
+        <WhiteCard>
+          <Box marginBottom={6}>
+            <Typography
+              variant="beta"
+              textColor="neutral800"
+              fontWeight="semiBold"
+            >
+              🎯 How to Use
+            </Typography>
+          </Box>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '1rem'
-          }}>
+          <Grid.Root gap={6}>
             {[
               {
                 step: '1',
                 title: 'Navigate to Article',
                 description: 'Go to any article edit page in the content manager',
-                color: '#4945ff'
+                color: 'primary600' as const
               },
               {
                 step: '2',
                 title: 'Find the Button',
                 description: 'Look for the floating "📚 Quick Collection" button in the bottom-right',
-                color: '#f59e0b'
+                color: 'warning600' as const
               },
               {
                 step: '3',
                 title: 'Click to Create',
                 description: 'Click the button to instantly create a collection with auto-filled data',
-                color: '#8b5cf6'
+                color: 'secondary600' as const
               },
               {
                 step: '4',
                 title: 'Open Collection',
                 description: 'Click "📂 Open Collection" in the notification to view your new collection',
-                color: '#10b981'
+                color: 'success600' as const
               }
             ].map((item, index) => (
-              <div key={index} style={{
-                textAlign: 'center',
-                padding: '1.5rem',
-                backgroundColor: '#f8f9fa',
-                borderRadius: '8px'
-              }}>
-                <div style={{
-                  fontSize: '2rem',
-                  fontWeight: 'bold',
-                  color: item.color,
-                  marginBottom: '0.5rem'
-                }}>
-                  {item.step}
-                </div>
-                <h3 style={{
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  color: '#212134',
-                  marginBottom: '0.5rem'
-                }}>
-                  {item.title}
-                </h3>
-                <p style={{
-                  fontSize: '0.875rem',
-                  color: '#666687',
-                  lineHeight: '1.4',
-                  margin: 0
-                }}>
-                  {item.description}
-                </p>
-              </div>
+              <Grid.Item key={index} col={6}>
+                <StepCard>
+                  <StepNumber>
+                    <Typography variant="alpha" textColor={item.color}>
+                      {item.step}
+                    </Typography>
+                  </StepNumber>
+                  <Box marginBottom={2}>
+                    <Typography
+                      variant="omega"
+                      fontWeight="semiBold"
+                      textColor="neutral800"
+                    >
+                      {item.title}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="pi"
+                      textColor="neutral600"
+                      style={{ lineHeight: '1.4' }}
+                    >
+                      {item.description}
+                    </Typography>
+                  </Box>
+                </StepCard>
+              </Grid.Item>
             ))}
-          </div>
-        </div>
+          </Grid.Root>
+        </WhiteCard>
 
         {/* Auto-Fill Features */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '2fr 1fr',
-          gap: '2rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{
-              fontSize: '1.5rem',
-              color: '#212134',
-              marginBottom: '1.5rem',
-              fontWeight: '600'
-            }}>
-              ✨ What Gets Auto-Filled
-            </h2>
+        <Grid.Root gap={6} align="stretch" style={{ marginBottom: '2rem' }}>
+          <Grid.Item col={8}>
+            <WhiteCard height="100%" style={{ margin: 0 }}>
+              < Box marginBottom={6} >
+                <Typography
+                  variant="beta"
+                  textColor="neutral800"
+                  fontWeight="semiBold"
+                >
+                  ✨ What Gets Auto-Filled
+                </Typography>
+              </Box>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '1rem'
-            }}>
-              {[
-                { title: 'Title & Date', desc: 'Collection title and date copied exactly from the source article', bg: '#d4edda', color: '#155724' },
-                { title: 'Cover & Category', desc: 'Cover image and category automatically copied from the article', bg: '#e6f3ff', color: '#0d47a1' },
-                { title: 'Article Relation', desc: 'The source article is automatically linked to the new collection', bg: '#fff3cd', color: '#856404' },
-                { title: 'Duplicate Prevention', desc: 'Detects existing single-article collections and redirects instead of creating duplicates', bg: '#f3e5f5', color: '#4a148c' }
-              ].map((feature, index) => (
-                <div key={index} style={{
-                  padding: '1rem',
-                  backgroundColor: feature.bg,
-                  borderRadius: '8px'
-                }}>
-                  <h3 style={{
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    color: feature.color,
-                    marginBottom: '0.5rem'
-                  }}>
-                    ✅ {feature.title}
-                  </h3>
-                  <p style={{
-                    fontSize: '0.75rem',
-                    color: feature.color,
-                    margin: 0,
-                    lineHeight: '1.4'
-                  }}>
-                    {feature.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+
+              <Grid.Root gap={6}>
+                {[
+                  { title: 'Title & Date', desc: 'Collection title and date copied exactly from the source article', bg: 'success100', textColor: 'success700' },
+                  { title: 'Cover & Category', desc: 'Cover image and category automatically copied from the article', bg: 'primary100', textColor: 'primary700' },
+                  { title: 'Article Relation', desc: 'The source article is automatically linked to the new collection', bg: 'warning100', textColor: 'warning700' },
+                  { title: 'Duplicate Prevention', desc: 'Detects existing single-article collections and redirects instead of creating duplicates', bg: 'secondary100', textColor: 'secondary700' }
+                ].map((feature, index) => (
+                  <Grid.Item key={index} col={6}>
+                    <FeatureCard key={index} background={feature.bg as any}>
+                      <Box marginBottom={3}>
+                        <Typography
+                          variant="omega"
+                          fontWeight="semiBold"
+                          textColor={feature.textColor as any}
+                        >
+                          ✅ {feature.title}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="omega"
+                          textColor={feature.textColor as any}
+                          style={{ lineHeight: '1.5' }}
+                        >
+                          {feature.desc}
+                        </Typography>
+                      </Box>
+                    </FeatureCard>
+                  </Grid.Item>
+                ))}
+              </Grid.Root>
+            </WhiteCard>
+          </Grid.Item>
 
           {/* Key Benefits */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{
-              fontSize: '1.5rem',
-              color: '#212134',
-              marginBottom: '1.5rem',
-              fontWeight: '600'
-            }}>
-              🎉 Key Benefits
-            </h2>
+          <Grid.Item col={4}>
+            <WhiteCard height="100%" style={{ margin: 0 }}>
+              <Box marginBottom={6}>
+                <Typography
+                  variant="beta"
+                  textColor="neutral800"
+                  fontWeight="semiBold"
+                >
+                  🎉 Key Benefits
+                </Typography>
+              </Box>
 
-            {[
-              { metric: '90%', title: 'Time Savings', desc: 'Dramatically reduce manual collection creation time', color: '#4945ff' },
-              { metric: '1-Click', title: 'Collection Creation', desc: 'Instant collection creation with full auto-fill', color: '#10b981' },
-              { metric: 'Zero', title: 'Learning Curve', desc: 'Intuitive floating button requires no training', color: '#f59e0b' }
-            ].map((benefit, index) => (
-              <div key={index} style={{
-                textAlign: 'center',
-                marginBottom: index < 2 ? '1.5rem' : 0
-              }}>
-                <div style={{
-                  fontSize: '2rem',
-                  fontWeight: 'bold',
-                  color: benefit.color,
-                  marginBottom: '0.25rem'
-                }}>
-                  {benefit.metric}
-                </div>
-                <h3 style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  color: '#212134',
-                  marginBottom: '0.25rem'
-                }}>
-                  {benefit.title}
-                </h3>
-                <p style={{
-                  fontSize: '0.75rem',
-                  color: '#666687',
-                  margin: 0,
-                  lineHeight: '1.4'
-                }}>
-                  {benefit.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+              {[
+                { metric: '90%', title: 'Time Savings', desc: 'Dramatically reduce manual collection creation time', color: 'primary600' },
+                { metric: '1-Click', title: 'Collection Creation', desc: 'Instant collection creation with full auto-fill', color: 'success600' },
+                { metric: 'Zero', title: 'Learning Curve', desc: 'Intuitive floating button requires no training', color: 'warning600' }
+              ].map((benefit, index) => (
+                <BenefitCard key={index}>
+                  <BenefitMetric>
+                    <Typography variant="alpha" textColor={benefit.color as any}>
+                      {benefit.metric}
+                    </Typography>
+                  </BenefitMetric>
+                  <Box marginBottom={1}>
+                    <Typography
+                      variant="pi"
+                      fontWeight="semiBold"
+                      textColor="neutral800"
+                    >
+                      {benefit.title}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="pi"
+                      textColor="neutral600"
+                      style={{ lineHeight: '1.4' }}
+                    >
+                      {benefit.desc}
+                    </Typography>
+                  </Box>
+                </BenefitCard>
+              ))}
+            </WhiteCard>
+          </Grid.Item>
+        </Grid.Root>
 
         {/* Additional Info */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '2rem'
-        }}>
+        <Grid.Root gap={6}>
           {/* Multi-Article Collections */}
-          <div style={{
-            backgroundColor: '#f3e5f5',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            border: '1px solid #e1bee7'
-          }}>
-            <h2 style={{
-              fontSize: '1.25rem',
-              color: '#4a148c',
-              marginBottom: '1rem',
-              fontWeight: '600'
-            }}>
-              💡 Multi-Article Collections
-            </h2>
-            <h3 style={{
-              fontSize: '1rem',
-              color: '#4a148c',
-              marginBottom: '0.75rem',
-              fontWeight: '500'
-            }}>
-              Need collections with multiple articles?
-            </h3>
-            <p style={{
-              fontSize: '0.875rem',
-              color: '#4a148c',
-              margin: 0,
-              lineHeight: '1.5'
-            }}>
-              Use the quick button to create a collection from your primary article, then manually add additional articles to it.
-              This workflow is still much faster than creating everything from scratch!
-            </p>
-          </div>
+          <Grid.Item col={6}>
+            <InfoCard background="secondary100" height="100%">
+              <Box marginBottom={4}>
+                <Typography
+                  variant="gamma"
+                  textColor="secondary700"
+                  fontWeight="semiBold"
+                >
+                  💡 Multi-Article Collections
+                </Typography>
+              </Box>
+              <Box marginBottom={3}>
+                <Typography
+                  variant="omega"
+                  textColor="secondary700"
+                  fontWeight="medium"
+                >
+                  Need collections with multiple articles?
+                </Typography>
+              </Box>
+              <Box>
+                <Typography
+                  variant="omega"
+                  textColor="secondary700"
+                  style={{ lineHeight: '1.5' }}
+                >
+                  Use the quick button to create a collection from your primary article, then manually add additional articles to it.
+                  This workflow is still much faster than creating everything from scratch!
+                </Typography>
+              </Box>
+            </InfoCard>
+          </Grid.Item>
 
           {/* Technical Info */}
-          <div style={{
-            backgroundColor: '#f8f9fa',
-            padding: '1.5rem',
-            borderRadius: '12px',
-            border: '1px solid #dee2e6'
-          }}>
-            <h2 style={{
-              fontSize: '1.25rem',
-              color: '#212134',
-              marginBottom: '1rem',
-              fontWeight: '600'
-            }}>
-              🔧 Technical Details
-            </h2>
+          <Grid.Item col={6}>
+            <InfoCard background="neutral100" height="100%">
+              <Box marginBottom={4}>
+                <Typography
+                  variant="gamma"
+                  textColor="neutral800"
+                  fontWeight="semiBold"
+                >
+                  🔧 Technical Details
+                </Typography>
+              </Box>
 
-            {[
-              { label: 'Plugin Version:', value: '2.0.0 (Simplified & Optimized)' },
-              { label: 'Primary Use Case:', value: 'Single-article collections (80% of use cases)' },
-              { label: 'Integration:', value: 'Non-invasive floating button system' },
-              { label: 'API Endpoints:', value: '/quick-create, /health' }
-            ].map((detail, index) => (
-              <div key={index} style={{ marginBottom: '0.75rem' }}>
-                <span style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  color: '#212134'
-                }}>
-                  {detail.label}
-                </span>
-                <br />
-                <span style={{
-                  fontSize: '0.75rem',
-                  color: '#666687'
-                }}>
-                  {detail.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+              {[
+                { label: 'Plugin Version:', value: '2.0.0 (Simplified & Optimized)' },
+                { label: 'Primary Use Case:', value: 'Single-article collections (80% of use cases)' },
+                { label: 'Integration:', value: 'Non-invasive floating button system' },
+                { label: 'API Endpoints:', value: '/quick-create, /health' }
+              ].map((detail, index) => (
+                <TechnicalDetailItem key={index}>
+                  <Box>
+                    <Typography
+                      variant="pi"
+                      fontWeight="semiBold"
+                      textColor="neutral800"
+                    >
+                      {detail.label}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="pi"
+                      textColor="neutral600"
+                    >
+                      {detail.value}
+                    </Typography>
+                  </Box>
+                </TechnicalDetailItem>
+              ))}
+            </InfoCard>
+          </Grid.Item>
+        </Grid.Root>
+      </ContentWrapper >
+    </PageContainer >
   );
 };
 

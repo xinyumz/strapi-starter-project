@@ -17,11 +17,9 @@ import {
   Plus,
   Search,
   Cog,
-  More,
-  Alien
+  More
 } from '@strapi/icons';
 import pluginId from '../../pluginId';
-import styled from 'styled-components'
 
 
 type QuickStartStepProps = {
@@ -232,12 +230,12 @@ const HomePage = () => {
                   <Flex justifyContent="space-between" alignItems="flex-start" width="100%">
                     <Flex alignItems="center" gap={4} flex={1}>
                       <Flex
+                        style={{ flexShrink: 0 }}
                         background="neutral100"
                         padding={3}
                         borderRadius="8px"
                         justifyContent="center"
                         alignItems="center"
-                        flexShrink={0}
                       >
                         <feature.icon fill="neutral600" stroke="white" width="1.5rem" height="1.5rem" />
                       </Flex>

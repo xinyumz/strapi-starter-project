@@ -5,9 +5,9 @@
  */
 
 import React from 'react';
-import { Plus } from '@strapi/icons';
+import { Database } from '@strapi/icons';
 
-const PluginIcon = () => <Plus stroke="white" />;
+const PluginIcon = () => <Database stroke="white" width="2rem" height="2rem" />;
 
 
 export default PluginIcon;

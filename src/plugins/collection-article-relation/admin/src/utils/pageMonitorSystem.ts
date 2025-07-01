@@ -30,7 +30,7 @@ let currentState = {
     hasButton: false,
     observers: [] as MutationObserver[],
     lastLoggedUrl: '',
-    debugMode: true
+    debugMode: false
 };
 
 /**
@@ -147,7 +147,7 @@ function waitForDomReady(): Promise<void> {
 function waitForStrapiContent(): Promise<void> {
     return new Promise((resolve) => {
         let attempts = 0;
-        const maxAttempts = 50; // 5 seconds max wait
+        const maxAttempts = 10;
 
         const checkContent = () => {
             attempts++;
@@ -167,12 +167,12 @@ function waitForStrapiContent(): Promise<void> {
                 document.querySelector(selector) !== null
             );
 
-            debugLog(`Content check attempt ${attempts}:`, {
-                foundIndicators,
-                totalIndicators: contentIndicators.length,
-                bodyClasses: document.body.className,
-                documentTitle: document.title
-            });
+            if (attempts % 5 === 0 || foundIndicators.length > 0 || attempts >= maxAttempts) {
+                debugLog(`Content check attempt ${attempts}:`, {
+                    foundIndicators: foundIndicators.length,
+                    totalIndicators: contentIndicators.length
+                });
+            }
 
             if (foundIndicators.length > 0) {
                 debugLog('✅ Strapi content detected:', foundIndicators);
