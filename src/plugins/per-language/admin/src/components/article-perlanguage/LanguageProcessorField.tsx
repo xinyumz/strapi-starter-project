@@ -309,14 +309,8 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
         }
     }, [name, onChange, articleId, targetLanguage, syncContentToDatabase]);
 
+    // Handle translation for Base field
     const handleTranslate = useCallback(async () => {
-        const sourceText = modifiedData.Base || modifiedData.base;
-
-        if (!sourceText) {
-            setError('Base field is empty. Please add content to the Base field first.');
-            return;
-        }
-
         if (!targetLanguage) {
             setError('Please select a target language first.');
             return;
@@ -333,13 +327,138 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
         try {
             const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
 
-            console.log('[LanguageProcessor] Starting translation:', {
+            console.log('[LanguageProcessor] Starting translation process:', {
                 articleId,
                 targetLanguage,
-                sourceLength: sourceText.length,
-                languageName: selectedLangInfo?.name
+                languageName: selectedLangInfo?.name,
+                modifiedDataKeys: Object.keys(modifiedData || {}),
+                allPropsKeys: Object.keys(allProps || {})
             });
 
+            // ENHANCED: Better Base field extraction with reliable strategies
+            let sourceText = null;
+
+            // Strategy 1: Direct access from modifiedData (most reliable)
+            sourceText = modifiedData?.Base || modifiedData?.base;
+
+            // Strategy 2: Try from document prop if it exists
+            if (!sourceText && document) {
+                sourceText = (document as any)?.Base || (document as any)?.base;
+            }
+
+            // Strategy 3: Try from allProps with safe property access
+            if (!sourceText) {
+                try {
+                    const propsAny = allProps as any;
+                    sourceText = propsAny?.document?.Base ||
+                        propsAny?.document?.base ||
+                        propsAny?.initialValues?.Base ||
+                        propsAny?.initialValues?.base ||
+                        propsAny?.value?.Base ||
+                        propsAny?.value?.base;
+                } catch (e) {
+                    console.log('[LanguageProcessor] Could not access props safely:', e);
+                }
+            }
+
+            // Strategy 4: Fetch fresh article data from API as fallback
+            if (!sourceText) {
+                console.log('[LanguageProcessor] No Base field found in component props, fetching from API...');
+
+                try {
+                    // Try Strapi v5 API format first
+                    let apiResponse = await fetch(`/api/articles/${articleId}?populate=*`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // If v5 format fails, try content-manager API
+                    if (!apiResponse.ok) {
+                        apiResponse = await fetch(`/content-manager/collection-types/api::article.article/${articleId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    }
+
+                    if (apiResponse.ok) {
+                        const articleData = await apiResponse.json();
+
+                        // Try different response structures
+                        sourceText = articleData?.data?.attributes?.Base ||
+                            articleData?.data?.Base ||
+                            articleData?.attributes?.Base ||
+                            articleData?.Base ||
+                            articleData?.base;
+
+                        console.log('[LanguageProcessor] Fetched Base field from API:', {
+                            found: !!sourceText,
+                            length: sourceText?.length || 0,
+                            apiStructure: Object.keys(articleData)
+                        });
+                    } else {
+                        console.warn('[LanguageProcessor] API fetch failed:', apiResponse.status);
+                    }
+                } catch (apiError) {
+                    console.warn('[LanguageProcessor] Failed to fetch article from API:', apiError);
+                }
+            }
+
+            // Strategy 5: Let the backend handle Base field extraction
+            if (!sourceText || sourceText.trim() === '') {
+                console.log('[LanguageProcessor] No Base field accessible from frontend, delegating to backend...');
+
+                const response = await fetch('/translator/translate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                    },
+                    body: JSON.stringify({
+                        text: '', // Empty text signals backend to extract Base field
+                        targetLanguage,
+                        articleId: articleId
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorMessage;
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        errorMessage = errorData.message || errorData.error || 'Translation failed';
+                    } catch {
+                        errorMessage = `Translation failed: ${response.status}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const { translatedText } = await response.json();
+
+                console.log('[LanguageProcessor] Backend extraction and translation successful:', {
+                    translatedLength: translatedText.length,
+                    targetLanguage
+                });
+
+                onChange({ target: { name, value: translatedText } });
+                await syncContentToDatabase(translatedText, targetLanguage);
+
+                setSuccess(`Translation to ${selectedLangInfo?.name || targetLanguage} completed and saved`);
+                setRefreshKey(prev => prev + 1);
+
+                console.log('[LanguageProcessor] ✅ Translation completed via backend extraction');
+                return;
+            }
+
+            console.log('[LanguageProcessor] Found Base content:', {
+                length: sourceText.length,
+                preview: sourceText.substring(0, 100) + '...'
+            });
+
+            // Proceed with translation using found source text
             const response = await fetch('/translator/translate', {
                 method: 'POST',
                 headers: {
@@ -354,15 +473,22 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
             });
 
             if (!response.ok) {
-                throw new Error(`Translation failed: ${response.status}`);
+                const errorText = await response.text();
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.message || errorData.error || 'Translation failed';
+                } catch {
+                    errorMessage = `Translation failed: ${response.status}`;
+                }
+                throw new Error(errorMessage);
             }
 
             const { translatedText } = await response.json();
 
-            console.log('[LanguageProcessor] Translation received:', {
+            console.log('[LanguageProcessor] Translation completed:', {
                 translatedLength: translatedText.length,
-                targetLanguage,
-                preview: translatedText.substring(0, 50) + '...'
+                targetLanguage
             });
 
             onChange({ target: { name, value: translatedText } });
@@ -379,7 +505,7 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
         } finally {
             setIsTranslating(false);
         }
-    }, [modifiedData, targetLanguage, articleId, name, onChange, syncContentToDatabase]);
+    }, [modifiedData, targetLanguage, articleId, name, onChange, syncContentToDatabase, document, allProps]);
 
     const handleProcess = useCallback(async () => {
         if (!articleId) {

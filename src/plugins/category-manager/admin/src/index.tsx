@@ -52,7 +52,7 @@ export default {
       },
     });
 
-    // FIXED: Simple plugin - direct HomePage import
+    // Direct HomePage import
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,

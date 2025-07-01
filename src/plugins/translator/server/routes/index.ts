@@ -20,14 +20,5 @@ export default [
       policies: [],
       description: 'Get supported languages for translation'
     },
-  },
-  {
-    method: 'GET',
-    path: '/',
-    handler: 'my-controller.index',
-    config: {
-      policies: [],
-      description: 'Plugin info'
-    },
   }
 ];

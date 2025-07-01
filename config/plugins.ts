@@ -19,5 +19,4 @@ export default ({ env }) => ({
         enabled: true,
         resolve: './src/plugins/collection-article-relation'
     },
-
 });

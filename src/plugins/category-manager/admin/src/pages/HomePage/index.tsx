@@ -11,15 +11,17 @@ import {
   CardBody,
   CardHeader,
   Badge,
-  Flex
+  Flex,
 } from '@strapi/design-system';
 import {
   Plus,
   Search,
   Cog,
-  More
+  More,
+  Alien
 } from '@strapi/icons';
 import pluginId from '../../pluginId';
+import styled from 'styled-components'
 
 
 type QuickStartStepProps = {
@@ -36,28 +38,28 @@ const HomePage = () => {
       title: "Active Categories",
       description: "Manage your content taxonomy",
       bgColor: "primary100",
-      iconColor: "#4945ff"
+      iconColor: "primary600",
     },
     {
       icon: Search,
       title: "Smart Filtering",
       description: "Cascading dropdown logic",
       bgColor: "success100",
-      iconColor: "#00b894"
+      iconColor: "success600",
     },
     {
       icon: Cog,
       title: "Data Integration",
       description: "Seamless content linking",
       bgColor: "warning100",
-      iconColor: "#f59e0b"
+      iconColor: "warning600",
     },
     {
       icon: More,
       title: "Custom Fields",
       description: "Extended functionality",
       bgColor: "secondary100",
-      iconColor: "#8b5cf6"
+      iconColor: "secondary600",
     }
   ];
 
@@ -152,7 +154,6 @@ const HomePage = () => {
     },
   ];
 
-
   return (
     <Box padding={8} background="neutral0">
       {/* Header Section */}
@@ -200,7 +201,7 @@ const HomePage = () => {
                     borderRadius="50%"
                     marginBottom={4}
                   >
-                    <stat.icon color={stat.iconColor} width="2rem" height="2rem" />
+                    <stat.icon fill={stat.iconColor} width="2rem" height="2rem" stroke="white" />
                   </Flex>
                   <Typography variant="delta" fontWeight="bold" textColor="neutral800" marginBottom={2}>
                     {stat.title}
@@ -238,7 +239,7 @@ const HomePage = () => {
                         alignItems="center"
                         flexShrink={0}
                       >
-                        <feature.icon color="#6b7280" width="1.5rem" height="1.5rem" />
+                        <feature.icon fill="neutral600" stroke="white" width="1.5rem" height="1.5rem" />
                       </Flex>
                       <Typography variant="delta" fontWeight="bold" textColor="neutral800">
                         {feature.title}
