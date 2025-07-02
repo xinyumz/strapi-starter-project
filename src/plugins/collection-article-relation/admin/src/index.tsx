@@ -10,13 +10,12 @@ const name = pluginPkg.strapi.name;
 
 export default {
   register(app: any) {
-    // FIXED: Simple plugin - direct HomePage import
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
       intlLabel: {
         id: `${pluginId}.plugin.name`,
-        defaultMessage: name,
+        defaultMessage: "Collection Auto-Fill",
       },
       Component: async () => {
         const { default: HomePage } = await import('./pages/HomePage');

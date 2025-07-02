@@ -1,11 +1,12 @@
 {
   "name": "category-manager",
   "version": "1.0.0",
-  "description": "Advanced category management system for Strapi with cascading dropdowns",
+  "description": "Advanced hierarchical category management system with cascading dropdowns and taxonomy organization",
   "strapi": {
     "name": "category-manager",
-    "description": "Category management with taxonomy and category organization",
-    "kind": "plugin"
+    "description": "Hierarchical category management with cascading dropdowns for content organization",
+    "kind": "plugin",
+    "displayName": "Category Manager"
   },
   "dependencies": {
     "@strapi/design-system": "2.0.0-rc.27",

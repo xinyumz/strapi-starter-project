@@ -1,10 +1,10 @@
 {
   "name": "chinese-article-processor",
-  "version": "0.0.1",
-  "description": "A plugin for processing Chinese articles with HSK level calculation, grammar rules, and translations",
+  "version": "1.0.0",
+  "description": "Advanced Chinese text analysis with HSK levels, grammar rules, and linguistic processing",
   "strapi": {
     "name": "chinese-article-processor",
-    "description": "A plugin for processing Chinese articles",
+    "description": "Chinese language processing with HSK analysis, grammar rules, and sentence breakdown",
     "kind": "plugin",
     "displayName": "Chinese Article Processor"
   },

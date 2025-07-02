@@ -9,7 +9,6 @@ const name = pluginPkg.strapi.name;
 
 export default {
   register(app: any) {
-    // SUPER SIMPLE: Just register the HomePage which will handle routing internally
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,

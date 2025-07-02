@@ -1,11 +1,12 @@
 {
   "name": "collection-article-relation",
-  "version": "0.0.0",
-  "description": "This is the description of the plugin.",
+  "version": "1.0.0",
+  "description": "Automated collection creation with intelligent auto-fill and floating button interface",
   "strapi": {
     "name": "collection-article-relation",
-    "description": "Description of collection-article-relation plugin",
-    "kind": "plugin"
+    "description": "One-click collection creation with auto-filled metadata and duplicate detection",
+    "kind": "plugin",
+    "displayName": "Collection Auto-Fill"
   },
   "dependencies": {
     "@strapi/design-system": "2.0.0-rc.27",

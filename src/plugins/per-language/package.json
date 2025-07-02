@@ -1,11 +1,12 @@
 {
   "name": "per-language",
-  "version": "0.0.0",
-  "description": "This is the description of the plugin.",
+  "version": "1.0.0",
+  "description": "Multi-language content management with translation workflows and access tier control",
   "strapi": {
     "name": "per-language",
-    "description": "Description of per-language plugin",
-    "kind": "plugin"
+    "description": "Core multi-language content management with integrated translation and publishing controls",
+    "kind": "plugin",
+    "displayName": "Per-Language Processing Hub"
   },
   "dependencies": {
     "@strapi/design-system": "2.0.0-rc.27",

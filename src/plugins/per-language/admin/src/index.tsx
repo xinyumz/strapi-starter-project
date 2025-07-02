@@ -93,13 +93,12 @@ export default {
       },
     });
 
-    // FIXED: Simple plugin - direct HomePage import
     app.addMenuLink({
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
       intlLabel: {
         id: `${pluginId}.plugin.name`,
-        defaultMessage: 'Language Processing Hub',
+        defaultMessage: 'Per-Language Processing Hub',
       },
       Component: async () => {
         const { default: HomePage } = await import('./pages/HomePage');
