@@ -1,4 +1,4 @@
-// src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/grammar/GrammarToolbar.tsx
+// src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/sentence-processing/grammar/GrammarToolbar.tsx
 import React from 'react';
 import {
   Box,
@@ -9,9 +9,7 @@ import {
   SingleSelect,
   SingleSelectOption,
   Grid,
-
 } from '@strapi/design-system';
-import { ChartCircle, Play } from '@strapi/icons';
 import { GrammarEngineChoice } from '../../../../../utils/types';
 import LanguageSelector from '../sentence-translation/LanguageSelector';
 
@@ -30,7 +28,7 @@ interface GrammarToolbarProps {
 }
 
 /**
- * Toolbar component for grammar controls
+ * Grammar Toolbar matching original layout patterns
  */
 const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
   title,
@@ -49,24 +47,27 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
     <Box paddingBottom={4}>
       {/* Title row */}
       <Flex justifyContent="space-between" alignItems="center" paddingBottom={4}>
-        <Typography variant="beta">{title}</Typography>
+        <Typography variant="beta" textColor="neutral800">
+          {title}
+        </Typography>
       </Flex>
 
-      <Grid gap={4}>
+      <Grid.Root gap={4}>
         {/* Engine Selection */}
         <Grid.Item col={3}>
-          <SingleSelect
-            id="engine-select"
-            name="engine"
-            label="Grammar Engine"
-            value={engineChoice}
-            onChange={(value: GrammarEngineChoice) => onEngineChange(value)}
-            disabled={isLoading}
-          >
-            <SingleSelectOption value="stanford">Stanford</SingleSelectOption>
-            <SingleSelectOption value="jieba">Jieba</SingleSelectOption>
-            <SingleSelectOption value="both">Both (Stanford + Jieba)</SingleSelectOption>
-          </SingleSelect>
+          <Box width="100%">
+            <SingleSelect
+              label="Grammar Engine"
+              value={engineChoice}
+              onChange={onEngineChange}
+              disabled={isLoading}
+              placeholder="Select engine"
+            >
+              <SingleSelectOption value="stanford">Stanford</SingleSelectOption>
+              <SingleSelectOption value="jieba">Jieba</SingleSelectOption>
+              <SingleSelectOption value="both">Both (Stanford + Jieba)</SingleSelectOption>
+            </SingleSelect>
+          </Box>
         </Grid.Item>
 
         {/* Language Selection */}
@@ -81,10 +82,9 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
 
         {/* Action Buttons */}
         <Grid.Item col={6}>
-          <Flex justifyContent="flex-end" alignItems="flex-end" gap={2} style={{ height: '100%' }}>
+          <Flex justifyContent="flex-end" alignItems="flex-end" gap={2} style={{ height: '100%', width: '100%' }}>
             <Button
               variant="secondary"
-              startIcon={<ChartCircle />}
               onClick={onGenerateClick}
               disabled={isLoading}
               loading={isLoading && !isTranslating}
@@ -94,7 +94,6 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
 
             <Button
               variant="default"
-              startIcon={<Play />}
               onClick={onTranslateClick}
               disabled={isLoading || !hasSentences}
               loading={isTranslating}
@@ -103,12 +102,12 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
             </Button>
           </Flex>
         </Grid.Item>
-      </Grid>
+      </Grid.Root>
 
       <Box paddingTop={4}>
         <Divider />
       </Box>
-    </Box>
+    </Box >
   );
 };
 

@@ -1,5 +1,7 @@
 // src/plugins/chinese-article-processor/admin/src/components/common/AlertMessages.tsx
+
 import React from 'react';
+import { Box, Alert } from '@strapi/design-system';
 
 interface AlertMessagesProps {
   error: string | null;
@@ -9,9 +11,6 @@ interface AlertMessagesProps {
   onSuccessDismiss: () => void;
 }
 
-/**
- * Native HTML component for displaying error and success messages
- */
 const AlertMessages: React.FC<AlertMessagesProps> = ({
   error,
   success,
@@ -20,81 +19,33 @@ const AlertMessages: React.FC<AlertMessagesProps> = ({
   onSuccessDismiss
 }) => {
   return (
-    <>
+    <Box>
       {error && (
-        <div style={{
-          backgroundColor: '#ffeaea',
-          border: '1px solid #f5c6cb',
-          color: '#721c24',
-          padding: '1rem',
-          borderRadius: '6px',
-          marginBottom: '1rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start'
-        }}>
-          <span style={{ flex: 1 }}>{error}</span>
-          <button
-            onClick={onErrorDismiss}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#721c24',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              marginLeft: '1rem',
-              padding: '0.25rem',
-              borderRadius: '3px'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#f5c6cb';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
+        <Box marginBottom={4}>
+          <Alert
+            variant="danger"
+            title="Error"
+            onClose={onErrorDismiss}
+            closeLabel="Dismiss error"
           >
-            ✕
-          </button>
-        </div>
+            {error}
+          </Alert>
+        </Box>
       )}
 
       {success && (
-        <div style={{
-          backgroundColor: '#d4edda',
-          border: '1px solid #c3e6cb',
-          color: '#155724',
-          padding: '1rem',
-          borderRadius: '6px',
-          marginBottom: '1rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start'
-        }}>
-          <span style={{ flex: 1 }}>{successMessage}</span>
-          <button
-            onClick={onSuccessDismiss}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#155724',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              marginLeft: '1rem',
-              padding: '0.25rem',
-              borderRadius: '3px'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#c3e6cb';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
+        <Box marginBottom={4}>
+          <Alert
+            variant="success"
+            title="Success"
+            onClose={onSuccessDismiss}
+            closeLabel="Dismiss success message"
           >
-            ✕
-          </button>
-        </div>
+            {successMessage}
+          </Alert>
+        </Box>
       )}
-    </>
+    </Box>
   );
 };
 

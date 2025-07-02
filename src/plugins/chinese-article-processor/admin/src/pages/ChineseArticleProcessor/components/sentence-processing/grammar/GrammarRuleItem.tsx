@@ -1,4 +1,4 @@
-// src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/grammar/GrammarRuleItem.tsx
+// src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/sentence-processing/grammar/GrammarRuleItem.tsx
 import React from 'react';
 import {
   Box,
@@ -6,9 +6,8 @@ import {
   Flex,
   Checkbox,
   Button,
-  IconButton
 } from '@strapi/design-system';
-import { Trash } from '@strapi/icons';
+import styled from 'styled-components';
 
 interface GrammarRuleItemProps {
   rule: string;
@@ -17,11 +16,24 @@ interface GrammarRuleItemProps {
   isSelected: boolean;
   onToggleSelection: (sentenceIndex: number, ruleIndex: number) => void;
   onDelete: (sentenceIndex: number, ruleIndex: number) => void;
-  simplified?: boolean; // Flag to control simplified view
 }
 
+// Styled components
+const RuleContainer = styled(Box)`
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+`;
+
+const RuleText = styled(Typography)`
+  word-break: break-word;
+  word-wrap: break-word;
+  flex: 1;
+  font-size: 1.3rem;
+`;
+
 /**
- * Component for displaying individual grammar rules
+ * Displaying individual grammar rules
  * With text wrapping and optimized for compact two-column layout
  */
 const GrammarRuleItem: React.FC<GrammarRuleItemProps> = ({
@@ -31,49 +43,58 @@ const GrammarRuleItem: React.FC<GrammarRuleItemProps> = ({
   isSelected,
   onToggleSelection,
   onDelete,
-  simplified = false
 }) => {
+  const handleToggle = () => {
+    onToggleSelection(sentenceIndex, ruleIndex);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(sentenceIndex, ruleIndex);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleToggle();
+    }
+  };
+
+
   return (
-    <Box
-      background="neutral0"
-      padding={simplified ? 1 : 2} // Reduced padding in simplified mode
-      hasRadius
+    <RuleContainer
+      background={isSelected ? "primary100" : "neutral0"}
+      marginBottom={1}
+      onClick={handleToggle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
     >
-      <Flex justifyContent="space-between" alignItems="flex-start">
+      <Flex justifyContent="space-between" alignItems="center" gap={2}>
         <Flex gap={2} alignItems="flex-start" style={{ flex: 1 }}>
           <Checkbox
-            value={isSelected}
-            onValueChange={() => onToggleSelection(sentenceIndex, ruleIndex)}
+            checked={isSelected}
+            onChange={handleToggle}
             aria-label={`Select rule ${ruleIndex + 1}`}
           />
-          <Typography
-            fontSize={simplified ? 2 : 3}
-            style={{
-              wordBreak: 'break-word',
-              wordWrap: 'break-word',
-              flex: 1 // Allow text to take available space
-            }}
+          <RuleText
+            variant="pi"
+            textColor="neutral700"
           >
             {rule || 'Empty rule'}
-          </Typography>
+          </RuleText>
         </Flex>
-        {simplified ?
-          <IconButton
-            variant="danger-light"
-            label="Delete"
-            icon={<Trash />}
-            onClick={() => onDelete(sentenceIndex, ruleIndex)} /> :
-          <Button
-            variant="danger-light"
-            size="S"
-            startIcon={<Trash />}
-            onClick={() => onDelete(sentenceIndex, ruleIndex)}
-          >
-            Delete
-          </Button>
-        }
+
+        <Button
+          variant="danger-light"
+          size="S"
+          onClick={handleDelete}
+          aria-label="Delete rule"  // Add aria-label for accessibility
+        >
+          Delete
+        </Button>
       </Flex>
-    </Box>
+    </RuleContainer>
   );
 };
 

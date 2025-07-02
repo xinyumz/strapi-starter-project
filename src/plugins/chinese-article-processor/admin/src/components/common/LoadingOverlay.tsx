@@ -1,14 +1,19 @@
 // src/plugins/chinese-article-processor/admin/src/components/common/LoadingOverlay.tsx
+
 import React from 'react';
+import {
+  Box,
+  Card,
+  CardBody,
+  Loader,
+  Typography
+} from '@strapi/design-system';
 
 interface LoadingOverlayProps {
   isLoading: boolean;
   message?: string;
 }
 
-/**
- * Native HTML loading overlay component
- */
 const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   isLoading,
   message = 'Loading data...'
@@ -16,45 +21,24 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   if (!isLoading) return null;
 
   return (
-    <div style={{
-      backgroundColor: 'white',
-      padding: '2rem',
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      textAlign: 'center' as const,
-      margin: '1rem 0'
-    }}>
-      {/* Simple CSS spinner */}
-      <div style={{
-        display: 'inline-block',
-        width: '24px',
-        height: '24px',
-        border: '3px solid #f3f3f3',
-        borderTop: '3px solid #4945ff',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-        marginBottom: '1rem'
-      }} />
+    <Box marginTop={4} marginBottom={4}>
+      <Card>
+        <CardBody style={{ textAlign: 'center', padding: '2rem' }}>
+          <Box marginBottom={4}>
+            <Loader size="L">{message}</Loader>
+          </Box>
 
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
-
-      {message && (
-        <div style={{
-          fontSize: '0.875rem',
-          color: '#666687',
-          marginTop: '0.5rem'
-        }}>
-          {message}
-        </div>
-      )}
-    </div>
+          {message && (
+            <Typography
+              variant="omega"
+              textColor="neutral600"
+            >
+              Please wait while we process your request...
+            </Typography>
+          )}
+        </CardBody>
+      </Card>
+    </Box>
   );
 };
 

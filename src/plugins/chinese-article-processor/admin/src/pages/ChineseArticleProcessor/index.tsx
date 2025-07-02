@@ -1,22 +1,60 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/index.tsx
 
 import React, { useState, useEffect } from 'react';
+import {
+    Box,
+    Typography,
+    Button,
+    Flex
+} from '@strapi/design-system';
+import { ArrowLeft } from '@strapi/icons';
+import styled from 'styled-components';
 import pluginId from '../../pluginId';
 
-// Import native HTML components only
-import { LoadingOverlay, AlertMessages, ConfirmationDialog } from '../../components/common';
-
-// Feature-specific components - using native HTML versions
+// Import Design System migrated components
 import { HSKAnalysisSection } from './components/hsk';
 import { SentenceProcessingSection } from './components/sentence-processing';
 
-// Hooks - Import from the hooks directory
+// Import migrated common components
+import { AlertMessages, ConfirmationDialog, LoadingOverlay } from '../../components/common';
+
+// Keep existing hooks
 import { useLoadingState } from '../../hooks';
 import { useHSKManagement, useArticleProcessor, useGrammarManagement, useTranslationManagement } from './hooks';
 import { useFetchClient } from "@strapi/strapi/admin";
 
+// Styled components
+const HeaderSection = styled(Box).attrs({
+    background: "neutral0",
+    padding: 6,
+    shadow: "tableShadow"
+})`
+  margin-bottom: 1rem;
+`;
+
+const HeaderContent = styled(Flex)`
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const ContentSection = styled(Box)`
+  padding: 0 1.5rem 1.5rem 1.5rem;
+`;
+
+const HeaderInfo = styled(Box)`
+  flex: 1;
+`;
+
+const HeaderActions = styled(Flex)`
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+`;
+
 /**
- * Main component for processing Chinese articles - Native HTML Version
+ * Main component matching original layout patterns
  */
 const ChineseArticleProcessor = () => {
     // Common state
@@ -26,9 +64,6 @@ const ChineseArticleProcessor = () => {
     const [success, setSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState('Operation completed successfully');
     const [isInitialized, setIsInitialized] = useState(false);
-
-    // Always use simplified mode to avoid complex component dependencies
-    const simplified = true;
 
     // Main loading state
     const {
@@ -67,7 +102,7 @@ const ChineseArticleProcessor = () => {
         onError: handleError
     });
 
-    // Initialize Article Processor (base hook for shared functionality)
+    // Initialize Article Processor
     const {
         sentences,
         setSentences,
@@ -137,7 +172,7 @@ const ChineseArticleProcessor = () => {
         onError: handleError
     });
 
-    // Get query parameters on component mount - only run once
+    // Get query parameters on component mount
     useEffect(() => {
         if (isInitialized) return;
 
@@ -168,25 +203,29 @@ const ChineseArticleProcessor = () => {
             setError('No article ID provided. Please access this page from an article editor.');
             setIsInitialized(true);
         }
-    }, []);  // Empty dependency array - only run once
+    }, []);
 
-    // Load article information with proper authentication
+    // Load article information
     const loadArticleInfo = async (articleId: string) => {
         try {
             startLoading();
-            // Using Strapi's authenticated request helper
             const response = await get(
                 `/content-manager/collection-types/api::article.article/${articleId}`
             );
 
-            if (response.data) {
-                setArticleTitle(response.data.Title || `Article #${articleId}`);
+            if (response.data?.data) {
+                const actualData = response.data.data;
+                const title = actualData.Title || `Article ${articleId.slice(0, 8)}`;
+                setArticleTitle(title);
+            } else {
+                setArticleTitle('Unknown Article');
             }
             finishLoading();
         } catch (err) {
             console.error('Error loading article info:', err);
             setLoadingError();
             setError('Failed to load article information. Please check if you have permission to access this article.');
+            setArticleTitle('Error Loading Article');
         }
     };
 
@@ -200,10 +239,9 @@ const ChineseArticleProcessor = () => {
         setSuccess(false);
     };
 
-    // Navigate back to the article edit page with updated data
+    // Navigate back to the article edit page
     const handleNavigateBack = async () => {
         try {
-            // Check if there are unsaved changes and save them before navigating
             if (hasHskChanges) {
                 await saveHSKLevel();
             }
@@ -212,107 +250,61 @@ const ChineseArticleProcessor = () => {
                 await saveArticleData();
             }
 
-            // Construct the URL to go back to the article edit page
             if (articleId) {
                 const articleEditUrl = `/admin/content-manager/collection-types/api::article.article/${articleId}`;
-                // Navigate back to the article edit page
                 window.location.href = articleEditUrl;
             } else {
-                // Fallback to browser history if no article ID
                 window.history.back();
             }
         } catch (error) {
             console.error('Error when trying to navigate back:', error);
-            // Still navigate back even if there's an error
             window.history.back();
         }
     };
 
     return (
-        <div style={{ padding: '1rem', backgroundColor: '#f9f9f9', minHeight: '100vh' }}>
-            {/* Header */}
-            <div style={{
-                backgroundColor: 'white',
-                padding: '1.5rem',
-                borderRadius: '8px',
-                marginBottom: '1.5rem',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem'
-            }}>
-                <div>
-                    <h1 style={{
-                        fontSize: '1.5rem',
-                        fontWeight: '600',
-                        color: '#212134',
-                        margin: '0 0 0.25rem 0'
-                    }}>
-                        Chinese Article Processor - {articleTitle}
-                    </h1>
-                    <p style={{
-                        fontSize: '0.875rem',
-                        color: '#666687',
-                        margin: 0
-                    }}>
-                        Article ID: {articleId}
-                    </p>
-                </div>
+        <Box
+            background="neutral100"
+            style={{ minHeight: '100vh' }}
+        >
+            {/* Header matching original HeaderLayout */}
+            <HeaderSection>
+                <HeaderContent>
+                    <HeaderInfo>
+                        <Typography
+                            variant="alpha"
+                            fontWeight="bold"
+                            textColor="neutral800"
+                            marginBottom={1}
+                        >
+                            Chinese Article Processor{articleTitle && articleTitle !== `Article #${articleId}` ? ` - ${articleTitle}` : ''}
+                        </Typography>
+                    </HeaderInfo>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                    {/* Status indicator */}
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.5rem 1rem',
-                        backgroundColor: '#d4edda',
-                        color: '#155724',
-                        borderRadius: '6px',
-                        fontSize: '0.875rem'
-                    }}>
-                        <span>✓</span>
-                        <span>Simplified Mode</span>
-                    </div>
+                    <HeaderActions>
+                        {/* Back button */}
+                        <Button
+                            onClick={handleNavigateBack}
+                            variant="tertiary"
+                            startIcon={<ArrowLeft stroke="silver" />}
+                        >
+                            Back
+                        </Button>
+                    </HeaderActions>
+                </HeaderContent>
+            </HeaderSection>
 
-                    {/* Back button */}
-                    <button
-                        onClick={handleNavigateBack}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#f6f6f9',
-                            color: '#4a4a6a',
-                            border: '1px solid #dcdce4',
-                            borderRadius: '4px',
-                            fontSize: '0.875rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.backgroundColor = '#e6e6e6';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f6f6f9';
-                        }}
-                    >
-                        <span>←</span>
-                        Back to Article
-                    </button>
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div>
+            {/* Content matching original ContentLayout */}
+            <ContentSection>
                 {/* Show loading only for initial load */}
                 {!isInitialized ? (
-                    <LoadingOverlay isLoading={true} message="Loading article data..." />
+                    <LoadingOverlay
+                        isLoading={true}
+                        message="Loading article data..."
+                    />
                 ) : (
                     <>
+                        {/* Alert Messages */}
                         <AlertMessages
                             error={error}
                             success={success}
@@ -359,41 +351,42 @@ const ChineseArticleProcessor = () => {
                                     onSaveTranslations={saveArticleData}
                                     onDeleteSelected={handleBulkDeleteConfirmed}
                                     isRuleSelected={isRuleSelected}
-                                    simplified={simplified}
                                 />
                             </>
                         ) : (
-                            <div style={{
-                                backgroundColor: 'white',
-                                padding: '2rem',
-                                borderRadius: '8px',
-                                textAlign: 'center' as const
-                            }}>
-                                <h2 style={{ color: '#666687', marginBottom: '1rem' }}>
+                            <Box
+                                background="neutral0"
+                                padding={8}
+                                hasRadius
+                                shadow="tableShadow"
+                                textAlign="center"
+                            >
+                                <Typography
+                                    variant="delta"
+                                    fontWeight="semiBold"
+                                    textColor="neutral600"
+                                    marginBottom={3}
+                                >
                                     No Article Selected
-                                </h2>
-                                <p style={{ color: '#4a4a6a', marginBottom: '1.5rem' }}>
+                                </Typography>
+                                <Typography
+                                    variant="omega"
+                                    textColor="neutral600"
+                                    marginBottom={4}
+                                >
                                     Please access this page from an article editor to process Chinese content.
-                                </p>
-                                <a
-                                    href="/admin/content-manager/collection-types/api::article.article"
-                                    style={{
-                                        display: 'inline-block',
-                                        padding: '0.75rem 1.5rem',
-                                        backgroundColor: '#4945ff',
-                                        color: 'white',
-                                        textDecoration: 'none',
-                                        borderRadius: '6px',
-                                        fontWeight: '500'
-                                    }}
+                                </Typography>
+                                <Button
+                                    onClick={() => window.location.href = '/admin/content-manager/collection-types/api::article.article'}
+                                    variant="default"
                                 >
                                     Go to Articles
-                                </a>
-                            </div>
+                                </Button>
+                            </Box>
                         )}
                     </>
                 )}
-            </div>
+            </ContentSection>
 
             {/* Delete Rule Confirmation Dialog */}
             <ConfirmationDialog
@@ -402,11 +395,11 @@ const ChineseArticleProcessor = () => {
                 message="Are you sure you want to delete this grammar rule?"
                 confirmText="Yes, delete this rule"
                 cancelText="Cancel"
-                confirmButtonVariant="danger-light"
+                confirmButtonVariant="danger"
                 onConfirm={handleDeleteRuleConfirmed}
                 onCancel={() => setIsDeleteModalVisible(false)}
             />
-        </div>
+        </Box>
     );
 };
 

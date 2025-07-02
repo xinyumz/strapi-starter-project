@@ -28,7 +28,7 @@ export default ({ strapi }: any) => ({
             const grammarService = strapi.plugin('chinese-article-processor').service('grammarService');
             const translationService = strapi.plugin('chinese-article-processor').service('translationService');
 
-            // SIMPLIFIED: Always use single request method (faster than batch)
+            // Always use single request method (faster than batch)
             strapi.log.info(`Processing ${sentences.length} sentences with standard grammar generation`);
             const grammarRules = await grammarService.generateRules(content);
 

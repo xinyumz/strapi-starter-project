@@ -1,10 +1,10 @@
-// src/pages/ChineseArticleProcessor/components/sentence-processing/SentenceItem.tsx
+// src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/sentence-processing/SentenceItem.tsx
 import React from 'react';
 import {
   Box,
   Textarea,
-  Flex,
   Typography,
+  Flex,
   Badge,
   Tabs,
 } from '@strapi/design-system';
@@ -19,12 +19,10 @@ interface SentenceItemProps {
   onToggleRuleSelection: (sentenceIndex: number, ruleIndex: number) => void;
   onDeleteRuleClick: (sentenceIndex: number, ruleIndex: number) => void;
   isRuleSelected: (sentenceIndex: number, ruleIndex: number) => boolean;
-  simplified?: boolean;
 }
 
 /**
- * Component for displaying individual sentences and their grammar rules
- * With multi-language translation support
+ * Sentence Item matching original layout patterns
  */
 const SentenceItem: React.FC<SentenceItemProps> = ({
   sentenceData,
@@ -34,7 +32,6 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
   onToggleRuleSelection,
   onDeleteRuleClick,
   isRuleSelected,
-  simplified = false
 }) => {
   const hasRules = Array.isArray(sentenceData?.rules) && sentenceData.rules.length > 0;
 
@@ -71,14 +68,16 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
   return (
     <Box
       background="neutral100"
-      padding={simplified ? 3 : 4}
+      padding={3}
       hasRadius
       height="100%"
-      marginBottom={simplified ? 0 : 6}
+      width="100%"
     >
       {/* Sentence Number Badge */}
       <Flex justifyContent="flex-start" marginBottom={2}>
-        <Badge>{index + 1}</Badge>
+        <Badge backgroundColor="primary600" textColor="neutral0">
+          {index + 1}
+        </Badge>
       </Flex>
 
       {/* Original sentence - with larger, bold text */}
@@ -91,6 +90,7 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
         <Typography
           variant="epsilon"
           fontWeight="bold"
+          textColor="neutral800"
           style={{
             wordBreak: 'break-word',
             wordWrap: 'break-word',
@@ -105,6 +105,7 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
       <Box paddingTop={1} paddingBottom={2}>
         {translations.length > 0 ? (
           <Tabs.Root
+            variant="simple"
             defaultValue={translations[0]?.language || 'default'}
             id={`translations-${index}`}
           >
@@ -118,37 +119,36 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
 
             {translations.map((translation) => (
               <Tabs.Content key={translation.language} value={translation.language}>
-                <Flex gap={2}>
-                  <Box style={{ flexGrow: 1 }}>
-                    <Textarea
-                      name={`translation-${index}-${translation.language}`}
-                      placeholder={`Translation (${getLanguageName(translation.language)})`}
-                      value={translation.text}
-                      onChange={(e: any) => onTranslationChange(index, translation.language, e.target.value)}
-                      style={{ minHeight: simplified ? '60px' : '80px' }}
-                    />
-                  </Box>
-                </Flex>
+                <Box paddingTop={2}>
+                  <Textarea
+                    name={`translation-${index}-${translation.language}`}
+                    placeholder={`Translation (${getLanguageName(translation.language)})`}
+                    value={translation.text}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      onTranslationChange(index, translation.language, e.target.value)
+                    }
+                    style={{
+                      minHeight: '50px',
+                      width: '100%'
+                    }}
+                  />
+                </Box>
               </Tabs.Content>
             ))}
           </Tabs.Root>
         ) : (
           <Box marginBottom={2}>
-            <Typography>No translations available. Click 'Translate All' to generate translations.</Typography>
+            <Typography variant="omega" textColor="neutral600">
+              No translations available. Click 'Translate All' to generate translations.
+            </Typography>
           </Box>
         )}
       </Box>
 
-      {/* Grammar rules with more compact display */}
+      {/* Grammar rules display */}
       {hasRules && (
         <Box paddingTop={1}>
-          {!simplified && (
-            <Typography variant="omega" fontWeight="bold">
-              Grammar Rules ({sentenceData.rules.length}):
-            </Typography>
-          )}
-
-          <Flex gap={simplified ? 1 : 2} marginTop={1}>
+          <Box marginTop={1}>
             {sentenceData.rules.map((rule, ruleIndex) => (
               <GrammarRuleItem
                 key={`rule-${index}-${ruleIndex}`}
@@ -158,10 +158,9 @@ const SentenceItem: React.FC<SentenceItemProps> = ({
                 isSelected={isRuleSelected(index, ruleIndex)}
                 onToggleSelection={onToggleRuleSelection}
                 onDelete={onDeleteRuleClick}
-                simplified={simplified}
               />
             ))}
-          </Flex>
+          </Box>
         </Box>
       )}
     </Box>

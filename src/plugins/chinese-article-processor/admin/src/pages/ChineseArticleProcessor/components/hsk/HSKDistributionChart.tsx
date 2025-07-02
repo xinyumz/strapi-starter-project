@@ -1,5 +1,10 @@
 // src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/hsk/HSKDistributionChart.tsx
 import React from 'react';
+import {
+    Box,
+    Typography,
+    Flex
+} from '@strapi/design-system';
 import { COLORS, COLOR_THRESHOLDS } from '../../../../utils/constants';
 
 interface HSKDistributionChartProps {
@@ -7,7 +12,7 @@ interface HSKDistributionChartProps {
 }
 
 /**
- * Native HTML component for visualizing HSK level distribution
+ * HSK Distribution Chart matching original layout with proper progress bars
  */
 const HSKDistributionChart: React.FC<HSKDistributionChartProps> = ({ distribution }) => {
     // Helper for HSK level visualization colors
@@ -19,68 +24,42 @@ const HSKDistributionChart: React.FC<HSKDistributionChartProps> = ({ distributio
     };
 
     return (
-        <div style={{
-            backgroundColor: 'white',
-            padding: '1rem',
-            borderRadius: '6px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
-            <h3 style={{
-                fontSize: '1rem',
-                fontWeight: '600',
-                color: '#212134',
-                margin: '0 0 1rem 0'
-            }}>
+        <Box background="neutral0" padding={4} hasRadius shadow="filterShadow" width="100%" height="100%">
+            <Typography variant="delta" paddingBottom={2} textColor="neutral800">
                 HSK Level Distribution
-            </h3>
-
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem'
-            }}>
+            </Typography>
+            <Box>
                 {distribution.map((percentage: number, index: number) => (
-                    <div key={index} style={{ minWidth: '120px' }}>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            marginBottom: '0.25rem'
-                        }}>
-                            <span style={{
-                                fontSize: '0.75rem',
-                                color: '#4a4a6a',
-                                fontWeight: '500'
-                            }}>
+                    <Box key={index} marginBottom={2}>
+                        <Flex justifyContent="space-between" paddingBottom={1}>
+                            <Typography variant="pi" textColor="neutral700">
                                 HSK {index + 1}
-                            </span>
-                            <span style={{
-                                fontSize: '0.75rem',
-                                color: '#4a4a6a',
-                                fontWeight: '500'
-                            }}>
+                            </Typography>
+                            <Typography variant="pi" textColor="neutral700">
                                 {percentage}%
-                            </span>
-                        </div>
-
-                        <div style={{
-                            backgroundColor: '#f0f0f0',
-                            borderRadius: '4px',
-                            height: '8px',
-                            position: 'relative' as const,
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{
-                                backgroundColor: getColorForPercentage(percentage),
-                                height: '100%',
-                                width: `${percentage}%`,
-                                borderRadius: '4px',
-                                transition: 'width 0.3s ease'
-                            }} />
-                        </div>
-                    </div>
+                            </Typography>
+                        </Flex>
+                        <Box
+                            background="neutral200"
+                            hasRadius
+                            height="8px"
+                            position="relative"
+                            style={{ overflow: 'hidden' }}
+                        >
+                            <Box
+                                height="100%"
+                                width={`${percentage}%`}
+                                hasRadius
+                                style={{
+                                    backgroundColor: getColorForPercentage(percentage),
+                                    transition: 'width 0.3s ease'
+                                }}
+                            />
+                        </Box>
+                    </Box>
                 ))}
-            </div>
-        </div>
+            </Box>
+        </Box>
     );
 };
 

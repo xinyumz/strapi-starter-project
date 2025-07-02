@@ -219,7 +219,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
         }
     };
 
-    // SIMPLIFIED: Handle delete with simple confirm dialog
+    // Handle delete with simple confirm dialog
     const handleDeleteClick = async () => {
         if (!onDelete) return;
 

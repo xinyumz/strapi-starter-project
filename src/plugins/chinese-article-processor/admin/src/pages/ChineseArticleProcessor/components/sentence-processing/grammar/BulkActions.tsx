@@ -1,9 +1,13 @@
-// src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/grammar/BulkActions.tsx
+// src/plugins/chinese-article-processor/admin/src/pages/ChineseArticleProcessor/components/sentence-processing/grammar/BulkActions.tsx
+
 import React, { useState } from 'react';
 import {
-  Flex, Box, Button, Dialog, Typography, useDesignSystem
+  Flex,
+  Box,
+  Button,
+  Modal,
+  Typography
 } from '@strapi/design-system';
-import { Check, Trash } from '@strapi/icons';
 
 interface BulkActionsProps {
   hasTranslationChanges: boolean;
@@ -12,12 +16,11 @@ interface BulkActionsProps {
   isTranslating: boolean;
   onSaveTranslations: () => Promise<void>;
   onDeleteSelected: () => void;
-  selectedRules: any[]; // Actual selected rules array
+  selectedRules: any[];
 }
 
 /**
- * Component for displaying bulk actions for translations and rule deletion
- * Now includes direct dialog handling
+ * Displaying bulk actions for translations and rule deletion
  */
 const BulkActions: React.FC<BulkActionsProps> = ({
   hasTranslationChanges,
@@ -28,27 +31,18 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   onDeleteSelected,
   selectedRules
 }) => {
-  // Local state to manage the confirmation dialog
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-
-  // Get the current theme mode to adjust text colors
-  const { theme } = useDesignSystem();
-  const themeColorMode = theme === 'dark' ? 'dark' : 'light'; // or however theme mode is determined
-  const textColor = themeColorMode === 'light' ? 'neutral100' : 'neutral800';
 
   const handleDeleteClick = () => {
     console.log("Delete button clicked in BulkActions component");
     console.log("Selected rules count:", selectedRulesCount);
     console.log("Actual selected rules:", selectedRules);
-    console.log("Loading state:", isLoading);
-    console.log("Translating state:", isTranslating);
 
     if (selectedRules.length === 0) {
       console.log("No rules selected, not showing confirmation dialog");
       return;
     }
 
-    // Show the confirmation dialog
     setIsDeleteModalVisible(true);
   };
 
@@ -56,10 +50,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
     console.log("Delete confirmed in BulkActions");
     console.log("Selected rules at confirmation time:", selectedRules);
 
-    // Call the provided handler
     onDeleteSelected();
-
-    // Close the dialog
     setIsDeleteModalVisible(false);
   };
 
@@ -76,7 +67,6 @@ const BulkActions: React.FC<BulkActionsProps> = ({
             variant="success"
             onClick={onSaveTranslations}
             disabled={!hasTranslationChanges || isLoading || isTranslating}
-            startIcon={<Check />}
             size="L"
           >
             Save Translation Changes
@@ -88,35 +78,57 @@ const BulkActions: React.FC<BulkActionsProps> = ({
             variant="danger"
             onClick={handleDeleteClick}
             disabled={selectedRulesCount === 0 || isLoading || isTranslating}
-            startIcon={<Trash />}
             size="L"
-            id="bulk-delete-button"
           >
             Delete Selected Rules ({selectedRulesCount})
           </Button>
         )}
       </Flex>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog onClose={handleCancelDelete} title="Confirm Bulk Deletion" isOpen={isDeleteModalVisible}>
-        <Box padding={4}>
-          <Typography textColor={textColor}>
-            Are you sure you want to delete {selectedRules.length} selected grammar rules? This action cannot be undone.
-          </Typography>
-        </Box>
-        <Flex justifyContent="flex-end" gap={2} padding={4}>
-          startAction={
-            <Button onClick={handleCancelDelete} variant="tertiary">
-              Cancel
-            </Button>
-          }
-          endAction={
-            <Button onClick={handleConfirmDelete} variant="danger">
-              Yes, delete {selectedRules.length} rules
-            </Button>
-          }
-        </Flex>
-      </Dialog>
+      {/* Delete Confirmation Modal */}
+      <Modal.Root open={isDeleteModalVisible} onOpenChange={setIsDeleteModalVisible}>
+        <Modal.Content>
+          <Modal.Header>
+            <Typography
+              variant="beta"
+              fontWeight="bold"
+              textColor="neutral800"
+            >
+              Confirm Bulk Deletion
+            </Typography>
+          </Modal.Header>
+
+          <Modal.Body>
+            <Box paddingTop={2} paddingBottom={4}>
+              <Typography
+                variant="omega"
+                textColor="neutral600"
+                style={{ lineHeight: '1.5' }}
+              >
+                Are you sure you want to delete {selectedRules.length} selected grammar rules?
+                This action cannot be undone.
+              </Typography>
+            </Box>
+          </Modal.Body>
+
+          <Modal.Footer>
+            <Flex justifyContent="flex-end" gap={2}>
+              <Button
+                onClick={handleCancelDelete}
+                variant="tertiary"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                variant="danger"
+              >
+                Yes, delete {selectedRules.length} rules
+              </Button>
+            </Flex>
+          </Modal.Footer>
+        </Modal.Content>
+      </Modal.Root>
     </>
   );
 };

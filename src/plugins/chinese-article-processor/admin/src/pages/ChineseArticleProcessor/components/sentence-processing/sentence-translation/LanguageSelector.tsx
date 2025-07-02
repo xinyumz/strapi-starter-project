@@ -4,10 +4,8 @@ import {
     SingleSelect,
     SingleSelectOption,
     Flex,
-    Button,
     Box
 } from '@strapi/design-system';
-import { Plus } from '@strapi/icons';
 import { useFetchClient } from "@strapi/strapi/admin";
 
 interface LanguageSelectorProps {
@@ -18,7 +16,6 @@ interface LanguageSelectorProps {
     hint?: string;
     error?: string;
     addNewLabel?: string;
-    onAddNewLanguage?: () => void;
     // Optional array of languages to use instead of fetching
     customLanguages?: { code: string, name: string }[];
 }
@@ -38,8 +35,6 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     disabled = false,
     hint,
     error,
-    addNewLabel = 'Add Language',
-    onAddNewLanguage,
     customLanguages
 }) => {
     // Default languages to use if API fails or custom languages not provided
@@ -113,7 +108,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     }, [customLanguages, get]);
 
     return (
-        <Box>
+        <Box width="100%">
             <Flex gap={2}>
                 <Box style={{ flexGrow: 1 }}>
                     <SingleSelect
@@ -134,19 +129,6 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                         ))}
                     </SingleSelect>
                 </Box>
-
-                {onAddNewLanguage && (
-                    <Box style={{ alignSelf: 'flex-end' }}>
-                        <Button
-                            variant="secondary"
-                            startIcon={<Plus />}
-                            onClick={onAddNewLanguage}
-                            disabled={disabled}
-                        >
-                            {addNewLabel}
-                        </Button>
-                    </Box>
-                )}
             </Flex>
         </Box>
     );
