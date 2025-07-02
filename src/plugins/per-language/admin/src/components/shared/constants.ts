@@ -1,7 +1,7 @@
 // src/plugins/per-language/admin/src/components/shared/constants.ts
 
 import {
-    ExclamationMarkCircle,
+    Cross,
     Gift,
     CheckCircle,
     Crown
@@ -48,8 +48,8 @@ export const SUPPORTED_LANGUAGES = [
 ];
 
 export const ACCESS_TIERS = [
-    { value: '', label: 'Select Access Tier', icon: ExclamationMarkCircle, disabled: true },
-    { value: 'Free', label: 'Free', icon: Gift, disabled: false },
-    { value: 'Login', label: 'Login Required', icon: CheckCircle, disabled: false },
-    { value: 'Premium', label: 'Premium', icon: Crown, disabled: false }
+    { value: '', label: 'Select Access Tier', disabled: true },
+    { value: 'Free', label: 'Free', disabled: false },
+    { value: 'Login', label: 'Login Required', disabled: false },
+    { value: 'Premium', label: 'Premium', disabled: false }
 ];

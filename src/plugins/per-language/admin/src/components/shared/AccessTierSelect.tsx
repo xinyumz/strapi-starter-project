@@ -83,9 +83,6 @@ export const AccessTierSelect: React.FC<AccessTierSelectProps> = ({
                     }
                 }}
             >
-                <option value="" disabled>
-                    Select access tier
-                </option>
                 {ACCESS_TIERS.map(tier => (
                     <option
                         key={tier.value}

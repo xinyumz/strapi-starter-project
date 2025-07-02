@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import { Plus } from '@strapi/icons';
+import { Lightning } from '@strapi/icons';
 
-const PluginIcon = () => <Plus stroke="white" width="2rem" height="2rem" />;
+const PluginIcon = () => <Lightning stroke="silver" width="2rem" height="2rem" />;
 
 export default PluginIcon;

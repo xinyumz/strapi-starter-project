@@ -34,12 +34,13 @@ const StatusCard = styled(Box).attrs({
 `;
 
 const WhiteCard = styled(Box).attrs({
-  background: "neutral0"
+  background: "neutral0",
+  borderColor: "neutral200"
 })`
   padding: 3rem;
   border-radius: 12px;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: 100%
 `;
 

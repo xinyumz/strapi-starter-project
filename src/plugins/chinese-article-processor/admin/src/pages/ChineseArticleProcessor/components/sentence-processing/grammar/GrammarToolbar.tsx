@@ -11,7 +11,7 @@ import {
   Grid,
 
 } from '@strapi/design-system';
-import { Refresh, Play } from '@strapi/icons';
+import { ChartCircle, Play } from '@strapi/icons';
 import { GrammarEngineChoice } from '../../../../../utils/types';
 import LanguageSelector from '../sentence-translation/LanguageSelector';
 
@@ -84,7 +84,7 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
           <Flex justifyContent="flex-end" alignItems="flex-end" gap={2} style={{ height: '100%' }}>
             <Button
               variant="secondary"
-              startIcon={<Refresh />}
+              startIcon={<ChartCircle />}
               onClick={onGenerateClick}
               disabled={isLoading}
               loading={isLoading && !isTranslating}

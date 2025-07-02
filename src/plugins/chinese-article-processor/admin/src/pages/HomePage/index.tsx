@@ -1,9 +1,56 @@
 // src/plugins/chinese-article-processor/admin/src/pages/HomePage/index.tsx
 
 import React, { useEffect, useState } from 'react';
+import {
+  Box,
+  Typography,
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  Grid,
+  Badge,
+} from '@strapi/design-system';
+import styled from 'styled-components';
 
 // Import the processor component
 const ChineseArticleProcessor = React.lazy(() => import('../ChineseArticleProcessor'));
+
+// Styled components using Design System v2
+const PageContainer = styled(Box).attrs({
+  background: "neutral0"
+})`
+  padding: 3rem;
+  min-height: 100vh;
+`;
+
+const ContentWrapper = styled(Box)`
+  max-width: 1200px;
+  margin: 0 auto;
+`;
+
+const LoadingContainer = styled(Box).attrs({
+  background: "neutral0"
+})`
+  padding: 3rem;
+  text-align: center;
+  min-height: 100vh;
+`;
+
+const StatusCard = styled(Card)`
+  text-align: center;
+  width: 100%;
+`;
+
+const IntegrationItem = styled(Box)`
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
 
 const HomePage = () => {
   const [showProcessor, setShowProcessor] = useState(false);
@@ -28,14 +75,11 @@ const HomePage = () => {
   if (showProcessor) {
     return (
       <React.Suspense fallback={
-        <div style={{
-          padding: '2rem',
-          textAlign: 'center' as const,
-          backgroundColor: '#f9f9f9',
-          minHeight: '100vh'
-        }}>
-          <div style={{ color: '#666687' }}>Loading Chinese Processor...</div>
-        </div>
+        <LoadingContainer>
+          <Typography variant="omega" textColor="neutral600">
+            Loading Chinese Processor...
+          </Typography>
+        </LoadingContainer>
       }>
         <ChineseArticleProcessor />
       </React.Suspense>
@@ -44,295 +88,208 @@ const HomePage = () => {
 
   // Otherwise render the homepage
   return (
-    <div style={{ padding: '2rem', backgroundColor: '#f9f9f9', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-
+    <PageContainer>
+      <ContentWrapper>
         {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{
-            fontSize: '2.5rem',
-            fontWeight: 'bold',
-            color: '#212134',
-            marginBottom: '0.5rem'
-          }}>
-            Chinese Article Processor
-          </h1>
-          <p style={{
-            fontSize: '1.1rem',
-            color: '#666687',
-            marginBottom: '2rem'
-          }}>
-            Advanced Chinese language processing with HSK analysis, grammar rules, and translation features.
-          </p>
-        </div>
+        <Box marginBottom={8}>
+          <Box marginBottom={2}>
+            <Typography
+              variant="alpha"
+              fontWeight="bold"
+              textColor="neutral800"
+            >
+              Chinese Article Processor
+            </Typography>
+          </Box>
+          <Box>
+            <Typography
+              variant="epsilon"
+              textColor="neutral600"
+            >
+              Advanced Chinese language processing with HSK analysis, grammar rules, and translation features.
+            </Typography>
+          </Box>
+        </Box>
 
-        {/* How to Use Section */}
-        <div style={{
-          backgroundColor: '#f6f6f9',
-          padding: '1.5rem',
-          borderRadius: '8px',
-          marginBottom: '1.5rem',
-          border: '1px solid #dcdce4'
-        }}>
-          <h2 style={{
-            fontSize: '1.25rem',
-            fontWeight: '600',
-            color: '#212134',
-            marginBottom: '1rem'
-          }}>
-            How to Use
-          </h2>
-          <div style={{ color: '#4a4a6a', lineHeight: '1.6' }}>
-            <p style={{ margin: '0.5rem 0' }}>• Go to Content Manager → Articles</p>
-            <p style={{ margin: '0.5rem 0' }}>• Edit any article and add Chinese content</p>
-            <p style={{ margin: '0.5rem 0' }}>• Use the "Language Processor" field to translate to Chinese</p>
-            <p style={{ margin: '0.5rem 0' }}>• Click "Process Content" to analyze Chinese text</p>
-            <p style={{ margin: '0.5rem 0' }}>• Or access the processor directly from the link below</p>
-          </div>
-        </div>
+        {/* Main Content Grid */}
+        <Grid.Root gap={6} style={{ marginBottom: '2rem' }}>
+          {/* How to Use Card */}
+          <Grid.Item col={6}>
+            <Card style={{ height: '100%', width: '100%' }}>
+              <CardHeader style={{ padding: '1.5rem' }}>
+                <Typography variant="delta" fontWeight="semiBold" textColor="neutral800">
+                  🎯 How to Use
+                </Typography>
+              </CardHeader>
+              <CardBody style={{ padding: '1.5rem' }}>
+                <Box style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {[
+                    '• Go to Content Manager → Articles',
+                    '• Edit any article and add Chinese content',
+                    '• Use the "Language Processor" field to translate to Chinese',
+                    '• Click "Process Content" to analyze Chinese text',
+                    '• Or access the processor directly from the link below'
+                  ].map((step, index) => (
+                    <Box key={index}>
+                      <Typography
+                        variant="omega"
+                        textColor="neutral700"
+                        style={{ lineHeight: '1.6' }}
+                      >
+                        {step}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </CardBody>
+            </Card>
+          </Grid.Item>
 
-        {/* Features Section */}
-        <div style={{
-          backgroundColor: '#e6f3ff',
-          padding: '1.5rem',
-          borderRadius: '8px',
-          marginBottom: '1.5rem',
-          border: '1px solid #b3d9ff'
-        }}>
-          <h2 style={{
-            fontSize: '1.25rem',
-            fontWeight: '600',
-            color: '#212134',
-            marginBottom: '1rem'
-          }}>
-            Features
-          </h2>
-          <div style={{ color: '#4a4a6a', lineHeight: '1.6' }}>
-            <p style={{ margin: '0.5rem 0' }}>✅ HSK level analysis and vocabulary difficulty</p>
-            <p style={{ margin: '0.5rem 0' }}>✅ AI-powered grammar rule generation</p>
-            <p style={{ margin: '0.5rem 0' }}>✅ Sentence-by-sentence breakdown</p>
-            <p style={{ margin: '0.5rem 0' }}>✅ Multi-language translation support</p>
-            <p style={{ margin: '0.5rem 0' }}>✅ Stable sentence ID management</p>
-            <p style={{ margin: '0.5rem 0' }}>✅ Integrated with per-language content system</p>
-          </div>
-        </div>
+          {/* Features Card */}
+          <Grid.Item col={6}>
+            <Card style={{ height: '100%', width: "100%" }} background="secondary100">
+              <CardHeader style={{ padding: '1.5rem' }}>
+                <Typography variant="delta" fontWeight="semiBold" textColor="secondary700">
+                  ✨ Features
+                </Typography>
+              </CardHeader>
+              <CardBody style={{ padding: '1.5rem' }}>
+                <Box style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {[
+                    '✅ HSK level analysis and vocabulary difficulty',
+                    '✅ AI-powered grammar rule generation',
+                    '✅ Sentence-by-sentence breakdown',
+                    '✅ Multi-language translation support',
+                    '✅ Stable sentence ID management',
+                    '✅ Integrated with per-language content system'
+                  ].map((feature, index) => (
+                    <Box key={index}>
+                      <Typography
+                        variant="omega"
+                        textColor="secondary700"
+                        style={{ lineHeight: '1.6' }}
+                      >
+                        {feature}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </CardBody>
+            </Card>
+          </Grid.Item>
+        </Grid.Root>
 
-        {/* Technical Integration */}
-        <div style={{
-          backgroundColor: '#d4edda',
-          padding: '1.5rem',
-          borderRadius: '8px',
-          marginBottom: '1.5rem',
-          border: '1px solid #c3e6cb'
-        }}>
-          <h2 style={{
-            fontSize: '1.25rem',
-            fontWeight: '600',
-            color: '#212134',
-            marginBottom: '1rem'
-          }}>
-            Technical Integration
-          </h2>
-          <div style={{ color: '#155724', lineHeight: '1.6' }}>
-            <p style={{ margin: '0.5rem 0', display: 'flex', alignItems: 'center' }}>
-              <span style={{
-                display: 'inline-block',
-                backgroundColor: '#c3e6cb',
-                color: '#155724',
-                padding: '0.2rem 0.5rem',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                marginRight: '0.5rem'
-              }}>
-                Active
-              </span>
-              Integrated with per-language plugin
-            </p>
-            <p style={{ margin: '0.5rem 0', display: 'flex', alignItems: 'center' }}>
-              <span style={{
-                display: 'inline-block',
-                backgroundColor: '#c3e6cb',
-                color: '#155724',
-                padding: '0.2rem 0.5rem',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                marginRight: '0.5rem'
-              }}>
-                Ready
-              </span>
-              External API connections (HSK, Grammar, Pinyin)
-            </p>
-            <p style={{ margin: '0.5rem 0', display: 'flex', alignItems: 'center' }}>
-              <span style={{
-                display: 'inline-block',
-                backgroundColor: '#c3e6cb',
-                color: '#155724',
-                padding: '0.2rem 0.5rem',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                marginRight: '0.5rem'
-              }}>
-                Stable
-              </span>
-              Database relationships with foreign keys
-            </p>
-            <p style={{ margin: '0.5rem 0', display: 'flex', alignItems: 'center' }}>
-              <span style={{
-                display: 'inline-block',
-                backgroundColor: '#c3e6cb',
-                color: '#155724',
-                padding: '0.2rem 0.5rem',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                marginRight: '0.5rem'
-              }}>
-                Optimized
-              </span>
-              Intelligent UPSERT operations preserve sentence IDs
-            </p>
-          </div>
-        </div>
+        {/* Technical Integration Card */}
+        <Card background="success100" style={{ marginBottom: '2rem' }}>
+          <CardHeader style={{ padding: '1.5rem' }}>
+            <Typography variant="delta" fontWeight="semiBold" textColor="success700">
+              🔧 Technical Integration
+            </Typography>
+          </CardHeader>
+          <CardBody style={{ padding: '1.5rem' }}>
+            <Box style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {[
+                { label: 'Integrated with per-language plugin', status: 'Active' },
+                { label: 'External API connections (HSK, Grammar, Pinyin)', status: 'Ready' },
+                { label: 'Database relationships with foreign keys', status: 'Stable' },
+                { label: 'Intelligent UPSERT operations preserve sentence IDs', status: 'Optimized' }
+              ].map((item, index) => (
+                <IntegrationItem key={index}>
+                  <Box marginRight={2}>
+                    <Badge size="S" backgroundColor="success200" textColor="success700">
+                      {item.status}
+                    </Badge>
+                  </Box>
+                  <Typography
+                    variant="omega"
+                    textColor="success700"
+                    style={{ lineHeight: '1.6' }}
+                  >
+                    {item.label}
+                  </Typography>
+                </IntegrationItem>
+              ))}
+            </Box>
+          </CardBody>
+        </Card>
 
         {/* Quick Access */}
-        <div style={{ marginTop: '2rem' }}>
-          <h2 style={{
-            fontSize: '1.25rem',
-            fontWeight: '600',
-            color: '#212134',
-            marginBottom: '1rem'
-          }}>
-            Quick Access
-          </h2>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <a
-              href="/admin/content-manager/collection-types/api::article.article"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '0.75rem 1.5rem',
-                backgroundColor: '#4945ff',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '6px',
-                fontWeight: '500',
-                fontSize: '0.875rem',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#3730df';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = '#4945ff';
-              }}
-            >
-              <span style={{ marginRight: '0.5rem' }}>📝</span>
-              Go to Articles
-            </a>
-
-            <a
-              href="/admin/plugins/chinese-article-processor/chinese-processor"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '0.75rem 1.5rem',
-                backgroundColor: '#10b981',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '6px',
-                fontWeight: '500',
-                fontSize: '0.875rem',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#059669';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = '#10b981';
-              }}
-            >
-              <span style={{ marginRight: '0.5rem' }}>🔧</span>
-              Open Chinese Processor
-            </a>
-          </div>
-        </div>
+        <Box marginTop={6} marginBottom={6}>
+          <Button
+            variant="success"
+            onClick={() => window.location.href = '/admin/content-manager/collection-types/api::article.article'}
+            size="L"
+          >
+            → Go to Articles
+          </Button>
+        </Box>
 
         {/* Status Indicator */}
-        <div style={{
-          marginTop: '2rem',
-          padding: '1rem',
-          backgroundColor: '#d4edda',
-          borderRadius: '6px',
-          border: '1px solid #c3e6cb'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            color: '#155724'
-          }}>
-            <span style={{ marginRight: '0.5rem', fontSize: '1.2rem' }}>✅</span>
-            <strong>Plugin Status: Active & Ready</strong>
-          </div>
-          <p style={{
-            margin: '0.5rem 0 0 0',
-            color: '#155724',
-            fontSize: '0.875rem'
-          }}>
-            Chinese processing capabilities are fully integrated and ready to use.
-          </p>
-        </div>
+        <Card background="success100" borderColor="success200" style={{ marginBottom: '2rem' }}>
+          <CardBody style={{ display: 'block', padding: '1rem' }}>
+            <Box style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <Typography variant="omega" textColor="success700" style={{ fontSize: '1.2rem', marginRight: '0.5rem' }}>
+                ✅
+              </Typography>
+              <Typography
+                variant="omega"
+                fontWeight="bold"
+                textColor="success700"
+              >
+                Plugin Status: Active & Ready
+              </Typography>
+            </Box>
+            <Box>
+              <Typography
+                variant="pi"
+                textColor="success700"
+              >
+                Chinese processing capabilities are fully integrated and ready to use.
+              </Typography>
+            </Box>
+          </CardBody>
+        </Card>
 
         {/* Usage Statistics */}
-        <div style={{
-          marginTop: '2rem',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1rem'
-        }}>
+        <Box marginBottom={4}>
+          <Typography variant="delta" fontWeight="semiBold" textColor="neutral800" marginBottom={4}>
+            System Status
+          </Typography>
+        </Box>
+        <Grid.Root gap={4}>
           {[
-            { label: 'HSK Analysis', status: 'Operational', color: '#10b981' },
-            { label: 'Grammar Rules', status: 'Active', color: '#4945ff' },
-            { label: 'Translations', status: 'Ready', color: '#f59e0b' },
-            { label: 'Sentence Processing', status: 'Online', color: '#8b5cf6' }
+            { label: 'HSK Analysis', status: 'Operational', variant: 'success' },
+            { label: 'Grammar Rules', status: 'Active', variant: 'primary' },
+            { label: 'Translations', status: 'Ready', variant: 'warning' },
+            { label: 'Sentence Processing', status: 'Online', variant: 'secondary' }
           ].map((item, index) => (
-            <div key={index} style={{
-              backgroundColor: 'white',
-              padding: '1rem',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              textAlign: 'center' as const
-            }}>
-              <div style={{
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                color: '#212134',
-                marginBottom: '0.5rem'
-              }}>
-                {item.label}
-              </div>
-              <div style={{
-                fontSize: '0.75rem',
-                fontWeight: '500',
-                color: item.color,
-                padding: '0.25rem 0.5rem',
-                backgroundColor: `${item.color}20`,
-                borderRadius: '12px',
-                display: 'inline-block'
-              }}>
-                {item.status}
-              </div>
-            </div>
+            <Grid.Item key={index} col={3}>
+              <StatusCard key={index}>
+                <CardBody style={{ padding: '1.5rem' }}>
+                  <Box marginRight={3}>
+                    <Typography
+                      variant="omega"
+                      fontWeight="semiBold"
+                      textColor="neutral800"
+                    >
+                      {item.label}
+                    </Typography>
+                  </Box>
+                  <Box style={{ display: 'flex', justifyContent: 'center' }}>
+                    <Badge
+                      backgroundColor={`${item.variant}100` as any}
+                      textColor={`${item.variant}600` as any}
+                    >
+                      {item.status}
+                    </Badge>
+                  </Box>
+                </CardBody>
+              </StatusCard>
+            </Grid.Item>
           ))}
-        </div>
-      </div>
-    </div>
+        </Grid.Root>
+      </ContentWrapper>
+    </PageContainer>
   );
 };
 

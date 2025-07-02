@@ -1,7 +1,7 @@
 // src/plugins/per-language/admin/src/components/processed-data/BulkControls.tsx
 
 import React from 'react';
-import { Refresh } from '@strapi/icons';
+import { ChartCircle } from '@strapi/icons';
 
 interface BulkControlsProps {
     onLanguageSelect: (language: string) => void;
@@ -92,7 +92,7 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
                                 flexShrink: 0
                             }}
                         >
-                            <Refresh width="16px" height="16px" />
+                            <ChartCircle width="16px" height="16px" />
                             Refresh All
                         </button>
                     </div>

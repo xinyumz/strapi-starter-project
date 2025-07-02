@@ -2,12 +2,10 @@
 
 import React from 'react';
 import {
-    Refresh,
-    Play,
+    ChartCircle,
     Eye,
     EyeStriked,
-    ExclamationMarkCircle,
-    Trash
+    Cross
 } from '@strapi/icons';
 
 import { LanguageData, LanguageProcessor } from '../shared/types';
@@ -50,13 +48,6 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
     onDelete
 }) => {
     // Helper function to get the correct icon for access tier
-    const getAccessTierIcon = (accessTier: string | null) => {
-        if (!accessTier) {
-            return ExclamationMarkCircle;
-        }
-        const tier = ACCESS_TIERS.find(t => t.value === accessTier);
-        return tier?.icon || ExclamationMarkCircle;
-    };
 
     const getStatusBadge = (lang: LanguageData, processor: LanguageProcessor) => {
         try {
@@ -288,8 +279,6 @@ Are you sure you want to delete all ${processor.name} content?`;
         );
     }
 
-    const TierIcon = getAccessTierIcon(lang.access_tier);
-
     // Helper function to get language names
     const getLanguageName = (languageCode: string) => {
         const languageNames: Record<string, string> = {
@@ -417,7 +406,7 @@ Are you sure you want to delete all ${processor.name} content?`;
                                         opacity: isUpdating[`refresh_${lang.id}`] ? 0.6 : 1
                                     }}
                                 >
-                                    <Refresh width="16px" height="16px" />
+                                    <ChartCircle width="16px" height="16px" />
                                     Refresh
                                 </button>
                                 <button
@@ -436,7 +425,6 @@ Are you sure you want to delete all ${processor.name} content?`;
                                         fontSize: "14px"
                                     }}
                                 >
-                                    <Play width="16px" height="16px" />
                                     Open Processor
                                 </button>
                             </div>
@@ -463,7 +451,6 @@ Are you sure you want to delete all ${processor.name} content?`;
                                     alignItems: "center",
                                     flexShrink: 0
                                 }}>
-                                    <TierIcon width="16px" height="16px" />
                                     <AccessTierSelect
                                         value={lang.access_tier}
                                         onChange={(value: string) => onAccessTierChange(lang.id, value)}
@@ -537,7 +524,6 @@ Are you sure you want to delete all ${processor.name} content?`;
                                             opacity: isUpdating[`delete_${lang.id}`] ? 0.6 : 1
                                         }}
                                     >
-                                        <Trash width="16px" height="16px" />
                                         Delete
                                     </button>
                                 )}

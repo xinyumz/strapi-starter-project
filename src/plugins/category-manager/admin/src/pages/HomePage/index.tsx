@@ -20,7 +20,7 @@ import {
   More
 } from '@strapi/icons';
 import pluginId from '../../pluginId';
-
+import styled from 'styled-components';
 
 type QuickStartStepProps = {
   number: number;
@@ -28,6 +28,17 @@ type QuickStartStepProps = {
   title: string;
   description: string;
 };
+const PageContainer = styled(Box).attrs({
+  background: "neutral0"
+})`
+  padding: 3rem;
+  min-height: 100vh;
+`;
+
+const ContentWrapper = styled(Box)`
+  max-width: 1200px;
+  margin: 0 auto;
+`;
 
 const HomePage = () => {
   const statsData = [
@@ -153,148 +164,152 @@ const HomePage = () => {
   ];
 
   return (
-    <Box padding={8} background="neutral0">
-      {/* Header Section */}
-      <Box marginBottom={8}>
-        <Box marginBottom={4}>
-          <Typography variant="alpha" textColor="neutral800" marginBottom={3}>
-            Category Manager
-          </Typography>
-        </Box>
-        <Box >
-          <Typography variant="epsilon" textColor="neutral600" maxWidth="600px">
-            Advanced category management system with hierarchical organization and smart filtering
-          </Typography>
-        </Box>
-      </Box>
+    <PageContainer>
+      <ContentWrapper>
+        <Box background="neutral0">
+          {/* Header Section */}
+          <Box marginBottom={8}>
+            <Box marginBottom={4}>
+              <Typography variant="alpha" textColor="neutral800" marginBottom={3}>
+                Category Manager
+              </Typography>
+            </Box>
+            <Box >
+              <Typography variant="epsilon" textColor="neutral600" maxWidth="600px">
+                Advanced category management system with hierarchical organization and smart filtering
+              </Typography>
+            </Box>
+          </Box>
 
-      {/* Stats Cards */}
-      <Box marginBottom={10}>
-        <Box marginBottom={4}>
-          <Typography variant="beta" textColor="neutral800" marginBottom={6}>
-            Overview
-          </Typography>
-        </Box>
-        <Box style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '2rem'
-        }}>
-          {statsData.map((stat, index) => (
-            <Card key={index} style={{ height: '100%' }}>
-              <CardBody style={{
-                alignItems: 'center',
-                textAlign: 'center',
-                justifyContent: 'center',
-              }}>
-                <Flex
-                  style={{
-                    flexDirection: 'column',
-                    padding: '1rem 0'
+          {/* Stats Cards */}
+          <Box marginBottom={10}>
+            <Box marginBottom={4}>
+              <Typography variant="beta" textColor="neutral800" marginBottom={6}>
+                Overview
+              </Typography>
+            </Box>
+            <Box style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '1.5rem',
+              marginBottom: '2rem'
+            }}>
+              {statsData.map((stat, index) => (
+                <Card key={index} style={{ height: '100%' }}>
+                  <CardBody style={{
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    justifyContent: 'center',
                   }}>
-                  <Flex
-                    background={stat.bgColor}
-                    padding={4}
-                    borderRadius="50%"
-                    marginBottom={4}
-                  >
-                    <stat.icon fill={stat.iconColor} width="2rem" height="2rem" stroke="white" />
-                  </Flex>
-                  <Typography variant="delta" fontWeight="bold" textColor="neutral800" marginBottom={2}>
-                    {stat.title}
-                  </Typography>
-                  <Typography variant="omega" textColor="neutral600">
-                    {stat.description}
-                  </Typography>
-                </Flex>
-              </CardBody>
-            </Card>
-          ))}
-        </Box>
-      </Box>
-
-      {/* Features Section */}
-      <Box marginBottom={8}>
-        <Box marginBottom={3}>
-          <Typography variant="beta" textColor="neutral800" marginBottom={6}>
-            Key Features
-          </Typography>
-        </Box>
-
-        <Grid.Root gap={6} >
-          {features.map((feature, index) => (
-            <Grid.Item key={index} col={6}>
-              <Card style={{ height: '100%', width: '100%' }}>
-                <CardHeader>
-                  <Flex justifyContent="space-between" alignItems="flex-start" width="100%">
-                    <Flex alignItems="center" gap={4} flex={1}>
+                    <Flex
+                      style={{
+                        flexDirection: 'column',
+                        padding: '1rem 0'
+                      }}>
                       <Flex
-                        style={{ flexShrink: 0 }}
-                        background="neutral100"
-                        padding={3}
-                        borderRadius="8px"
-                        justifyContent="center"
-                        alignItems="center"
+                        background={stat.bgColor}
+                        padding={4}
+                        borderRadius="50%"
+                        marginBottom={4}
                       >
-                        <feature.icon fill="neutral600" stroke="white" width="1.5rem" height="1.5rem" />
+                        <stat.icon fill={stat.iconColor} width="2rem" height="2rem" stroke="silver" />
                       </Flex>
-                      <Typography variant="delta" fontWeight="bold" textColor="neutral800">
-                        {feature.title}
+                      <Typography variant="delta" fontWeight="bold" textColor="neutral800" marginBottom={2}>
+                        {stat.title}
+                      </Typography>
+                      <Typography variant="omega" textColor="neutral600">
+                        {stat.description}
                       </Typography>
                     </Flex>
-                    <Badge size="S" style={{ marginLeft: '1rem' }}>
-                      {feature.badge}
-                    </Badge>
-                  </Flex>
-                </CardHeader>
-                <CardBody>
-                  <Typography variant="omega" textColor="neutral600" lineHeight="1.6">
-                    {feature.description}
-                  </Typography>
-                </CardBody>
-              </Card>
-            </Grid.Item>
-          ))}
-        </Grid.Root>
-      </Box>
-
-      {/* Quick Start Section */}
-      <Card style={{ marginBottom: '2rem', padding: '1rem' }}>
-        <CardHeader style={{ marginBottom: '1rem' }}>
-          <Typography variant="beta" fontWeight="bold" textColor="neutral800" marginBottom={2}>
-            Quick Start Guide
-          </Typography>
-        </CardHeader>
-        <CardBody style={{ flexDirection: 'column', marginLeft: '2rem', marginRight: '2rem' }}>
-          <Typography variant="delta" textColor="neutral700" marginBottom={4}>
-            Get started with the Category Manager plugin:
-          </Typography>
-          <Box style={{ display: 'grid', gap: '1rem' }}>
-            {quickStartSteps.map((step) => (
-              <QuickStartStep key={step.number} {...step} />
-            ))}
+                  </CardBody>
+                </Card>
+              ))}
+            </Box>
           </Box>
-        </CardBody>
-      </Card>
 
-      {/* Footer Info */}
-      <Box paddingTop={4} borderColor="neutral200" borderWidth="1px 0 0 0">
-        <Flex style={{
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
-          <Typography variant="pi" textColor="neutral500">
-            Plugin ID: {pluginId}
-          </Typography>
-          <Typography variant="pi" textColor="neutral500">
-            Version 1.0.0 | Compatible with Strapi v5
-          </Typography>
-        </Flex>
-      </Box>
-    </Box >
+          {/* Features Section */}
+          <Box marginBottom={8}>
+            <Box marginBottom={3}>
+              <Typography variant="beta" textColor="neutral800" marginBottom={6}>
+                Key Features
+              </Typography>
+            </Box>
+
+            <Grid.Root gap={6} >
+              {features.map((feature, index) => (
+                <Grid.Item key={index} col={6}>
+                  <Card style={{ height: '100%', width: '100%' }}>
+                    <CardHeader>
+                      <Flex justifyContent="space-between" alignItems="flex-start" width="100%">
+                        <Flex alignItems="center" gap={4} flex={1}>
+                          <Flex
+                            style={{ flexShrink: 0 }}
+                            background="neutral100"
+                            padding={3}
+                            borderRadius="8px"
+                            justifyContent="center"
+                            alignItems="center"
+                          >
+                            <feature.icon fill="neutral600" stroke="silver" width="1.5rem" height="1.5rem" />
+                          </Flex>
+                          <Typography variant="delta" fontWeight="bold" textColor="neutral800">
+                            {feature.title}
+                          </Typography>
+                        </Flex>
+                        <Badge size="S" style={{ marginLeft: '1rem' }}>
+                          {feature.badge}
+                        </Badge>
+                      </Flex>
+                    </CardHeader>
+                    <CardBody>
+                      <Typography variant="omega" textColor="neutral600" lineHeight="1.6">
+                        {feature.description}
+                      </Typography>
+                    </CardBody>
+                  </Card>
+                </Grid.Item>
+              ))}
+            </Grid.Root>
+          </Box>
+
+          {/* Quick Start Section */}
+          <Card style={{ marginBottom: '2rem', padding: '1rem' }}>
+            <CardHeader style={{ marginBottom: '1rem' }}>
+              <Typography variant="beta" fontWeight="bold" textColor="neutral800" marginBottom={2}>
+                Quick Start Guide
+              </Typography>
+            </CardHeader>
+            <CardBody style={{ flexDirection: 'column', marginLeft: '2rem', marginRight: '2rem' }}>
+              <Typography variant="delta" textColor="neutral700" marginBottom={4}>
+                Get started with the Category Manager plugin:
+              </Typography>
+              <Box style={{ display: 'grid', gap: '1rem' }}>
+                {quickStartSteps.map((step) => (
+                  <QuickStartStep key={step.number} {...step} />
+                ))}
+              </Box>
+            </CardBody>
+          </Card>
+
+          {/* Footer Info */}
+          <Box paddingTop={4} borderColor="neutral200" borderWidth="1px 0 0 0">
+            <Flex style={{
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <Typography variant="pi" textColor="neutral500">
+                Plugin ID: {pluginId}
+              </Typography>
+              <Typography variant="pi" textColor="neutral500">
+                Version 1.0.0 | Compatible with Strapi v5
+              </Typography>
+            </Flex>
+          </Box>
+        </Box >
+      </ContentWrapper>
+    </PageContainer>
   );
 };
 
