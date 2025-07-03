@@ -1,12 +1,5 @@
 // src/plugins/per-language/admin/src/components/shared/constants.ts
 
-import {
-    Cross,
-    Gift,
-    CheckCircle,
-    Crown
-} from '@strapi/icons';
-
 export const SUPPORTED_LANGUAGES = [
     {
         code: 'zh',

@@ -516,7 +516,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
                             padding={3}
                             background="primary100"
                             borderRadius="4px"
-                            style={{ border: '1px solid #e3f2fd' }}
                             width="100%"
                         >
                             <Typography variant="omega" textColor="primary600">

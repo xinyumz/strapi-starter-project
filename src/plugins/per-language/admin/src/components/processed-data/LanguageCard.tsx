@@ -2,15 +2,26 @@
 
 import React from 'react';
 import {
+    Card,
+    CardBody,
+    CardHeader,
+    Flex,
+    Typography,
+    Badge,
+    Button,
+    Checkbox,
+    Box,
+    Divider
+} from '@strapi/design-system';
+import {
     ChartCircle,
     Eye,
     EyeStriked,
-    Cross
 } from '@strapi/icons';
 
 import { LanguageData, LanguageProcessor } from '../shared/types';
-import { ACCESS_TIERS } from '../shared/constants';
 import { AccessTierSelect } from '../shared/AccessTierSelect';
+import { LanguageCardDetails } from './LanguageCardDetails';
 
 interface LanguageCardProps {
     language: LanguageData;
@@ -38,6 +49,7 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
     isExpanded,
     isUpdating,
     showAllGrammar,
+    showAllTranslations,
     onToggleExpansion,
     onClose,
     onRefresh,
@@ -45,85 +57,30 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
     onAccessTierChange,
     onOpenProcessor,
     onGrammarExpansionToggle,
+    onTranslationExpansionToggle,
     onDelete
 }) => {
-    // Helper function to get the correct icon for access tier
-
     const getStatusBadge = (lang: LanguageData, processor: LanguageProcessor) => {
         try {
             const hasContent = lang.per_language_text && lang.per_language_text.trim().length > 0;
             const hasProcessedData = lang.processed_data && Object.keys(lang.processed_data).length > 0;
 
             if (!hasContent) {
-                return (
-                    <span style={{
-                        backgroundColor: "#f6f6f9",
-                        color: "#666687",
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        fontWeight: "500"
-                    }}>
-                        No Content
-                    </span>
-                );
+                return <Badge backgroundColor="neutral200" textColor="neutral700">No Content</Badge>;
             }
 
             if (!processor.hasProcessor) {
-                return (
-                    <span style={{
-                        backgroundColor: "#fdf4dc",
-                        color: "#be5d01",
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        fontWeight: "500"
-                    }}>
-                        Processor Coming Soon
-                    </span>
-                );
+                return <Badge backgroundColor="warning200" textColor="warning700">Processor Coming Soon</Badge>;
             }
 
             if (hasProcessedData) {
-                return (
-                    <span style={{
-                        backgroundColor: "#d9f7be",
-                        color: "#389e0d",
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        fontWeight: "500"
-                    }}>
-                        ✅ Processed
-                    </span>
-                );
+                return <Badge backgroundColor="success200" textColor="success700">✅ Processed</Badge>;
             }
 
-            return (
-                <span style={{
-                    backgroundColor: "#e6f7ff",
-                    color: "#32324d",
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    fontWeight: "500"
-                }}>
-                    Content Ready
-                </span>
-            );
+            return <Badge backgroundColor="primary200" textColor="neutral800">Content Ready</Badge>;
         } catch (error) {
             console.error('Error in getStatusBadge:', error);
-            return (
-                <span style={{
-                    backgroundColor: "#f6f6f9",
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    fontWeight: "500"
-                }}>
-                    Unknown
-                </span>
-            );
+            return <Badge backgroundColor="neutral200">Unknown</Badge>;
         }
     };
 
@@ -133,88 +90,52 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
             const hasProcessedData = lang.processed_data && typeof lang.processed_data === 'object' && Object.keys(lang.processed_data).length > 0;
 
             return (
-                <div style={{
-                    display: "flex",
-                    gap: "16px",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    justifyContent: "flex-start"
-                }}>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                        <span style={{ fontSize: "14px", color: "#666687" }}>Content:</span>
-                        <span style={{
-                            backgroundColor: hasContent ? "#d9f7be" : "#f6f6f9",
-                            color: hasContent ? "#389e0d" : "#666687",
-                            padding: "4px 8px",
-                            borderRadius: "4px",
-                            fontSize: "12px",
-                            fontWeight: "500"
-                        }}>
+                <Flex gap={5} alignItems="center" wrap="wrap" justifyContent="flex-start" marginBottom={4}>
+                    <Flex gap={2} alignItems="center">
+                        <Typography variant="pi" textColor="neutral600">Content:</Typography>
+                        <Badge backgroundColor={hasContent ? "success200" : "neutral200"} textColor={hasContent ? "success700" : "neutral700"}>
                             {hasContent ? 'Available' : 'None'}
-                        </span>
-                    </div>
+                        </Badge>
+                    </Flex>
 
                     {hasProcessedData && (
                         <>
                             {lang.display_skill && (
-                                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                                    <span style={{ fontSize: "14px", color: "#666687" }}>{processor.difficultyLabel}:</span>
-                                    <span style={{
-                                        backgroundColor: "#e6f7ff",
-                                        color: "#32324d",
-                                        padding: "4px 8px",
-                                        borderRadius: "4px",
-                                        fontSize: "12px",
-                                        fontWeight: "500"
-                                    }}>
-                                        {lang.display_skill}
-                                    </span>
-                                </div>
+                                <Flex gap={2} alignItems="center">
+                                    <Typography variant="pi" textColor="neutral600">{processor.difficultyLabel}:</Typography>
+                                    <Badge backgroundColor="primary200" textColor="neutral800">{lang.display_skill}</Badge>
+                                </Flex>
                             )}
 
                             {lang.processed_data.grammar?.sentences && (
                                 <>
-                                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                                        <span style={{ fontSize: "14px", color: "#666687" }}>Grammar Rules:</span>
-                                        <span style={{
-                                            backgroundColor: "#d9f7be",
-                                            color: "#389e0d",
-                                            padding: "4px 8px",
-                                            borderRadius: "4px",
-                                            fontSize: "12px",
-                                            fontWeight: "500"
-                                        }}>
+                                    <Flex gap={2} alignItems="center">
+                                        <Typography variant="pi" textColor="neutral600">Grammar Rules:</Typography>
+                                        <Badge backgroundColor="success200" textColor="success700">
                                             {lang.processed_data.grammar.sentences.reduce((total: number, sentence: any) =>
                                                 total + (sentence.rules?.length || 0), 0
                                             )} rules
-                                        </span>
-                                    </div>
+                                        </Badge>
+                                    </Flex>
 
-                                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                                        <span style={{ fontSize: "14px", color: "#666687" }}>Sentences:</span>
-                                        <span style={{
-                                            backgroundColor: "#f6f6f9",
-                                            color: "#666687",
-                                            padding: "4px 8px",
-                                            borderRadius: "4px",
-                                            fontSize: "12px",
-                                            fontWeight: "500"
-                                        }}>
+                                    <Flex gap={2} alignItems="center">
+                                        <Typography variant="pi" textColor="neutral600">Sentences:</Typography>
+                                        <Badge backgroundColor="neutral200" textColor="neutral700">
                                             {lang.processed_data.grammar.sentences.length} processed
-                                        </span>
-                                    </div>
+                                        </Badge>
+                                    </Flex>
                                 </>
                             )}
                         </>
                     )}
-                </div>
+                </Flex>
             );
         } catch (error) {
             console.error('Error in getMetricsDisplay:', error);
             return (
-                <span style={{ fontSize: "14px", color: "#d32f2f" }}>
+                <Typography variant="pi" color="danger600">
                     Error displaying metrics
-                </span>
+                </Typography>
             );
         }
     };
@@ -265,17 +186,13 @@ Are you sure you want to delete all ${processor.name} content?`;
     // Handle invalid language data
     if (!lang || typeof lang !== 'object') {
         return (
-            <div key={`invalid-${index}`} style={{
-                background: 'white',
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                padding: '16px',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-            }}>
-                <span style={{ fontSize: "14px", color: "#d32f2f" }}>
-                    Invalid language data at index {index}
-                </span>
-            </div>
+            <Card key={`invalid-${index}`}>
+                <CardBody>
+                    <Typography variant="pi" color="danger600">
+                        Invalid language data at index {index}
+                    </Typography>
+                </CardBody>
+            </Card>
         );
     }
 
@@ -294,163 +211,68 @@ Are you sure you want to delete all ${processor.name} content?`;
     };
 
     return (
-        <div key={`lang-${lang.id}-${lang.language}-${index}`} style={{
-            background: 'white',
-            border: '1px solid #e0e0e0',
-            borderRadius: '8px',
-            marginBottom: '16px',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-        }}>
-            {/* Card Header */}
-            <div style={{
-                borderBottom: '1px solid #e0e0e0',
-                padding: '20px'
-            }}>
-                <div style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    width: "100%"
-                }}>
-                    <h3 style={{
-                        fontSize: "18px",
-                        fontWeight: "600",
-                        color: "#32324d",
-                        margin: 0
-                    }}>
-                        {processor.name}
-                    </h3>
-                    <button
+        <Card key={`lang-${lang.id}-${lang.language}-${index}`} width="100%">
+            <CardHeader>
+                <Flex justifyContent="space-between" alignItems="center" width="100%">
+                    <Box margin={3}>
+                        <Typography variant="epsilon" fontWeight="semiBold" textColor="neutral800">
+                            {processor.name}
+                        </Typography>
+                    </Box>
+                    <Button
+                        variant="ghost"
+                        size="S"
                         onClick={() => onClose(lang.id)}
-                        style={{
-                            border: "none",
-                            background: "none",
-                            padding: "4px",
-                            cursor: "pointer",
-                            fontSize: "16px",
-                            color: "#666687",
-                            minWidth: "auto",
-                            height: "auto"
-                        }}
                     >
                         ✕
-                    </button>
-                </div>
-            </div>
+                    </Button>
+                </Flex>
+            </CardHeader>
 
-            {/* Card Body */}
-            <div style={{ padding: '16px' }}>
-                <div style={{ width: "100%", padding: "16px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                        {/* Status badges and action buttons - Flex with wrap */}
-                        <div style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "flex-start",
-                            flexWrap: "wrap",
-                            gap: "12px"
-                        }}>
-                            <div style={{
-                                display: "flex",
-                                gap: "12px",
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                                minWidth: "fit-content"
-                            }}>
+            <CardBody>
+                <Box width="100%">
+                    <Box margin={4}>
+                        {/* Status badges and action buttons */}
+                        <Flex justifyContent="space-between" alignItems="flex-start" wrap="wrap" gap={3} marginBottom={4}>
+                            <Flex gap={3} alignItems="center" wrap="wrap">
                                 {processor.hasProcessor && (
-                                    <span style={{
-                                        backgroundColor: "#d9f7be",
-                                        color: "#389e0d",
-                                        padding: "4px 8px",
-                                        borderRadius: "4px",
-                                        fontSize: "12px",
-                                        fontWeight: "500"
-                                    }}>
+                                    <Badge backgroundColor="success200" textColor="success700">
                                         Processor Available
-                                    </span>
+                                    </Badge>
                                 )}
                                 {getStatusBadge(lang, processor)}
                                 {!lang.access_tier && (
-                                    <span style={{
-                                        backgroundColor: "#fdf4dc",
-                                        color: "#be5d01",
-                                        padding: "4px 8px",
-                                        borderRadius: "4px",
-                                        fontSize: "12px",
-                                        fontWeight: "500"
-                                    }}>
+                                    <Badge backgroundColor="warning200" textColor="warning700">
                                         ⚠️ Access Tier Required
-                                    </span>
+                                    </Badge>
                                 )}
-                            </div>
+                            </Flex>
 
-                            <div style={{
-                                display: "flex",
-                                gap: "8px",
-                                alignItems: "center",
-                                flexShrink: 0
-                            }}>
-                                <button
+                            <Flex gap={2} alignItems="center">
+                                <Button
+                                    variant="tertiary"
+                                    startIcon={<ChartCircle stroke="silver" />}
                                     onClick={() => onRefresh(lang.id, lang.language)}
                                     disabled={isUpdating[`refresh_${lang.id}`]}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "8px",
-                                        padding: "8px 12px",
-                                        border: "1px solid #dcdce4",
-                                        borderRadius: "4px",
-                                        backgroundColor: "white",
-                                        cursor: isUpdating[`refresh_${lang.id}`] ? "not-allowed" : "pointer",
-                                        fontSize: "14px",
-                                        opacity: isUpdating[`refresh_${lang.id}`] ? 0.6 : 1
-                                    }}
+                                    size="S"
                                 >
-                                    <ChartCircle width="16px" height="16px" />
                                     Refresh
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                    variant={processor.hasProcessor ? "default" : "secondary"}
                                     onClick={() => onOpenProcessor(lang.language)}
                                     disabled={!processor.hasProcessor}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "8px",
-                                        padding: "8px 12px",
-                                        border: processor.hasProcessor ? "1px solid #4945ff" : "1px solid #dcdce4",
-                                        borderRadius: "4px",
-                                        backgroundColor: processor.hasProcessor ? "#4945ff" : "#f6f6f9",
-                                        color: processor.hasProcessor ? "white" : "#666687",
-                                        cursor: processor.hasProcessor ? "pointer" : "not-allowed",
-                                        fontSize: "14px"
-                                    }}
+                                    size="S"
                                 >
                                     Open Processor
-                                </button>
-                            </div>
-                        </div>
+                                </Button>
+                            </Flex>
+                        </Flex>
 
-                        {/* Access tier, publish controls, and DELETE BUTTON - Flex with wrap */}
-                        <div style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "flex-start",
-                            flexWrap: "wrap",
-                            gap: "12px"
-                        }}>
-                            <div style={{
-                                display: "flex",
-                                gap: "16px",
-                                alignItems: "center",
-                                flexWrap: "wrap",
-                                minWidth: "fit-content"
-                            }}>
-                                <div style={{
-                                    display: "flex",
-                                    gap: "8px",
-                                    alignItems: "center",
-                                    flexShrink: 0
-                                }}>
+                        {/* Access tier, publish controls, and DELETE BUTTON */}
+                        <Flex justifyContent="space-between" alignItems="flex-start" wrap="wrap" gap={3} marginBottom={4}>
+                            <Flex gap={4} alignItems="center" wrap="wrap">
+                                <Flex gap={2} alignItems="center">
                                     <AccessTierSelect
                                         value={lang.access_tier}
                                         onChange={(value: string) => onAccessTierChange(lang.id, value)}
@@ -458,289 +280,70 @@ Are you sure you want to delete all ${processor.name} content?`;
                                         size="S"
                                         error={!lang.access_tier ? "Access tier is required" : undefined}
                                     />
-                                </div>
+                                </Flex>
 
-                                <div style={{
-                                    display: "flex",
-                                    gap: "8px",
-                                    alignItems: "center",
-                                    flexShrink: 0
-                                }}>
-                                    {lang.published ?
-                                        <Eye width="16px" height="16px" /> :
-                                        <EyeStriked width="16px" height="16px" />
-                                    }
-                                    <input
-                                        type="checkbox"
+                                <Flex gap={2} alignItems="center">
+                                    {lang.published ? <Eye width="16px" height="16px" stroke="silver" /> : <EyeStriked width="16px" height="16px" stroke="silver" />}
+                                    <Checkbox
                                         checked={lang.published || false}
-                                        onChange={() => onPublishToggle(lang.id, lang.published)}
+                                        onCheckedChange={() => onPublishToggle(lang.id, lang.published)}
                                         disabled={isUpdating[`publish_${lang.id}`]}
-                                        style={{
-                                            width: "16px",
-                                            height: "16px",
-                                            cursor: isUpdating[`publish_${lang.id}`] ? "not-allowed" : "pointer"
-                                        }}
                                     />
-                                    <span style={{
-                                        fontSize: "14px",
-                                        fontWeight: "600",
-                                        whiteSpace: "nowrap",
-                                        color: "#32324d"
-                                    }}>
+                                    <Typography variant="pi" fontWeight="semiBold">
                                         {lang.published ? 'Published' : 'Draft'}
-                                    </span>
-                                </div>
-                            </div>
+                                    </Typography>
+                                </Flex>
+                            </Flex>
 
-                            <div style={{
-                                display: "flex",
-                                gap: "12px",
-                                alignItems: "center",
-                                flexShrink: 0
-                            }}>
-                                <span style={{
-                                    fontSize: "14px",
-                                    color: "#666687",
-                                    whiteSpace: "nowrap"
-                                }}>
+                            <Flex gap={3} alignItems="center">
+                                <Typography variant="pi" textColor="neutral500">
                                     Last updated: {new Date(lang.updatedAt || lang.updated_at).toLocaleDateString()}
-                                </span>
+                                </Typography>
 
                                 {onDelete && (
-                                    <button
+                                    <Button
+                                        variant="danger-light"
                                         onClick={handleDeleteClick}
                                         disabled={isUpdating[`delete_${lang.id}`]}
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "8px",
-                                            padding: "8px 12px",
-                                            border: "1px solid #d32f2f",
-                                            borderRadius: "4px",
-                                            backgroundColor: "#ffeaea",
-                                            color: "#d32f2f",
-                                            cursor: isUpdating[`delete_${lang.id}`] ? "not-allowed" : "pointer",
-                                            fontSize: "14px",
-                                            opacity: isUpdating[`delete_${lang.id}`] ? 0.6 : 1
-                                        }}
+                                        size="S"
                                     >
                                         Delete
-                                    </button>
+                                    </Button>
                                 )}
-                            </div>
-                        </div>
+                            </Flex>
+                        </Flex>
 
                         {/* Metrics display */}
                         {getMetricsDisplay(lang, processor)}
 
-                        {/* Expandable Details Section - Redesigned */}
+                        {/* Expandable Details Section */}
                         {lang.processed_data && Object.keys(lang.processed_data).length > 0 && (
                             <>
-                                <hr style={{ border: "none", borderTop: "1px solid #e0e0e0", margin: "16px 0" }} />
-                                <div style={{ width: "100%" }}>
-                                    <button
+                                <Divider marginBottom={4} />
+                                <Box width="100%">
+                                    <Button
+                                        variant="tertiary"
+                                        size="S"
                                         onClick={() => onToggleExpansion(lang.id)}
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px 12px",
-                                            border: "1px solid #dcdce4",
-                                            borderRadius: "4px",
-                                            backgroundColor: "white",
-                                            cursor: "pointer",
-                                            fontSize: "14px"
-                                        }}
+                                        fullWidth
                                     >
                                         {isExpanded ? 'Hide Sentence Details' : 'Show Sentence Details'}
-                                    </button>
-                                </div>
+                                    </Button>
+                                </Box>
 
                                 {isExpanded && (
-                                    <div style={{
-                                        padding: "16px",
-                                        backgroundColor: "#fafafa",
-                                        borderRadius: "4px"
-                                    }}>
-                                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                                            {/* 1. Difficulty Levels Section - Dynamic */}
-                                            {lang.display_skill && (
-                                                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                                                    <h4 style={{
-                                                        fontSize: "16px",
-                                                        fontWeight: "600",
-                                                        margin: 0,
-                                                        color: "#32324d"
-                                                    }}>
-                                                        Difficulty Level:
-                                                    </h4>
-                                                    <span style={{
-                                                        backgroundColor: "#e6f7ff",
-                                                        color: "#32324d",
-                                                        padding: "4px 8px",
-                                                        borderRadius: "4px",
-                                                        fontSize: "12px",
-                                                        fontWeight: "500"
-                                                    }}>
-                                                        {lang.display_skill}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* Fallback for when display_skill is not available but we have data */}
-                                            {!lang.display_skill && lang.processed_data.hsk && (
-                                                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                                                    <h4 style={{
-                                                        fontSize: "16px",
-                                                        fontWeight: "600",
-                                                        margin: 0,
-                                                        color: "#32324d"
-                                                    }}>
-                                                        Difficulty Level:
-                                                    </h4>
-                                                    <span style={{
-                                                        backgroundColor: "#e6f7ff",
-                                                        color: "#32324d",
-                                                        padding: "4px 8px",
-                                                        borderRadius: "4px",
-                                                        fontSize: "12px",
-                                                        fontWeight: "500"
-                                                    }}>
-                                                        {processor.difficultyLabel} {lang.processed_data.hsk.selectedLevel || lang.processed_data.hsk.calculatedLevel}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* 2. Sentences Section */}
-                                            {lang.processed_data.grammar?.sentences && lang.processed_data.grammar.sentences.length > 0 && (
-                                                <div>
-                                                    <h4 style={{
-                                                        fontSize: "16px",
-                                                        fontWeight: "600",
-                                                        paddingBottom: "12px",
-                                                        margin: 0,
-                                                        color: "#32324d"
-                                                    }}>
-                                                        Sentences
-                                                    </h4>
-
-                                                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                                                        {lang.processed_data.grammar.sentences
-                                                            .slice(0, showAllGrammar[lang.id] ? undefined : 3)
-                                                            .map((sentence: any, index: number) => (
-                                                                <div key={index} style={{
-                                                                    padding: "12px",
-                                                                    backgroundColor: "white",
-                                                                    borderRadius: "4px",
-                                                                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-                                                                }}>
-                                                                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                                                        {/* Original sentence */}
-                                                                        <h5 style={{
-                                                                            fontSize: "16px",
-                                                                            fontWeight: "600",
-                                                                            margin: 0,
-                                                                            color: "#32324d"
-                                                                        }}>
-                                                                            {sentence.sentence}
-                                                                        </h5>
-
-                                                                        {/* English translation */}
-                                                                        {sentence.translation && (
-                                                                            <p style={{
-                                                                                fontSize: "14px",
-                                                                                color: "#666687",
-                                                                                margin: 0
-                                                                            }}>
-                                                                                {sentence.translation}
-                                                                            </p>
-                                                                        )}
-
-                                                                        {/* Other language translations */}
-                                                                        {sentence.translations && sentence.translations
-                                                                            .filter((trans: any) => trans.language !== 'en')
-                                                                            .length > 0 && (
-                                                                                <div style={{
-                                                                                    display: "flex",
-                                                                                    gap: "4px",
-                                                                                    alignItems: "center",
-                                                                                    flexWrap: "wrap"
-                                                                                }}>
-                                                                                    <span style={{
-                                                                                        fontSize: "14px",
-                                                                                        color: "#666687"
-                                                                                    }}>
-                                                                                        Also available in:
-                                                                                    </span>
-                                                                                    {sentence.translations
-                                                                                        .filter((trans: any) => trans.language !== 'en')
-                                                                                        .map((trans: any, transIndex: number) => (
-                                                                                            <span
-                                                                                                key={transIndex}
-                                                                                                style={{
-                                                                                                    backgroundColor: "#f0f0f0",
-                                                                                                    color: "#666687",
-                                                                                                    padding: "2px 6px",
-                                                                                                    borderRadius: "4px",
-                                                                                                    fontSize: "12px",
-                                                                                                    fontWeight: "500"
-                                                                                                }}
-                                                                                            >
-                                                                                                {getLanguageName(trans.language)}
-                                                                                            </span>
-                                                                                        ))}
-                                                                                </div>
-                                                                            )}
-
-                                                                        {/* Grammar rules */}
-                                                                        {sentence.rules && sentence.rules.length > 0 && (
-                                                                            <div style={{ paddingTop: "4px" }}>
-                                                                                {sentence.rules.map((rule: string, ruleIndex: number) => (
-                                                                                    <p key={ruleIndex} style={{
-                                                                                        fontSize: "14px",
-                                                                                        color: "#32324d",
-                                                                                        margin: "4px 0",
-                                                                                        paddingLeft: "8px"
-                                                                                    }}>
-                                                                                        • {rule}
-                                                                                    </p>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-
-                                                        {/* Show/Hide toggle for sentences */}
-                                                        {lang.processed_data.grammar.sentences.length > 3 && (
-                                                            <div style={{ paddingTop: "8px" }}>
-                                                                <button
-                                                                    onClick={() => onGrammarExpansionToggle(lang.id)}
-                                                                    style={{
-                                                                        padding: "6px 12px",
-                                                                        border: "1px solid #dcdce4",
-                                                                        borderRadius: "4px",
-                                                                        backgroundColor: "white",
-                                                                        cursor: "pointer",
-                                                                        fontSize: "14px"
-                                                                    }}
-                                                                >
-                                                                    {showAllGrammar[lang.id]
-                                                                        ? `Hide ${lang.processed_data.grammar.sentences.length - 3} more sentences`
-                                                                        : `Show ${lang.processed_data.grammar.sentences.length - 3} more sentences`
-                                                                    }
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <LanguageCardDetails
+                                        language={lang}
+                                        processor={processor}
+                                        showAllGrammar={showAllGrammar[lang.id] || false}
+                                        onGrammarExpansionToggle={() => onGrammarExpansionToggle(lang.id)}
+                                    />
                                 )}
                             </>
                         )}
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </Box>
+                </Box>
+            </CardBody>
+        </Card>
     );
 };

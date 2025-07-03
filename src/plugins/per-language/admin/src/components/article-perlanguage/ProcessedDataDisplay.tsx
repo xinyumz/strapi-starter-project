@@ -2,6 +2,18 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
+    Box,
+    Button,
+    Typography,
+    Alert,
+    Flex,
+    EmptyStateLayout,
+    Loader
+} from '@strapi/design-system';
+import { ChartCircle } from '@strapi/icons';
+import { useFetchClient } from "@strapi/strapi/admin";
+
+import {
     SUPPORTED_LANGUAGES,
     LanguageData,
 } from '../shared';
@@ -10,8 +22,6 @@ import {
     BulkControls,
     LanguageCard
 } from '../processed-data';
-
-import { useFetchClient } from "@strapi/strapi/admin";
 
 interface ProcessedDataDisplayProps {
     articleId: string;
@@ -36,37 +46,22 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     // SAFE: Get fetch client
     const fetchClient = useFetchClient();
 
-    // SAFE: Memoized data loading function to prevent infinite loops
+    // Memoized data loading function to prevent infinite loops
     const loadLanguageData = useCallback(async () => {
-        if (!articleId) return; // Simplified check
+        if (!articleId) return;
 
         try {
-            console.log(`[ProcessedDataDisplay] Starting to load data for article ${articleId}`);
-            console.log(`[ProcessedDataDisplay] Current isLoading state:`, isLoading);
-
             setIsLoading(true);
             setError(null);
 
-            console.log(`[ProcessedDataDisplay] API URL: /per-language/article/${articleId}/languages`);
-
             const response = await fetchClient.get(`/per-language/article/${articleId}/languages`);
-
-            console.log(`[ProcessedDataDisplay] Raw response:`, response);
-            console.log(`[ProcessedDataDisplay] Response data:`, response.data);
 
             let data = [];
             if (response.data && response.data.data && Array.isArray(response.data.data)) {
                 data = response.data.data;
-                console.log(`[ProcessedDataDisplay] Using response.data.data`);
             } else if (response.data && Array.isArray(response.data)) {
                 data = response.data;
-                console.log(`[ProcessedDataDisplay] Using response.data directly`);
-            } else {
-                console.log(`[ProcessedDataDisplay] Unexpected response format:`, response.data);
             }
-
-            console.log(`[ProcessedDataDisplay] Processed data:`, data);
-            console.log(`[ProcessedDataDisplay] Data length:`, data.length);
 
             setLanguageData(data);
 
@@ -75,10 +70,9 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
             setError(err.message || 'Failed to load language data');
             setLanguageData([]);
         } finally {
-            console.log(`[ProcessedDataDisplay] Setting isLoading to false`);
             setIsLoading(false);
         }
-    }, [articleId, fetchClient.get]); // SAFE: Proper dependencies
+    }, [articleId, fetchClient.get]);
 
     // Only load data when articleId changes
     useEffect(() => {
@@ -413,82 +407,49 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
         };
     }, []);
 
-    // NATIVE HTML IMPLEMENTATION - NO STRAPI DESIGN SYSTEM
     if (isLoading) {
         return (
-            <div style={{ padding: '16px' }}>
-                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Loading language data...</p>
-            </div>
+            <Box padding={4}>
+                <Flex direction="column" alignItems="center" gap={3}>
+                    <Loader />
+                    <Typography variant="pi" color="neutral600">Loading language data...</Typography>
+                </Flex>
+            </Box>
         );
     }
 
     if (error) {
         return (
-            <div style={{ padding: '16px' }}>
-                <div style={{
-                    padding: '12px',
-                    border: '1px solid #f28b82',
-                    borderRadius: '4px',
-                    backgroundColor: '#ffebee',
-                    marginBottom: '12px'
-                }}>
-                    <strong style={{ color: '#c62828' }}>Error</strong>
-                    <div style={{ marginTop: '4px', color: '#424242' }}>{error}</div>
-                </div>
-                <button
-                    onClick={handleRefresh}
-                    style={{
-                        padding: '8px 16px',
-                        border: '1px solid #2196f3',
-                        borderRadius: '4px',
-                        backgroundColor: '#2196f3',
-                        color: 'white',
-                        cursor: 'pointer',
-                        fontSize: '14px'
-                    }}
-                >
-                    Try Again
-                </button>
-            </div>
+            <Box padding={4}>
+                <Flex direction="column" gap={3}>
+                    <Alert variant="danger" title="Error">
+                        {error}
+                    </Alert>
+                    <Button onClick={handleRefresh} startIcon={<ChartCircle stroke="silver" />}>
+                        Try Again
+                    </Button>
+                </Flex>
+            </Box>
         );
     }
 
     if (!Array.isArray(languageData) || languageData.length === 0) {
         return (
-            <div style={{
-                padding: '24px',
-                textAlign: 'center',
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                backgroundColor: '#f8f9fa'
-            }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-                <p style={{ margin: '0 0 16px 0', color: '#424242', fontSize: '16px' }}>
-                    No language content found for this article. Use the Language Processor field in the article editor to create translated content.
-                </p>
-                <button
-                    onClick={handleRefresh}
-                    style={{
-                        padding: '8px 16px',
-                        border: '1px solid #2196f3',
-                        borderRadius: '4px',
-                        backgroundColor: '#2196f3',
-                        color: 'white',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                    }}
-                >
-                    🔄 Refresh
-                </button>
-            </div>
+            <Box padding={4}>
+                <EmptyStateLayout
+                    content="No language content found for this article. Use the Language Processor field in the article editor to create translated content."
+                    action={
+                        <Button onClick={handleRefresh} startIcon={<ChartCircle stroke="silver" />}>
+                            Refresh
+                        </Button>
+                    }
+                />
+            </Box>
         );
     }
 
     return (
-        <div>
+        <Box width="100%">
             <BulkControls
                 onLanguageSelect={handleOpenLanguageCard}
                 onRefresh={handleRefresh}
@@ -496,7 +457,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 onBulkAccessTier={handleBulkAccessTier}
                 bulkPublishState={bulkPublishState}
             />
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <Flex direction="column" gap={4}>
                 {languageData
                     .filter(lang => visibleCards.size === 0 || visibleCards.has(lang.id))
                     .map((lang, index) => {
@@ -534,7 +495,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                             />
                         );
                     })}
-            </div>
-        </div>
+            </Flex>
+        </Box>
     );
 };

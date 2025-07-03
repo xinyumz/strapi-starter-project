@@ -1,8 +1,28 @@
 // src/plugins/per-language/admin/src/components/article-perlanguage/LanguageProcessorField.tsx
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import {
+    Box,
+    Button,
+    SingleSelect,
+    SingleSelectOption,
+    Typography,
+    Flex,
+    Divider,
+    Alert,
+    Textarea
+} from '@strapi/design-system';
 import { ProcessedDataDisplay } from './ProcessedDataDisplay';
 import { SUPPORTED_LANGUAGES } from '../shared';
+
+import styled from 'styled-components';
+
+const TallTextareaWrapper = styled.div`
+  margin-bottom: 1.2rem; 
+  & > div {
+    height: 250px !important;
+  }
+`;
 
 interface LanguageProcessorFieldProps {
     name: string;
@@ -42,32 +62,20 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
     const hasSelectedLanguage = Boolean(targetLanguage);
     const modifiedData = document || allProps || {};
 
-    // ENHANCED DEBUGGING: Better document ID extraction for Strapi v5
+    // Enhanced document ID extraction for Strapi v5
     const articleId = (() => {
-        console.log('[DEBUG] All props passed to component:', {
-            documentId,
-            document,
-            modifiedData,
-            allPropsKeys: Object.keys(allProps),
-            url: window.location.pathname,
-            search: window.location.search
-        });
-
         // Try documentId first (Strapi v5)
         if (documentId) {
-            console.log('[DEBUG] Using documentId prop:', documentId);
             return documentId.toString();
         }
 
         // Try document.documentId (Strapi v5)
         if (modifiedData.documentId) {
-            console.log('[DEBUG] Using document.documentId:', modifiedData.documentId);
             return modifiedData.documentId.toString();
         }
 
         // Try document.id (fallback for v4 compatibility)
         if (modifiedData.id) {
-            console.log('[DEBUG] Using document.id:', modifiedData.id);
             return modifiedData.id.toString();
         }
 
@@ -82,51 +90,12 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
         for (const pattern of urlPatterns) {
             const urlMatch = window.location.pathname.match(pattern);
             if (urlMatch) {
-                console.log('[DEBUG] Extracted from URL using pattern', pattern, ':', urlMatch[1]);
                 return urlMatch[1];
             }
         }
 
-        console.log('[DEBUG] No article ID found anywhere');
         return null;
     })();
-
-    console.log('[LanguageProcessor] Final Document ID extraction result:', {
-        documentId,
-        documentDocumentId: modifiedData.documentId,
-        documentId_prop: modifiedData.id,
-        urlPath: window.location.pathname,
-        finalArticleId: articleId
-    });
-
-    // Show debugging information in UI when no ID is found
-    const debugInfo = !articleId ? (
-        <div style={{
-            padding: '16px',
-            backgroundColor: '#fff3cd',
-            border: '1px solid #ffeaa7',
-            borderRadius: '4px',
-            marginBottom: '16px'
-        }}>
-            <h4 style={{ margin: '0 0 8px 0', color: '#856404' }}>🔍 Debug Information</h4>
-            <pre style={{
-                fontSize: '12px',
-                color: '#856404',
-                margin: 0,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all'
-            }}>
-                {`Props received:
-- documentId: ${documentId}
-- document.documentId: ${modifiedData.documentId}
-- document.id: ${modifiedData.id}
-- URL: ${window.location.pathname}
-- All props keys: ${Object.keys(allProps).join(', ')}
-
-Document object: ${JSON.stringify(modifiedData, null, 2)}`}
-            </pre>
-        </div>
-    ) : null;
 
     // Clear messages after 5 seconds
     useEffect(() => {
@@ -237,8 +206,7 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
         }
     }, [articleId]);
 
-    const handleLanguageSelect = useCallback(async (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedLanguage = event.target.value;
+    const handleLanguageSelect = useCallback(async (selectedLanguage: string) => {
         console.log('[LanguageProcessor] Language selected:', selectedLanguage);
         setTargetLanguage(selectedLanguage);
 
@@ -547,185 +515,147 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
         };
     }, []);
 
-    // COMPLETELY AVOID STRAPI DESIGN SYSTEM - Use native HTML elements
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
-            {/* Debug info when no ID found */}
-            {debugInfo}
+        <Box width="100%">
+            <Box marginBottom={6} width="100%">
+                {/* Debug info when no ID found */}
+                {!articleId && (
+                    <Alert variant="danger" title="🔍 Debug Information">
+                        <Typography variant="pi">
+                            No article ID found. Please save the article first or access this page from the article editor.
+                        </Typography>
+                    </Alert>
+                )}
 
-            {/* Error/Success Messages */}
-            {error && (
-                <div style={{ padding: '12px', border: '1px solid #f28b82', borderRadius: '4px', backgroundColor: '#ffebee' }}>
-                    <strong style={{ color: '#c62828' }}>Error</strong>
-                    <p style={{ margin: '4px 0 0 0', color: '#424242' }}>{error}</p>
-                    <button
-                        style={{ marginTop: '8px', padding: '4px 8px', border: 'none', background: '#f5f5f5', borderRadius: '2px', cursor: 'pointer' }}
-                        onClick={() => setError(null)}
-                    >
-                        ✕
-                    </button>
-                </div>
-            )}
+                {/* Error/Success Messages */}
+                {error && (
+                    <Alert variant="danger" title="Error" onClose={() => setError(null)}>
+                        {error}
+                    </Alert>
+                )}
 
-            {success && (
-                <div style={{ padding: '12px', border: '1px solid #4caf50', borderRadius: '4px', backgroundColor: '#e8f5e8' }}>
-                    <strong style={{ color: '#2e7d32' }}>Success</strong>
-                    <p style={{ margin: '4px 0 0 0', color: '#424242' }}>{success}</p>
-                    <button
-                        style={{ marginTop: '8px', padding: '4px 8px', border: 'none', background: '#f5f5f5', borderRadius: '2px', cursor: 'pointer' }}
-                        onClick={() => setSuccess(null)}
-                    >
-                        ✕
-                    </button>
-                </div>
-            )}
+                {success && (
+                    <Alert variant="success" title="Success" onClose={() => setSuccess(null)}>
+                        {success}
+                    </Alert>
+                )}
 
-            {/* Translation Section */}
-            <div>
-                <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#424242' }}>
-                    Translation {articleId && <span style={{ fontSize: '12px', color: '#666' }}>(ID: {articleId})</span>}
-                </h3>
-
-                <div style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
-                    {/* Language selection */}
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#424242' }}>
-                            Select Target Language {required && <span style={{ color: '#f44336' }}>*</span>}
-                        </label>
-                        <select
+                {/* Translation Section */}
+                <Box width="100%">
+                    <Box paddingBottom={3}>
+                        <Typography variant="delta">
+                            Translation {articleId && <Typography variant="pi" color="neutral600">(ID: {articleId})</Typography>}
+                        </Typography>
+                    </Box>
+                    <Box paddingBottom={4}>
+                        {/* Language selection */}
+                        <SingleSelect
+                            label="Select Target Language"
+                            placeholder="Choose a language to begin translation"
                             value={targetLanguage}
                             onChange={handleLanguageSelect}
+                            required={required}
                             disabled={isCreatingRecord}
-                            style={{
-                                width: '100%',
-                                maxWidth: '300px',
-                                padding: '8px 12px',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                fontSize: '14px',
-                                backgroundColor: isCreatingRecord ? '#f5f5f5' : 'white'
-                            }}
                         >
-                            <option value="">Choose a language to begin translation</option>
                             {SUPPORTED_LANGUAGES.map((lang) => (
-                                <option key={lang.code} value={lang.code}>
+                                <SingleSelectOption key={lang.code} value={lang.code}>
                                     {lang.name} {lang.hasProcessor ? '⚙️' : '🚧'}
-                                </option>
+                                </SingleSelectOption>
                             ))}
-                        </select>
-                    </div>
+                        </SingleSelect>
 
-                    {!hasSelectedLanguage && (
-                        <div style={{ padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                            <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                                Please select a target language to begin translation and processing.
-                                {articleId ? ' A language record will be created automatically.' : ' Save the article first to enable auto-sync.'}
-                            </p>
-                        </div>
+                        {!hasSelectedLanguage && (
+                            <Box padding={3} background="neutral100" hasRadius marginTop={3}>
+                                <Typography variant="pi" color="neutral600">
+                                    Please select a target language to begin translation and processing.
+                                    {articleId ? ' A language record will be created automatically.' : ' Save the article first to enable auto-sync.'}
+                                </Typography>
+                            </Box>
+                        )}
+
+                        {hasSelectedLanguage && (
+                            <Box width="100%">
+                                <Flex gap={3} marginTop={3} marginBottom={3} >
+                                    <Button
+                                        onClick={handleTranslate}
+                                        disabled={isTranslating || isCreatingRecord || !articleId}
+                                        loading={isTranslating}
+                                    >
+                                        {isTranslating ? 'Translating...' : 'Translate'}
+                                    </Button>
+
+                                    <Button
+                                        variant="secondary"
+                                        onClick={handleProcess}
+                                        disabled={!hasContent || isCreatingRecord}
+                                    >
+                                        {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
+                                    </Button>
+                                </Flex>
+
+                                <Box width="100%" marginBottom={3}>
+                                    <TallTextareaWrapper>
+                                        <Textarea
+                                            label={`${selectedLanguageInfo?.name || 'Translation'} Content`}
+                                            name={name}
+                                            onChange={handleManualEdit}
+                                            value={value}
+                                            required={required}
+                                            disabled={isCreatingRecord}
+                                        />
+                                    </TallTextareaWrapper>
+                                    <Box maginTop={1}>
+                                        <Typography variant="pi" textColor="neutral600">
+                                            {articleId
+                                                ? `Translated content for ${selectedLanguageInfo?.name}. Changes auto-sync to database.`
+                                                : `Translated content for ${selectedLanguageInfo?.name}. Save article to enable auto-sync.`
+                                            }
+                                        </Typography>
+                                    </Box>
+                                </Box>
+
+                                {isCreatingRecord && (
+                                    <Box padding={2} background="primary100" hasRadius>
+                                        <Typography variant="pi" color="primary600">
+                                            Creating {selectedLanguageInfo?.name} language record...
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+                    </Box>
+                </Box>
+
+                <Divider />
+
+                {/* Multi-Language Processing Center */}
+                <Box width="100%" marginTop={4}>
+                    <Box paddingBottom={2}>
+                        <Typography variant="delta">
+                            Multi-Language Processing Center
+                        </Typography>
+                    </Box>
+                    <Box paddingBottom={4}>
+                        <Typography variant="pi" color="neutral600">
+                            Manage translation status, processing, publishing, and access controls across all languages.
+                        </Typography>
+                    </Box>
+                    {articleId ? (
+                        <ProcessedDataDisplay
+                            key={refreshKey}
+                            articleId={articleId}
+                            onRefresh={handleRefresh}
+                        />
+                    ) : (
+                        <Box padding={4} background="neutral100" hasRadius>
+                            <Typography variant="pi" color="neutral600">
+                                Please save the article first to enable multi-language processing and management.
+                            </Typography>
+                        </Box>
                     )}
-
-                    {hasSelectedLanguage && (
-                        <>
-                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                <button
-                                    onClick={handleTranslate}
-                                    disabled={isTranslating || isCreatingRecord || !articleId}
-                                    style={{
-                                        padding: '8px 16px',
-                                        border: '1px solid #1976d2',
-                                        borderRadius: '4px',
-                                        backgroundColor: isTranslating || isCreatingRecord || !articleId ? '#f5f5f5' : '#1976d2',
-                                        color: isTranslating || isCreatingRecord || !articleId ? '#999' : 'white',
-                                        cursor: isTranslating || isCreatingRecord || !articleId ? 'not-allowed' : 'pointer',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    {isTranslating ? 'Translating...' : 'Translate'}
-                                </button>
-
-                                <button
-                                    onClick={handleProcess}
-                                    disabled={!hasContent || isCreatingRecord}
-                                    style={{
-                                        padding: '8px 16px',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '4px',
-                                        backgroundColor: !hasContent || isCreatingRecord ? '#f5f5f5' : 'white',
-                                        color: !hasContent || isCreatingRecord ? '#999' : '#424242',
-                                        cursor: !hasContent || isCreatingRecord ? 'not-allowed' : 'pointer',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
-                                </button>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#424242' }}>
-                                    {selectedLanguageInfo?.name || 'Translation'} Content {required && <span style={{ color: '#f44336' }}>*</span>}
-                                </label>
-                                <textarea
-                                    name={name}
-                                    onChange={handleManualEdit}
-                                    value={value}
-                                    disabled={isCreatingRecord}
-                                    style={{
-                                        width: '100%',
-                                        minHeight: '200px',
-                                        padding: '12px',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '4px',
-                                        fontSize: '14px',
-                                        fontFamily: 'inherit',
-                                        resize: 'vertical',
-                                        backgroundColor: isCreatingRecord ? '#f5f5f5' : 'white'
-                                    }}
-                                />
-                                <small style={{ color: '#666', fontSize: '12px' }}>
-                                    {articleId
-                                        ? `Translated content for ${selectedLanguageInfo?.name}. Changes auto-sync to database.`
-                                        : `Translated content for ${selectedLanguageInfo?.name}. Save article to enable auto-sync.`
-                                    }
-                                </small>
-                            </div>
-
-                            {isCreatingRecord && (
-                                <div style={{ padding: '12px', backgroundColor: '#e3f2fd', borderRadius: '4px' }}>
-                                    <p style={{ margin: 0, color: '#1976d2', fontSize: '14px' }}>
-                                        Creating {selectedLanguageInfo?.name} language record...
-                                    </p>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '1px solid #ddd', margin: '16px 0' }} />
-
-            {/* Multi-Language Processing Center */}
-            <div>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#424242' }}>
-                    Multi-Language Processing Center
-                </h3>
-                <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
-                    Manage translation status, processing, publishing, and access controls across all languages.
-                </p>
-                {articleId ? (
-                    <ProcessedDataDisplay
-                        key={refreshKey}
-                        articleId={articleId}
-                        onRefresh={handleRefresh}
-                    />
-                ) : (
-                    <div style={{ padding: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                        <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                            Please save the article first to enable multi-language processing and management.
-                        </p>
-                    </div>
-                )}
-            </div>
-        </div>
+                </Box>
+            </Box>
+        </Box>
     );
 };
 
