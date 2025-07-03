@@ -19,8 +19,10 @@ import {
   Cog,
   More
 } from '@strapi/icons';
-import pluginId from '../../pluginId';
 import styled from 'styled-components';
+import pluginId from '../../pluginId';
+import packageJson from '../../../../package.json';
+
 
 type QuickStartStepProps = {
   number: number;
@@ -303,7 +305,7 @@ const HomePage = () => {
                 Plugin ID: {pluginId}
               </Typography>
               <Typography variant="pi" textColor="neutral500">
-                Version 1.0.0 | Compatible with Strapi v5
+                Version {packageJson.version}
               </Typography>
             </Flex>
           </Box>

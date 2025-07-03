@@ -8,8 +8,11 @@ import {
   CardBody,
   CardHeader,
   Button,
+  Flex
 } from '@strapi/design-system';
 import styled from 'styled-components';
+import pluginId from '../../pluginId';
+import packageJson from '../../../../package.json';
 
 // Simple styled components using Design System v2
 const PageContainer = styled(Box).attrs({
@@ -144,6 +147,24 @@ const HomePage: React.FC = () => {
             </Box>
           </CardBody>
         </Card>
+
+        {/* Footer Info */}
+        <Box paddingTop={4} marginTop={6} borderColor="neutral200" borderWidth="1px 0 0 0">
+          <Flex style={{
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <Typography variant="pi" textColor="neutral500">
+              Plugin ID: {pluginId}
+            </Typography>
+            <Typography variant="pi" textColor="neutral500">
+              Version {packageJson.version}
+            </Typography>
+          </Flex>
+        </Box>
+
       </ContentWrapper>
     </PageContainer>
   );
