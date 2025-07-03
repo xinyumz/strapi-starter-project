@@ -425,7 +425,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                     <Alert variant="danger" title="Error">
                         {error}
                     </Alert>
-                    <Button onClick={handleRefresh} startIcon={<ChartCircle stroke="silver" />}>
+                    <Button onClick={handleRefresh} startIcon={<ChartCircle stroke="white" />}>
                         Try Again
                     </Button>
                 </Flex>
@@ -439,7 +439,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 <EmptyStateLayout
                     content="No language content found for this article. Use the Language Processor field in the article editor to create translated content."
                     action={
-                        <Button onClick={handleRefresh} startIcon={<ChartCircle stroke="silver" />}>
+                        <Button onClick={handleRefresh} startIcon={<ChartCircle stroke="white" />}>
                             Refresh
                         </Button>
                     }

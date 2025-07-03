@@ -9,7 +9,7 @@ import {
     Button,
     SingleSelect,
     SingleSelectOption,
-    Checkbox
+    Checkbox,
 } from '@strapi/design-system';
 import { ChartCircle } from '@strapi/icons';
 
@@ -30,10 +30,10 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
 }) => {
     return (
         <Card marginBottom={4}>
-            <CardBody padding={2}>
-                <Flex direction="column" gap={4}>
+            <CardBody padding={4}>
+                <Flex direction="column" gap={5} width="100%">
                     {/* Line 1: Open Language Card - Responsive inline/stacked */}
-                    <Flex justifyContent="space-between" alignItems="flex-start" wrap="wrap" gap={3}>
+                    <Flex justifyContent="space-between" wrap="wrap" gap={3} width="100%">
                         <Flex gap={3} alignItems="center" wrap="wrap">
                             <Typography variant="pi" fontWeight="semiBold" textColor="neutral800">
                                 Open Language Card:

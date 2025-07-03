@@ -520,7 +520,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
             <Box marginBottom={6} width="100%">
                 {/* Debug info when no ID found */}
                 {!articleId && (
-                    <Alert variant="danger" title="🔍 Debug Information">
+                    <Alert variant="danger" title="🔍 Debug Information" marginTop={2} marginBottom={2}>
                         <Typography variant="pi">
                             No article ID found. Please save the article first or access this page from the article editor.
                         </Typography>
@@ -529,13 +529,13 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
 
                 {/* Error/Success Messages */}
                 {error && (
-                    <Alert variant="danger" title="Error" onClose={() => setError(null)}>
+                    <Alert variant="danger" title="Error" onClose={() => setError(null)} marginTop={2} marginBottom={3}>
                         {error}
                     </Alert>
                 )}
 
                 {success && (
-                    <Alert variant="success" title="Success" onClose={() => setSuccess(null)}>
+                    <Alert variant="success" title="Success" onClose={() => setSuccess(null)} marginTop={2} marginBottom={3}>
                         {success}
                     </Alert>
                 )}

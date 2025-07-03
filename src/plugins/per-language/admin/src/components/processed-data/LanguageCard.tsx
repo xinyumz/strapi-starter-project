@@ -17,6 +17,7 @@ import {
     ChartCircle,
     Eye,
     EyeStriked,
+    Play
 } from '@strapi/icons';
 
 import { LanguageData, LanguageProcessor } from '../shared/types';
@@ -263,6 +264,7 @@ Are you sure you want to delete all ${processor.name} content?`;
                                     onClick={() => onOpenProcessor(lang.language)}
                                     disabled={!processor.hasProcessor}
                                     size="S"
+                                    startIcon={<Play stroke="white" />}
                                 >
                                     Open Processor
                                 </Button>
