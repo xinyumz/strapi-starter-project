@@ -9,7 +9,7 @@ import {
     Button,
     SingleSelect,
     SingleSelectOption,
-    Field
+    Field,
 } from '@strapi/design-system';
 
 interface CategorySelectorProps {
@@ -363,10 +363,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
     if (!isInitialized) {
         return (
             <Box
-                padding={4}
+                padding={3}
                 background="danger100"
+                marginBottom={4}
                 borderRadius="4px"
-                style={{ border: '1px solid #f28b82' }}
+                borderColor='danger200'
             >
                 <Typography variant="omega" fontWeight="bold" textColor="danger600">
                     Configuration Error
@@ -387,19 +388,19 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
                     marginBottom={4}
                     background="danger100"
                     borderRadius="4px"
-                    style={{ border: '1px solid #f28b82' }}
+                    borderColor='danger200'
                 >
-                    <Flex justifyContent="space-between" alignItems="flex-start">
+                    <Flex justifyContent="space-between" alignItems="center">
                         <Box>
-                            <Typography variant="omega" fontWeight="bold" textColor="danger600">
+                            <Typography variant="omega" fontWeight="bold" textColor="danger600" paddingRight={2}>
                                 Error
                             </Typography>
-                            <Typography variant="pi" textColor="neutral700" marginTop={1}>
+                            <Typography variant="omega" textColor="neutral700" marginTop={1}>
                                 {internalError || error}
                             </Typography>
                         </Box>
                         <Button
-                            variant="tertiary"
+                            variant="ghost"
                             onClick={() => setInternalError(null)}
                             size="S"
                         >
@@ -416,19 +417,19 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
                     marginBottom={4}
                     background="success100"
                     borderRadius="4px"
-                    style={{ border: '1px solid #4caf50' }}
+                    borderColor='success200'
                 >
-                    <Flex justifyContent="space-between" alignItems="flex-start">
+                    <Flex justifyContent="space-between" alignItems="center">
                         <Box>
-                            <Typography variant="omega" fontWeight="bold" textColor="success600">
+                            <Typography variant="omega" fontWeight="bold" textColor="success600" paddingRight={2}>
                                 Success
                             </Typography>
-                            <Typography variant="pi" textColor="neutral700" marginTop={1}>
+                            <Typography variant="omega" textColor="neutral700" marginTop={1}>
                                 {success}
                             </Typography>
                         </Box>
                         <Button
-                            variant="tertiary"
+                            variant="ghost"
                             onClick={() => setSuccess(null)}
                             size="S"
                         >

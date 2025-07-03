@@ -9,6 +9,7 @@ import {
   Badge,
   Flex
 } from '@strapi/design-system';
+import { Check } from '@strapi/icons';
 import { HSK_LEVELS } from '../../../../utils/constants';
 
 interface HSKLevelSelectorProps {
@@ -78,8 +79,9 @@ const HSKLevelSelector: React.FC<HSKLevelSelectorProps> = ({
                 onClick={onSave}
                 disabled={!hasChanges || isLoading}
                 size="S"
-                variant="success"
+                variant="success-light"
                 loading={isLoading}
+                startIcon={< Check stroke='white' />}
               >
                 Save HSK Level
               </Button>

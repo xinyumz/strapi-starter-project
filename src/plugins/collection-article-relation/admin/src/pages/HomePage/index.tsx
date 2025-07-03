@@ -226,7 +226,7 @@ const HomePage = () => {
         </WhiteCard>
 
         {/* Auto-Fill Features */}
-        <Grid.Root gap={6} align="stretch" style={{ marginBottom: '2rem' }}>
+        <Grid.Root gap={6} style={{ marginBottom: '2rem' }}>
           <Grid.Item col={8}>
             <WhiteCard height="100%" style={{ margin: 0 }}>
               < Box marginBottom={6} >

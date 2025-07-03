@@ -2,6 +2,11 @@
 
 import React, { useCallback, useEffect } from 'react';
 import { useIntl } from 'react-intl';
+import {
+    Typography,
+    Box,
+    Flex
+} from '@strapi/design-system';
 import { SUPPORTED_LANGUAGES } from '../shared';
 
 // Import custom hooks
@@ -27,7 +32,7 @@ interface CollectionPerlanguageFieldProps {
 }
 
 /**
- * Main collection per-language field component with debugging
+ * Main collection per-language field component with Design System v2
  */
 const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
     name,
@@ -46,91 +51,33 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
     const { formatMessage } = useIntl();
     const modifiedData = document || Props || {};
 
-    // ENHANCED DEBUGGING: Better document ID extraction for Strapi v5
+    // Simplified document ID extraction for Strapi v5
     const collectionId = (() => {
-        console.log('[COLLECTION DEBUG] All props passed to component:', {
-            documentId,
-            document,
-            modifiedData,
-            allPropsKeys: Object.keys(Props),
-            url: window.location.pathname,
-            search: window.location.search
-        });
-
         // Try documentId first (Strapi v5)
         if (documentId) {
-            console.log('[COLLECTION DEBUG] Using documentId prop:', documentId);
             return documentId.toString();
         }
 
         // Try document.documentId (Strapi v5)
         if (modifiedData.documentId) {
-            console.log('[COLLECTION DEBUG] Using document.documentId:', modifiedData.documentId);
             return modifiedData.documentId.toString();
         }
 
         // Try document.id (fallback for v4 compatibility)
         if (modifiedData.id) {
-            console.log('[COLLECTION DEBUG] Using document.id:', modifiedData.id);
             return modifiedData.id.toString();
         }
 
-        // Try to extract from URL as last resort - multiple patterns for Strapi v5
-        const urlPatterns = [
-            /\/admin\/content-manager\/collection-types\/api::collection\.collection\/([^\/\?]+)/,
-            /\/admin\/content-manager\/collectionType\/api::collection\.collection\/([^\/\?]+)/,
-            /\/content-manager\/collection-types\/api::collection\.collection\/([^\/\?]+)/,
-            /\/([a-zA-Z0-9]{20,})(?:\/|$|\?)/  // Generic documentId pattern
-        ];
-
-        for (const pattern of urlPatterns) {
-            const urlMatch = window.location.pathname.match(pattern);
-            if (urlMatch) {
-                console.log('[COLLECTION DEBUG] Extracted from URL using pattern', pattern, ':', urlMatch[1]);
-                return urlMatch[1];
-            }
+        // Extract from URL as last resort
+        const urlMatch = window.location.pathname.match(
+            /\/admin\/content-manager\/collection-types\/api::collection\.collection\/([^\/\?]+)/
+        );
+        if (urlMatch) {
+            return urlMatch[1];
         }
 
-        console.log('[COLLECTION DEBUG] No collection ID found anywhere');
         return null;
     })();
-
-    console.log('[CollectionPerlanguageField] Final Document ID extraction result:', {
-        documentId,
-        documentDocumentId: modifiedData.documentId,
-        documentId_prop: modifiedData.id,
-        urlPath: window.location.pathname,
-        finalCollectionId: collectionId
-    });
-
-    // Show debugging information in UI when no ID is found
-    const debugInfo = !collectionId ? (
-        <div style={{
-            padding: '16px',
-            backgroundColor: '#fff3cd',
-            border: '1px solid #ffeaa7',
-            borderRadius: '4px',
-            marginBottom: '16px'
-        }}>
-            <h4 style={{ margin: '0 0 8px 0', color: '#856404' }}>🔍 Collection Debug Information</h4>
-            <pre style={{
-                fontSize: '12px',
-                color: '#856404',
-                margin: 0,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all'
-            }}>
-                {`Props received:
-- documentId: ${documentId}
-- document.documentId: ${modifiedData.documentId}
-- document.id: ${modifiedData.id}
-- URL: ${window.location.pathname}
-- All props keys: ${Object.keys(Props).join(', ')}
-
-Document object: ${JSON.stringify(modifiedData, null, 2)}`}
-            </pre>
-        </div>
-    ) : null;
 
     // Custom hooks for state management
     const { error, success, setError, setSuccess } = useAlertMessages();
@@ -163,10 +110,7 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
 
     useEffect(() => {
         if (collectionId) {
-            console.log('[CollectionPerlanguageField] Loading collection stats for ID:', collectionId);
             loadCollectionStats();
-        } else {
-            console.log('[CollectionPerlanguageField] No collection ID available, skipping stats load');
         }
     }, [collectionId, loadCollectionStats]);
 
@@ -174,20 +118,18 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
      * Handle saving changes for a specific language
      */
     const handleSaveChanges = useCallback(async (languageId: number) => {
-        if (!collectionId) {
-            console.log('[CollectionPerlanguageField] No collection ID for save changes');
-            return;
-        }
+        if (!collectionId) return;
 
         try {
-            console.log('[CollectionPerlanguageField] Saving changes for language:', languageId);
             await saveLanguageChanges(languageId, pendingChanges, collectionId);
             clearPendingChanges(languageId);
+
+            // Reload collection stats after successful save
+            loadCollectionStats();
         } catch (error) {
-            console.error('[CollectionPerlanguageField] Error saving changes:', error);
             // Error handled by hook
         }
-    }, [collectionId, saveLanguageChanges, pendingChanges, clearPendingChanges]);
+    }, [collectionId, saveLanguageChanges, pendingChanges, clearPendingChanges, loadCollectionStats]);
 
     /**
      * Handle deleting a language with confirmation
@@ -200,34 +142,15 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
         }
 
         try {
-            console.log('[CollectionPerlanguageField] Deleting language:', language);
             await deleteLanguage(language.id);
             clearPendingChanges(language.id);
         } catch (error) {
-            console.error('[CollectionPerlanguageField] Error deleting language:', error);
             // Error handled by hook
         }
     }, [deleteLanguage, clearPendingChanges]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
-            {/* Debug info when no ID found */}
-            {debugInfo}
-
-            {/* Collection ID Status */}
-            {collectionId && (
-                <div style={{
-                    padding: '8px 12px',
-                    backgroundColor: '#e8f5e8',
-                    border: '1px solid #4caf50',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    color: '#2e7d32'
-                }}>
-                    ✅ Collection ID detected: {collectionId}
-                </div>
-            )}
-
+        <Flex direction="column" gap={6} width="100%">
             {/* Alert Messages */}
             <AlertMessages
                 error={error}
@@ -247,7 +170,6 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
                 availableLanguages={SUPPORTED_LANGUAGES.map(lang => ({
                     code: lang.code,
                     name: lang.name,
-                    nativeName: lang.name,
                     processorAvailable: lang.hasProcessor
                 }))}
                 usedLanguages={collectionLanguages.map(lang => lang.language)}
@@ -255,17 +177,18 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
                 isLoadingAutoRetrieval={isLoadingAutoRetrieval}
                 autoRetrievalData={autoRetrievalData}
                 onGetAutoRetrieval={getAutoRetrievalData}
+                onRefreshStats={loadCollectionStats}
             />
 
             {/* Existing Languages Section */}
             {collectionLanguages.length > 0 && (
-                <div>
-                    <div style={{ paddingBottom: '12px' }}>
-                        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#424242' }}>
+                <Box width="100%">
+                    <Box paddingBottom={3}>
+                        <Typography variant="delta">
                             Existing Collection Languages ({collectionLanguages.length})
-                        </h3>
-                    </div>
-                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                        </Typography>
+                    </Box>
+                    <Flex direction="column" gap={4} width="100%">
                         {collectionLanguages.map((language) => (
                             <CollectionLanguageCard
                                 key={language.id}
@@ -280,31 +203,10 @@ Document object: ${JSON.stringify(modifiedData, null, 2)}`}
                                 onDelete={() => handleDeleteLanguage(language)}
                             />
                         ))}
-                    </div>
-                </div>
+                    </Flex>
+                </Box>
             )}
-
-            {/* Debug State Information */}
-            <details style={{
-                padding: '12px',
-                backgroundColor: '#f8f9fa',
-                border: '1px solid #e9ecef',
-                borderRadius: '4px',
-                fontSize: '12px'
-            }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 'bold', marginBottom: '8px' }}>
-                    🔧 Debug State Information
-                </summary>
-                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                    {`Collection Languages: ${collectionLanguages.length}
-Is Creating Record: ${isCreatingRecord}
-Collection Stats: ${JSON.stringify(collectionStats, null, 2)}
-Pending Changes: ${JSON.stringify(pendingChanges, null, 2)}
-Error: ${error}
-Success: ${success}`}
-                </pre>
-            </details>
-        </div>
+        </Flex>
     );
 };
 

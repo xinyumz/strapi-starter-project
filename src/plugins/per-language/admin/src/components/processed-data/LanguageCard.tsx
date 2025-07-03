@@ -213,7 +213,7 @@ Are you sure you want to delete all ${processor.name} content?`;
 
     return (
         <Card key={`lang-${lang.id}-${lang.language}-${index}`} width="100%">
-            <CardHeader>
+            <CardHeader padding={2}>
                 <Flex justifyContent="space-between" alignItems="center" width="100%">
                     <Box margin={3}>
                         <Typography variant="epsilon" fontWeight="semiBold" textColor="neutral800">

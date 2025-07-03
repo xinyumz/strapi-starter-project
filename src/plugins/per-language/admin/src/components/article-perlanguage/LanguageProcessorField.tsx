@@ -604,7 +604,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                                             disabled={isCreatingRecord}
                                         />
                                     </TallTextareaWrapper>
-                                    <Box maginTop={1}>
+                                    <Box>
                                         <Typography variant="pi" textColor="neutral600">
                                             {articleId
                                                 ? `Translated content for ${selectedLanguageInfo?.name}. Changes auto-sync to database.`
