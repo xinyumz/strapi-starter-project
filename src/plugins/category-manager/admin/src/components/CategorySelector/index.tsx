@@ -59,12 +59,10 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
         required = false,
         error = '',
         disabled = false,
+        attribute,
+        intlLabel,
+        ...rest
     } = allProps || {};
-
-    console.log('[CategorySelector] Component rendered with safe props:', {
-        name, value, required, disabled, error,
-        hasOnChange: typeof onChange === 'function'
-    });
 
     // State management
     const [taxons, setTaxons] = useState<Taxon[]>([]);
@@ -82,8 +80,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
 
     // Parse value safely
     const parseValueToCategoryId = useCallback((rawValue: any): number | null => {
-        console.log('[CategorySelector] Parsing value:', { rawValue, type: typeof rawValue });
-
         if (!rawValue) return null;
 
         if (typeof rawValue === 'number') {
@@ -203,7 +199,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = (allProps) => {
 
         try {
             const categoryId = parseValueToCategoryId(value);
-            console.log('[CategorySelector] Loading saved value:', { value, categoryId });
 
             if (categoryId) {
                 const savedCategory = allCategories.find(cat => cat.id === categoryId);

@@ -94,16 +94,13 @@ export default {
     });
 
     app.addMenuLink({
-      to: `/plugins/${pluginId}`,
+      to: 'per-language',
       icon: PluginIcon,
       intlLabel: {
-        id: `${pluginId}.plugin.name`,
+        id: 'per-language.plugin.name',
         defaultMessage: 'Per-Language Processing Hub',
       },
-      Component: async () => {
-        const { default: HomePage } = await import('./pages/HomePage');
-        return HomePage;
-      },
+      Component: () => import('./pages/HomePage'),
       permissions: [],
     });
 

@@ -12,10 +12,10 @@ const App = () => {
     <div>
       <Routes>
         {/* Homepage route */}
-        <Route path={`/plugins/${pluginId}`} element={<HomePage />} />
+        <Route index element={<HomePage />} />
 
         {/* Chinese processor route with optional articleId parameter */}
-        <Route path={`/plugins/${pluginId}/chinese-processor`} element={<ChineseArticleProcessor />} />
+        <Route path="chinese-processor" element={<ChineseArticleProcessor />} />
 
         {/* Fallback error page */}
         <Route path="*" element={<Page.Error />} />

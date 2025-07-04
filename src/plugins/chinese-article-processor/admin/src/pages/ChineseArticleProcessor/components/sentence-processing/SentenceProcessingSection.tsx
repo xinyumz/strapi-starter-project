@@ -83,20 +83,6 @@ const SentenceProcessingSection: React.FC<SentenceProcessingSectionProps> = ({
     return Array.from(languagesSet);
   };
 
-  // Function to render sentence items
-  const renderSentenceItem = (item: GrammarRule, index: number) => (
-    <SentenceItem
-      key={`sentence-${index}`}
-      sentenceData={item}
-      index={index}
-      supportedLanguages={supportedLanguages}
-      onTranslationChange={onTranslationChange}
-      onToggleRuleSelection={onToggleRuleSelection}
-      onDeleteRuleClick={onDeleteRuleClick}
-      isRuleSelected={isRuleSelected}
-    />
-  );
-
   // Function to render sentences in one or two columns like original
   const renderSentences = () => {
     return (

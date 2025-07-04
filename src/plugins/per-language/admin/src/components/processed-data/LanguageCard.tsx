@@ -50,7 +50,6 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
     isExpanded,
     isUpdating,
     showAllGrammar,
-    showAllTranslations,
     onToggleExpansion,
     onClose,
     onRefresh,
@@ -58,7 +57,6 @@ export const LanguageCard: React.FC<LanguageCardProps> = ({
     onAccessTierChange,
     onOpenProcessor,
     onGrammarExpansionToggle,
-    onTranslationExpansionToggle,
     onDelete
 }) => {
     const getStatusBadge = (lang: LanguageData, processor: LanguageProcessor) => {

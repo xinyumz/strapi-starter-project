@@ -19,22 +19,13 @@ import packageJson from '../../../../package.json';
 // Import the processor component
 const ChineseArticleProcessor = React.lazy(() => import('../ChineseArticleProcessor'));
 
-// Styled components using Design System v2
-const PageContainer = styled(Box).attrs({
-  background: "neutral0"
-})`
-  padding: 3rem;
-  min-height: 100vh;
-`;
-
+// Styled components
 const ContentWrapper = styled(Box)`
   max-width: 1200px;
   margin: 0 auto;
 `;
 
-const LoadingContainer = styled(Box).attrs({
-  background: "neutral0"
-})`
+const LoadingContainer = styled(Box)`
   padding: 3rem;
   text-align: center;
   min-height: 100vh;
@@ -78,7 +69,7 @@ const HomePage = () => {
   if (showProcessor) {
     return (
       <React.Suspense fallback={
-        <LoadingContainer>
+        <LoadingContainer background="neutral0">
           <Typography variant="omega" textColor="neutral600">
             Loading Chinese Processor...
           </Typography>
@@ -91,7 +82,7 @@ const HomePage = () => {
 
   // Otherwise render the homepage
   return (
-    <PageContainer>
+    <Box background="neutral0" padding="3rem" minHeight="100vh">
       <ContentWrapper>
         {/* Header */}
         <Box marginBottom={8}>
@@ -309,7 +300,7 @@ const HomePage = () => {
           </Flex>
         </Box>
       </ContentWrapper>
-    </PageContainer>
+    </Box>
   );
 };
 

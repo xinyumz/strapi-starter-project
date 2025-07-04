@@ -54,16 +54,13 @@ export default {
 
     // Direct HomePage import
     app.addMenuLink({
-      to: `/plugins/${pluginId}`,
+      to: 'category-manager',
       icon: PluginIcon,
       intlLabel: {
-        id: `${pluginId}.plugin.name`,
-        defaultMessage: "Category Manager",
+        id: 'category-manager.plugin.name',
+        defaultMessage: 'Category Manager',
       },
-      Component: async () => {
-        const { default: HomePage } = await import('./pages/HomePage');
-        return HomePage;
-      },
+      Component: () => import('./pages/HomePage'),
       permissions: [],
     });
 

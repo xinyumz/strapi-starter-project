@@ -30,12 +30,6 @@ type QuickStartStepProps = {
   title: string;
   description: string;
 };
-const PageContainer = styled(Box).attrs({
-  background: "neutral0"
-})`
-  padding: 3rem;
-  min-height: 100vh;
-`;
 
 const ContentWrapper = styled(Box)`
   max-width: 1200px;
@@ -166,7 +160,7 @@ const HomePage = () => {
   ];
 
   return (
-    <PageContainer>
+    <Box background="neutral0" padding="3rem" minHeight="100vh">
       <ContentWrapper>
         <Box background="neutral0">
           {/* Header Section */}
@@ -311,7 +305,7 @@ const HomePage = () => {
           </Box>
         </Box >
       </ContentWrapper>
-    </PageContainer>
+    </Box>
   );
 };
 

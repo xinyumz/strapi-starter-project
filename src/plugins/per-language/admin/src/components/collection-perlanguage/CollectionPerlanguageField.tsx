@@ -29,6 +29,7 @@ interface CollectionPerlanguageFieldProps {
     onChange: (e: { target: { name: string; value: string } }) => void;
     intlLabel: { id: string; defaultMessage: string };
     required: boolean;
+    attribute?: any;
 }
 
 /**
@@ -42,6 +43,7 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
     required,
     document,
     documentId,
+    attribute,
     ...Props
 }) => {
     if (!name || !onChange) {

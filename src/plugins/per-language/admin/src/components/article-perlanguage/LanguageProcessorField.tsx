@@ -41,10 +41,11 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
         name,
         value,
         onChange,
-        intlLabel,
         required,
         document,
         documentId,
+        attribute,
+        ...Props
     } = allProps;
 
     const [targetLanguage, setTargetLanguage] = useState('');

@@ -13,13 +13,10 @@ export default {
       to: `/plugins/${pluginId}`,
       icon: PluginIcon,
       intlLabel: {
-        id: `${pluginId}.plugin.name`,
+        id: 'chinese-article-processor.plugin.name',
         defaultMessage: 'Chinese Article Processor',
       },
-      Component: async () => {
-        const { default: HomePage } = await import('./pages/HomePage');
-        return HomePage;
-      },
+      Component: () => import('./pages/HomePage'),
       permissions: [],
     });
   },

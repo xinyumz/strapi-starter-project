@@ -14,13 +14,6 @@ import styled from 'styled-components';
 import pluginId from '../../pluginId';
 import packageJson from '../../../../package.json';
 
-// Simple styled components using Design System v2
-const PageContainer = styled(Box).attrs({
-  background: "neutral0"
-})`
-  padding: 3rem;
-  min-height: 100vh;
-`;
 
 const ContentWrapper = styled(Box)`
   max-width: 1200px;
@@ -29,7 +22,7 @@ const ContentWrapper = styled(Box)`
 
 const HomePage: React.FC = () => {
   return (
-    <PageContainer>
+    <Box background="neutral0" padding='3rem' minHeight="100vh">
       <ContentWrapper>
         {/* Header */}
         <Box marginBottom={8}>
@@ -166,7 +159,7 @@ const HomePage: React.FC = () => {
         </Box>
 
       </ContentWrapper>
-    </PageContainer>
+    </Box>
   );
 };
 

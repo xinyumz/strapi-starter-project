@@ -11,16 +11,13 @@ const name = pluginPkg.strapi.name;
 export default {
   register(app: any) {
     app.addMenuLink({
-      to: `/plugins/${pluginId}`,
+      to: 'collection-article-relation',
       icon: PluginIcon,
       intlLabel: {
-        id: `${pluginId}.plugin.name`,
-        defaultMessage: "Collection Auto-Fill",
+        id: 'collection-article-relation.plugin.name',
+        defaultMessage: 'Collection Auto-Fill',
       },
-      Component: async () => {
-        const { default: HomePage } = await import('./pages/HomePage');
-        return HomePage;
-      },
+      Component: () => import('./pages/HomePage'),
       permissions: [],
     });
 

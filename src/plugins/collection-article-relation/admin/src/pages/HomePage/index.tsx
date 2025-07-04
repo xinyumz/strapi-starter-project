@@ -12,34 +12,13 @@ import pluginId from '../../pluginId';
 import packageJson from '../../../../package.json';
 
 // Styled components using Design System v2 color tokens
-const PageContainer = styled(Box).attrs({
-  background: "neutral0"
-})`
-  padding: 3rem;
-  min-height: 100vh;
-`;
 
 const ContentWrapper = styled(Box)`
   max-width: 1200px;
   margin: 0 auto;
 `;
 
-const HeaderSection = styled(Box)`
-  margin-bottom: 2rem;
-`;
-
-const StatusCard = styled(Box).attrs({
-  background: "success100"
-})`
-  padding: 3rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
-`;
-
-const WhiteCard = styled(Box).attrs({
-  background: "neutral0",
-  borderColor: "neutral200"
-})`
+const WhiteCard = styled(Box)`
   padding: 3rem;
   border-radius: 12px;
   margin-bottom: 2rem;
@@ -47,9 +26,7 @@ const WhiteCard = styled(Box).attrs({
   width: 100%
 `;
 
-const StepCard = styled(Box).attrs({
-  background: "neutral100"
-})`
+const StepCard = styled(Box)`
   text-align: center;
   padding: 1.5rem;
   border-radius: 8px;
@@ -88,13 +65,7 @@ const InfoCard = styled(Box)`
   width: 100%
 `;
 
-const TechnicalDetailItem = styled(Box)`
-  margin-bottom: 0.75rem;
-`;
-
-const ReadyBadge = styled(Box).attrs({
-  background: "success200"
-})`
+const ReadyBadge = styled(Box)`
   display: inline-block;
   padding: 0.5rem 1rem;
   border-radius: 20px;
@@ -104,10 +75,10 @@ const ReadyBadge = styled(Box).attrs({
 
 const HomePage = () => {
   return (
-    <PageContainer>
+    <Box background="neutral0" padding="3rem" minHeight="100vh">
       <ContentWrapper>
         {/* Header */}
-        <HeaderSection>
+        <Box marginBottom="2rem">
           <Box marginBottom={4}>
             <Typography
               variant="alpha"
@@ -125,10 +96,15 @@ const HomePage = () => {
               Streamline your content workflow with intelligent collection creation
             </Typography>
           </Box>
-        </HeaderSection>
+        </Box>
 
         {/* Status Section */}
-        <StatusCard>
+        <Box
+          background="success100"
+          padding="3rem"
+          borderRadius="12px"
+          marginBottom="2rem"
+        >
           <Box marginBottom={4}>
             <Typography
               variant="beta"
@@ -148,15 +124,15 @@ const HomePage = () => {
               Click it to instantly create collections with auto-filled fields.
             </Typography>
           </Box>
-          <ReadyBadge>
+          <ReadyBadge background='success200'>
             <Typography variant="pi" textColor="success700" fontWeight="medium">
               Ready to Use
             </Typography>
           </ReadyBadge>
-        </StatusCard>
+        </Box>
 
         {/* How to Use Section */}
-        <WhiteCard>
+        <WhiteCard background='neutral0' borderColor='neutral200'>
           <Box marginBottom={6}>
             <Typography
               variant="beta"
@@ -195,7 +171,7 @@ const HomePage = () => {
               }
             ].map((item, index) => (
               <Grid.Item key={index} col={6}>
-                <StepCard>
+                <StepCard background='neutral100'>
                   <StepNumber>
                     <Typography variant="alpha" textColor={item.color}>
                       {item.step}
@@ -228,7 +204,7 @@ const HomePage = () => {
         {/* Auto-Fill Features */}
         <Grid.Root gap={6} style={{ marginBottom: '2rem' }}>
           <Grid.Item col={8}>
-            <WhiteCard height="100%" style={{ margin: 0 }}>
+            <WhiteCard background='neutral0' borderColor='neutral200' height="100%" style={{ margin: 0 }}>
               < Box marginBottom={6} >
                 <Typography
                   variant="beta"
@@ -276,7 +252,7 @@ const HomePage = () => {
 
           {/* Key Benefits */}
           <Grid.Item col={4}>
-            <WhiteCard height="100%" style={{ margin: 0 }}>
+            <WhiteCard background='neutral0' borderColor='neutral200' height="100%" style={{ margin: 0 }}>
               <Box marginBottom={6}>
                 <Typography
                   variant="beta"
@@ -372,12 +348,12 @@ const HomePage = () => {
               </Box>
 
               {[
-                { label: 'Plugin Version:', value: '2.0.0 (Simplified & Optimized)' },
+                { label: 'Plugin Version:', value: packageJson.version },
                 { label: 'Primary Use Case:', value: 'Single-article collections (80% of use cases)' },
                 { label: 'Integration:', value: 'Non-invasive floating button system' },
                 { label: 'API Endpoints:', value: '/quick-create, /health' }
               ].map((detail, index) => (
-                <TechnicalDetailItem key={index}>
+                <Box marginBottom='0.75rem' key={index}>
                   <Box>
                     <Typography
                       variant="pi"
@@ -395,7 +371,7 @@ const HomePage = () => {
                       {detail.value}
                     </Typography>
                   </Box>
-                </TechnicalDetailItem>
+                </Box>
               ))}
             </InfoCard>
           </Grid.Item>
@@ -418,7 +394,7 @@ const HomePage = () => {
           </Flex>
         </Box>
       </ContentWrapper >
-    </PageContainer >
+    </Box >
   );
 };
 
