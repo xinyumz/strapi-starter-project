@@ -15,7 +15,7 @@ export default {
       icon: PluginIcon,
       intlLabel: {
         id: 'collection-article-relation.plugin.name',
-        defaultMessage: 'Collection Auto-Fill',
+        defaultMessage: 'Collection Management Hub',
       },
       Component: () => import('./pages/HomePage'),
       permissions: [],

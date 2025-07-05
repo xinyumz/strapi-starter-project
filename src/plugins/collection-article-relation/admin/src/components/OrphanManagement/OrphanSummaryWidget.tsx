@@ -1,4 +1,5 @@
 // src/plugins/collection-article-relation/admin/src/components/OrphanManagement/OrphanSummaryWidget.tsx
+// Simplified main widget - delegates Quick Actions to separate component
 
 import React from 'react';
 import {
@@ -10,9 +11,10 @@ import {
     Button,
     Loader
 } from '@strapi/design-system';
-import { WarningCircle } from '@strapi/icons';
+import { WarningCircle, Database, CheckCircle, ChartCircle } from '@strapi/icons';
 import styled from 'styled-components';
 import { useOrphanStats } from '../../hooks/useOrphanManagement';
+import OrphanQuickActions from './OrphanQuickActions';
 
 const StatsCard = styled(Box)`
   text-align: center;
@@ -29,6 +31,20 @@ const StatsCard = styled(Box)`
   }
 `;
 
+const InsightCard = styled(Box)`
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  transition: all 0.2s ease;
+  cursor: default;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+`;
+
 const MetricNumber = styled(Box)`
   font-size: 2rem;
   font-weight: bold;
@@ -36,7 +52,6 @@ const MetricNumber = styled(Box)`
   text-align: center;
 `;
 
-// Visual progress ring for any metric
 const ProgressRing = styled(Box) <{ $percentage: number; $color: string; $backgroundColor?: string }>`
   width: 60px;
   height: 60px;
@@ -60,47 +75,14 @@ const ProgressRing = styled(Box) <{ $percentage: number; $color: string; $backgr
   }
 `;
 
-// Progress bar for smaller metrics
-const ProgressBar = styled(Box)`
-  width: 100%;
-  height: 6px;
-  background-color: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-  overflow: hidden;
-  margin: 0.5rem 0;
-`;
-
-const ProgressBarFill = styled(Box) <{ $percentage: number; $color: string }>`
-  width: ${props => props.$percentage}%;
-  height: 100%;
-  background-color: ${props => props.$color};
-  transition: width 0.3s ease;
-  border-radius: 3px;
-`;
-
 const MetricText = styled(Typography)`
   position: relative;
   z-index: 1;
   font-weight: bold;
 `;
 
-const QuickActionButton = styled(Button)`
-  margin-top: 1rem;
-  width: 100%;
-`;
-
-interface OrphanSummaryWidgetProps {
-    onDetectOrphans?: () => void;
-    onViewAnalytics?: () => void;
-    onOpenDashboard?: () => void;
-}
-
-const OrphanSummaryWidget: React.FC<OrphanSummaryWidgetProps> = ({
-    onDetectOrphans,
-    onViewAnalytics,
-    onOpenDashboard
-}) => {
-    const { stats, loading, error, refetch } = useOrphanStats();
+const OrphanSummaryWidget: React.FC = () => {
+    const { stats, loading, error, refetch, forceRefresh } = useOrphanStats();
 
     if (loading) {
         return (
@@ -128,9 +110,11 @@ const OrphanSummaryWidget: React.FC<OrphanSummaryWidgetProps> = ({
             >
                 <Flex direction="column" alignItems="center" gap={3}>
                     <WarningCircle color="danger600" width="3rem" height="3rem" />
-                    <Typography variant="omega" textColor="danger700" textAlign="center">
-                        Error loading orphan statistics: {error}
-                    </Typography>
+                    <Box>
+                        <Typography variant="omega" textColor="danger700" textAlign="center">
+                            Error loading orphan statistics: {error}
+                        </Typography>
+                    </Box>
                     <Button variant="secondary" onClick={refetch} size="S">
                         Retry
                     </Button>
@@ -143,37 +127,64 @@ const OrphanSummaryWidget: React.FC<OrphanSummaryWidgetProps> = ({
         return null;
     }
 
-    // Calculate percentages and health metrics
-    const healthScore = stats.totalCollections > 0
-        ? Math.round((stats.healthyCollections / stats.totalCollections) * 100)
+    // Safe calculation with fallbacks to prevent NaN
+    const safeStats = {
+        totalCollections: stats.totalCollections || 0,
+        orphanedCollections: stats.orphanedCollections || 0,
+        healthyCollections: stats.healthyCollections || 0,
+        singleArticleCollections: stats.singleArticleCollections || 0,
+        emptyCollections: stats.emptyCollections || 0,
+        brokenReferenceCollections: stats.brokenReferenceCollections || 0
+    };
+
+    // Calculate health score: 100% if no orphaned collections
+    const healthScore = safeStats.totalCollections > 0
+        ? Math.round(((safeStats.totalCollections - safeStats.orphanedCollections) / safeStats.totalCollections) * 100)
         : 100;
 
-    const healthyPercentage = stats.totalCollections > 0
-        ? Math.round((stats.healthyCollections / stats.totalCollections) * 100)
+    const multiArticlePercentage = safeStats.totalCollections > 0
+        ? Math.round((safeStats.healthyCollections / safeStats.totalCollections) * 100)
         : 0;
 
-    const singleArticlePercentage = stats.totalCollections > 0
-        ? Math.round((stats.singleArticleCollections / stats.totalCollections) * 100)
+    const singleArticlePercentage = safeStats.totalCollections > 0
+        ? Math.round((safeStats.singleArticleCollections / safeStats.totalCollections) * 100)
         : 0;
 
-    // Target: ideally 50% of collections should be multi-article
-    const targetHealthyCollections = Math.ceil(stats.totalCollections * 0.5);
-    const healthyProgress = stats.totalCollections > 0
-        ? Math.min(100, (stats.healthyCollections / targetHealthyCollections) * 100)
-        : 0;
+    const collectionsWithContent = safeStats.totalCollections - safeStats.orphanedCollections;
 
-    // Color functions
+    // Color functions based on orphan status
     const getHealthColor = (score: number) => {
-        if (score >= 90) return '#28a745';
-        if (score >= 70) return '#ffc107';
-        return '#dc3545';
+        if (score >= 100) return '#28a745'; // Perfect - no orphans
+        if (score >= 90) return '#ffc107';  // Good - few orphans
+        return '#dc3545'; // Needs attention - many orphans
     };
 
     const getHealthTextColor = (score: number) => {
-        if (score >= 90) return 'success600';
-        if (score >= 70) return 'warning600';
+        if (score >= 100) return 'success600';
+        if (score >= 90) return 'warning600';
         return 'danger600';
     };
+
+    // System status message
+    const getSystemStatus = () => {
+        if (safeStats.orphanedCollections === 0) {
+            return "System is clean - no orphans detected";
+        } else if (safeStats.orphanedCollections === 1) {
+            return "1 orphaned collection detected";
+        } else {
+            return `${safeStats.orphanedCollections} orphaned collections detected`;
+        }
+    };
+
+    // Debug logging for troubleshooting
+    console.log('[OrphanSummaryWidget] Debug stats:', {
+        rawStats: stats,
+        safeStats,
+        healthScore,
+        multiArticlePercentage,
+        singleArticlePercentage,
+        collectionsWithContent
+    });
 
     return (
         <Box
@@ -194,23 +205,23 @@ const OrphanSummaryWidget: React.FC<OrphanSummaryWidgetProps> = ({
                     </Box>
                     <Box marginBottom={2}>
                         <Typography variant="omega" textColor="neutral600" marginTop={1}>
-                            Real-time system monitoring and orphan detection
+                            {getSystemStatus()}
                         </Typography>
                     </Box>
                 </Box>
                 <Box>
                     <Badge
-                        backgroundColor={stats.orphanedCollections === 0 ? 'success100' : 'warning100'}
-                        textColor={stats.orphanedCollections === 0 ? 'success700' : 'warning700'}
+                        backgroundColor={safeStats.orphanedCollections === 0 ? 'success100' : 'danger100'}
+                        textColor={safeStats.orphanedCollections === 0 ? 'success700' : 'danger700'}
                     >
-                        {stats.orphanedCollections === 0 ? 'All Healthy' : `${stats.orphanedCollections} Issues`}
+                        {safeStats.orphanedCollections === 0 ? 'All Clean' : `${safeStats.orphanedCollections} Orphaned`}
                     </Badge>
                 </Box>
             </Flex>
 
             {/* Main Stats Grid */}
             <Grid.Root gap={4} marginBottom={4}>
-                {/* System Health Score */}
+                {/* Health Score */}
                 <Grid.Item col={3}>
                     <StatsCard background="neutral100">
                         <ProgressRing $percentage={healthScore} $color={getHealthColor(healthScore)}>
@@ -219,71 +230,60 @@ const OrphanSummaryWidget: React.FC<OrphanSummaryWidgetProps> = ({
                             </MetricText>
                         </ProgressRing>
 
-                        <Box>
+                        <Box marginBottom={1}>
                             <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
-                                System Health
+                                Health Score
                             </Typography>
                         </Box>
                         <Box>
                             <Typography variant="pi" textColor="neutral600">
-                                Overall collection integrity
+                                Collections with content
                             </Typography>
                         </Box>
                     </StatsCard>
                 </Grid.Item>
 
-                {/* Total Collections */}
+                {/* Orphaned Collections */}
                 <Grid.Item col={3}>
-                    <StatsCard background="primary100" height='100%' width='100%'>
+                    <StatsCard background={safeStats.orphanedCollections > 0 ? "danger100" : "success100"}>
                         <MetricNumber>
-                            <Typography variant="alpha" textColor="primary700">
-                                {stats.totalCollections}
+                            <Typography variant="alpha" textColor={safeStats.orphanedCollections > 0 ? "danger700" : "success700"}>
+                                {safeStats.orphanedCollections}
                             </Typography>
                         </MetricNumber>
 
-                        <Box>
-                            <Typography variant="omega" fontWeight="semiBold" textColor="primary700">
-                                Total Collections
+                        <Box marginBottom={1}>
+                            <Typography variant="omega" fontWeight="semiBold" textColor={safeStats.orphanedCollections > 0 ? "danger700" : "success700"}>
+                                Orphaned Collections
                             </Typography>
                         </Box>
 
-                        <ProgressBar>
-                            <ProgressBarFill
-                                $percentage={Math.min(100, (stats.totalCollections / 15) * 100)}
-                                $color="#4945ff"
-                            />
-                        </ProgressBar>
-
                         <Box>
-                            <Typography variant="pi" textColor="primary600">
-                                Goal: 15 collections
+                            <Typography variant="pi" textColor={safeStats.orphanedCollections > 0 ? "danger600" : "success600"}>
+                                {safeStats.orphanedCollections > 0 ? "Need attention" : "None found"}
                             </Typography>
                         </Box>
                     </StatsCard>
                 </Grid.Item>
 
-                {/* Healthy Collections */}
+                {/* Multi-Article Collections */}
                 <Grid.Item col={3}>
-                    <StatsCard background="success100">
-                        <ProgressRing
-                            $percentage={healthyProgress}
-                            $color="#28a745"
-                            $backgroundColor="rgba(40, 167, 69, 0.2)"
-                        >
-                            <MetricText variant="omega" textColor="success600">
-                                {stats.healthyCollections}
-                            </MetricText>
-                        </ProgressRing>
+                    <StatsCard background="primary100">
+                        <MetricNumber>
+                            <Typography variant="alpha" textColor="primary700">
+                                {safeStats.healthyCollections}
+                            </Typography>
+                        </MetricNumber>
 
-                        <Box>
-                            <Typography variant="omega" fontWeight="semiBold" textColor="success700">
-                                Healthy Collections
+                        <Box marginBottom={1}>
+                            <Typography variant="omega" fontWeight="semiBold" textColor="primary700">
+                                Multi-Article Collections
                             </Typography>
                         </Box>
 
                         <Box>
-                            <Typography variant="pi" textColor="success600">
-                                {healthyPercentage}% of total collections
+                            <Typography variant="pi" textColor="primary600">
+                                {multiArticlePercentage}% of total collections
                             </Typography>
                         </Box>
                     </StatsCard>
@@ -291,106 +291,111 @@ const OrphanSummaryWidget: React.FC<OrphanSummaryWidgetProps> = ({
 
                 {/* Single Article Collections */}
                 <Grid.Item col={3}>
-                    <StatsCard background="warning100">
-                        <ProgressRing
-                            $percentage={singleArticlePercentage}
-                            $color="#ffc107"
-                            $backgroundColor="rgba(255, 193, 7, 0.2)"
-                        >
-                            <MetricText variant="omega" textColor="warning600">
-                                {stats.singleArticleCollections}
-                            </MetricText>
-                        </ProgressRing>
+                    <StatsCard background="neutral100">
+                        <MetricNumber>
+                            <Typography variant="alpha" textColor="neutral700">
+                                {safeStats.singleArticleCollections}
+                            </Typography>
+                        </MetricNumber>
 
-                        <Box>
-                            <Typography variant="omega" fontWeight="semiBold" textColor="warning700">
-                                Single Article
+                        <Box marginBottom={1}>
+                            <Typography variant="omega" fontWeight="semiBold" textColor="neutral700">
+                                Single Article Collections
                             </Typography>
                         </Box>
 
                         <Box>
-                            <Typography variant="pi" textColor="warning600">
-                                {singleArticlePercentage}% need optimization
+                            <Typography variant="pi" textColor="neutral600">
+                                {singleArticlePercentage}% of total collections
                             </Typography>
                         </Box>
                     </StatsCard>
                 </Grid.Item>
             </Grid.Root>
 
-            {/* Enhanced Insights Section */}
+            {/* Enhanced Insights Section - Refocused on orphan detection */}
             <Box marginBottom={4}>
-                <Typography variant="gamma" textColor="neutral800" fontWeight="semiBold" marginBottom={3}>
-                    📈 Key Insights
-                </Typography>
+                <Box marginBottom={3}>
+                    <Typography variant="gamma" textColor="neutral800" fontWeight="semiBold">
+                        📈 Key Insights
+                    </Typography>
+                </Box>
                 <Grid.Root gap={3}>
                     <Grid.Item col={4}>
-                        <Box background="neutral50" padding="1rem" borderRadius="8px" textAlign="center">
-                            <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
-                                Content Distribution
-                            </Typography>
-                            <Typography variant="pi" textColor="neutral600">
-                                {healthyPercentage}% healthy, {singleArticlePercentage}% single-article
-                            </Typography>
-                        </Box>
+                        <InsightCard background="neutral0" borderColor="neutral200" borderWidth="1px">
+                            <Flex alignItems="center" gap={2} marginBottom={2}>
+                                <ChartCircle color="primary600" width="1.5rem" height="1.5rem" />
+                                <Box>
+                                    <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
+                                        Content Distribution
+                                    </Typography>
+                                </Box>
+                            </Flex>
+                            <Box marginBottom={2}>
+                                <Typography variant="pi" textColor="neutral600">
+                                    {collectionsWithContent} collections have content
+                                </Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="pi" textColor="neutral500">
+                                    {safeStats.healthyCollections} multi-article, {safeStats.singleArticleCollections} single-article
+                                </Typography>
+                            </Box>
+                        </InsightCard>
                     </Grid.Item>
                     <Grid.Item col={4}>
-                        <Box background="neutral50" padding="1rem" borderRadius="8px" textAlign="center">
-                            <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
-                                Optimization Potential
-                            </Typography>
-                            <Typography variant="pi" textColor="neutral600">
-                                {stats.singleArticleCollections} collections can be improved
-                            </Typography>
-                        </Box>
+                        <InsightCard background="neutral0" borderColor="neutral200" borderWidth="1px">
+                            <Flex alignItems="center" gap={2} marginBottom={2}>
+                                <Database color={safeStats.orphanedCollections > 0 ? "danger600" : "success600"} width="1.5rem" height="1.5rem" />
+                                <Box>
+                                    <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
+                                        Orphan Status
+                                    </Typography>
+                                </Box>
+                            </Flex>
+                            <Box marginBottom={2}>
+                                <Typography variant="pi" textColor="neutral600">
+                                    {safeStats.orphanedCollections === 0 ? "No orphaned collections" : `${safeStats.orphanedCollections} collections need attention`}
+                                </Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="pi" textColor="neutral500">
+                                    {safeStats.orphanedCollections === 0 ? "All collections have articles" : "Some collections are empty"}
+                                </Typography>
+                            </Box>
+                        </InsightCard>
                     </Grid.Item>
                     <Grid.Item col={4}>
-                        <Box background="neutral50" padding="1rem" borderRadius="8px" textAlign="center">
-                            <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
-                                Content Goal
-                            </Typography>
-                            <Typography variant="pi" textColor="neutral600">
-                                {15 - stats.totalCollections} more collections to reach target
-                            </Typography>
-                        </Box>
+                        <InsightCard background="neutral0" borderColor="neutral200" borderWidth="1px">
+                            <Flex alignItems="center" gap={2} marginBottom={2}>
+                                <CheckCircle color="success600" width="1.5rem" height="1.5rem" />
+                                <Box>
+                                    <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
+                                        System Health
+                                    </Typography>
+                                </Box>
+                            </Flex>
+                            <Box marginBottom={2}>
+                                <Typography variant="pi" textColor="neutral600">
+                                    {safeStats.totalCollections} total collections
+                                </Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="pi" textColor="neutral500">
+                                    {healthScore}% health score
+                                </Typography>
+                            </Box>
+                        </InsightCard>
                     </Grid.Item>
                 </Grid.Root>
             </Box>
 
-            {/* Quick Actions */}
-            <Box>
-                <Typography variant="gamma" textColor="neutral800" fontWeight="semiBold" marginBottom={3}>
-                    🚀 Quick Actions
-                </Typography>
-                <Grid.Root gap={3}>
-                    <Grid.Item col={4}>
-                        <QuickActionButton
-                            variant="secondary"
-                            onClick={onDetectOrphans}
-                            size="S"
-                        >
-                            🔍 Detect Orphans
-                        </QuickActionButton>
-                    </Grid.Item>
-                    <Grid.Item col={4}>
-                        <QuickActionButton
-                            variant="secondary"
-                            onClick={onViewAnalytics}
-                            size="S"
-                        >
-                            📊 View Analytics
-                        </QuickActionButton>
-                    </Grid.Item>
-                    <Grid.Item col={4}>
-                        <QuickActionButton
-                            variant="primary"
-                            onClick={onOpenDashboard}
-                            size="S"
-                        >
-                            🎯 Open Dashboard
-                        </QuickActionButton>
-                    </Grid.Item>
-                </Grid.Root>
-            </Box>
+            {/* Quick Actions - Delegated to separate component */}
+            <OrphanQuickActions
+                stats={stats}
+                onRefreshStats={refetch}
+                onForceRefresh={forceRefresh}
+            />
         </Box>
     );
 };

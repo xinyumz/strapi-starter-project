@@ -1,4 +1,5 @@
 // src/plugins/collection-article-relation/admin/src/components/Dashboard/PerformanceMetricsWidget.tsx
+// Simplified version with separated concerns
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -10,8 +11,9 @@ import {
     Button,
     Loader,
 } from '@strapi/design-system';
-import { ArrowClockwise, ArrowUp, Clock, Database } from '@strapi/icons';
+import { ArrowClockwise, ArrowUp, Clock, Database, Cross } from '@strapi/icons';
 import styled from 'styled-components';
+import PerformanceActions from './PerformanceActions';
 
 const MetricsCard = styled(Box)`
   padding: 1.5rem;
@@ -40,7 +42,6 @@ const MetricLabel = styled(Typography)`
 
 const MetricDescription = styled(Typography)`
   text-align: center;
-  font-size: 0.75rem;
   opacity: 0.8;
 `;
 
@@ -53,7 +54,6 @@ const PerformanceBar = styled(Box)`
   margin: 0.5rem 0;
 `;
 
-// Fix styled components warning by using transient props ($percentage, $color)
 const PerformanceBarFill = styled(Box) <{ $percentage: number; $color: string }>`
   width: ${props => props.$percentage}%;
   height: 100%;
@@ -105,6 +105,7 @@ const PerformanceMetricsWidget: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // Performance evaluation functions
     const getPerformanceColor = (value: number, thresholds: { good: number; warning: number; isReverse?: boolean }) => {
         if (thresholds.isReverse) {
             // For metrics where lower is better (like response time, error rate)
@@ -174,9 +175,11 @@ const PerformanceMetricsWidget: React.FC = () => {
                     </Box>
                 </Box>
                 <Flex gap={2}>
-                    <Typography variant="pi" textColor="neutral500">
-                        Last updated: {lastUpdated.toLocaleTimeString()}
-                    </Typography>
+                    <Box>
+                        <Typography variant="pi" textColor="neutral500">
+                            Last updated: {lastUpdated.toLocaleTimeString()}
+                        </Typography>
+                    </Box>
                     <Button
                         variant="tertiary"
                         onClick={fetchMetrics}
@@ -260,6 +263,12 @@ const PerformanceMetricsWidget: React.FC = () => {
                 {/* Error Rate */}
                 <Grid.Item col={3}>
                     <MetricsCard background={metrics.errorRate > 1 ? "danger100" : "neutral100"}>
+                        <Cross
+                            color={metrics.errorRate > 1 ? "danger600" : "neutral600"}
+                            width="2rem"
+                            height="2rem"
+                            style={{ margin: '0 auto 0.5rem' }}
+                        />
                         <MetricValue>
                             <Typography variant="alpha" textColor={metrics.errorRate > 1 ? "danger700" : "neutral700"}>
                                 {metrics.errorRate.toFixed(2)}%
@@ -282,12 +291,14 @@ const PerformanceMetricsWidget: React.FC = () => {
             </Grid.Root>
 
             {/* Additional Metrics */}
-            <Grid.Root gap={4}>
+            <Grid.Root gap={4} marginBottom={4}>
                 <Grid.Item col={6}>
                     <MetricsCard background="neutral100">
-                        <Typography variant="omega" fontWeight="semiBold" textColor="neutral800" marginBottom={2}>
-                            System Load
-                        </Typography>
+                        <Box marginBottom={2}>
+                            <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
+                                System Load
+                            </Typography>
+                        </Box>
                         <Flex alignItems="center" gap={2}>
                             <PerformanceBar style={{ flex: 1 }}>
                                 <PerformanceBarFill
@@ -304,9 +315,11 @@ const PerformanceMetricsWidget: React.FC = () => {
 
                 <Grid.Item col={6}>
                     <MetricsCard background="neutral100">
-                        <Typography variant="omega" fontWeight="semiBold" textColor="neutral800" marginBottom={2}>
-                            Database Query Time
-                        </Typography>
+                        <Box marginBottom={2}>
+                            <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
+                                Database Query Time
+                            </Typography>
+                        </Box>
                         <Flex alignItems="center" gap={2}>
                             <PerformanceBar style={{ flex: 1 }}>
                                 <PerformanceBarFill
@@ -326,12 +339,16 @@ const PerformanceMetricsWidget: React.FC = () => {
             <Box marginTop={4} padding="1rem" background="neutral50" borderRadius="8px">
                 <Flex justifyContent="space-between" alignItems="center">
                     <Box>
-                        <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
-                            Overall System Status
-                        </Typography>
-                        <Typography variant="pi" textColor="neutral600">
-                            All systems operational with excellent performance
-                        </Typography>
+                        <Box marginBottom={1}>
+                            <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
+                                Overall System Status
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="pi" textColor="neutral600">
+                                All systems operational with excellent performance
+                            </Typography>
+                        </Box>
                     </Box>
                     <Badge
                         backgroundColor="success100"
@@ -342,6 +359,13 @@ const PerformanceMetricsWidget: React.FC = () => {
                     </Badge>
                 </Flex>
             </Box>
+
+            {/* Performance Actions - Delegated to separate component */}
+            <PerformanceActions
+                metrics={metrics}
+                onRefreshMetrics={fetchMetrics}
+                lastUpdated={lastUpdated}
+            />
         </Box>
     );
 };

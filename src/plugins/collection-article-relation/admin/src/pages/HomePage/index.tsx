@@ -18,7 +18,6 @@ import packageJson from '../../../../package.json';
 // Import our new widgets
 import OrphanSummaryWidget from '../../components/OrphanManagement/OrphanSummaryWidget';
 import PerformanceMetricsWidget from '../../components/Dashboard/PerformanceMetricsWidget';
-import SmartRecommendationsWidget from '../../components/Dashboard/SmartRecommendationsWidget';
 
 const ContentWrapper = styled(Box)`
   max-width: 1200px;
@@ -83,39 +82,13 @@ const ReadyBadge = styled(Box)`
 const HomePage = () => {
   const [showOrphanDashboard, setShowOrphanDashboard] = useState(false);
 
-  const handleDetectOrphans = () => {
-    console.log('Detecting orphans...');
-    // In real implementation, this would trigger orphan detection
-  };
-
-  const handleViewAnalytics = () => {
-    console.log('Opening analytics...');
-    // In real implementation, this would open analytics view
-  };
-
-  const handleOpenDashboard = () => {
-    setShowOrphanDashboard(true);
-  };
-
-  const handleRecommendationClick = (recommendation: any) => {
-    console.log('Recommendation clicked:', recommendation);
-    // In real implementation, this would handle the recommendation action
-  };
-
   const renderDashboardContent = () => (
     <Box>
       {/* Enhanced Dashboard with Orphan Management */}
-      <OrphanSummaryWidget
-        onDetectOrphans={handleDetectOrphans}
-        onViewAnalytics={handleViewAnalytics}
-        onOpenDashboard={handleOpenDashboard}
-      />
+      <OrphanSummaryWidget />
 
       <PerformanceMetricsWidget />
 
-      <SmartRecommendationsWidget
-        onRecommendationClick={handleRecommendationClick}
-      />
     </Box>
   );
 
