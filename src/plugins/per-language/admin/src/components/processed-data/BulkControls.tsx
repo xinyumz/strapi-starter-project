@@ -11,7 +11,7 @@ import {
     SingleSelectOption,
     Checkbox,
 } from '@strapi/design-system';
-import { ChartCircle } from '@strapi/icons';
+import { ArrowClockwise } from '@strapi/icons';
 
 interface BulkControlsProps {
     onLanguageSelect: (language: string) => void;
@@ -53,7 +53,7 @@ export const BulkControls: React.FC<BulkControlsProps> = ({
                         </Flex>
                         <Button
                             variant="tertiary"
-                            startIcon={<ChartCircle stroke="silver" />}
+                            startIcon={<ArrowClockwise />}
                             onClick={onRefresh}
                             size="S"
                         >

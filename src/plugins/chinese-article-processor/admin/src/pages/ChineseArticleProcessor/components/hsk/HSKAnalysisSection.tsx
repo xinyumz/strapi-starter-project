@@ -8,6 +8,7 @@ import {
   Grid,
   Loader
 } from '@strapi/design-system';
+import { ArrowClockwise } from '@strapi/icons';
 import HSKDistributionChart from './HSKDistributionChart';
 import HSKLevelSelector from './HSKLevelSelector';
 import { HSKData } from '../../../../utils/types';
@@ -53,6 +54,7 @@ const HSKAnalysisSection: React.FC<HSKAnalysisSectionProps> = ({
           disabled={isLoading || isCalculatingHSK}
           loading={isCalculatingHSK}
           variant="default"
+          startIcon={<ArrowClockwise />}
         >
           Calculate HSK Level
         </Button>

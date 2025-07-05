@@ -10,6 +10,7 @@ import {
   SingleSelectOption,
   Grid,
 } from '@strapi/design-system';
+import { ArrowClockwise, Play } from '@strapi/icons';
 import { GrammarEngineChoice } from '../../../../../utils/types';
 import LanguageSelector from '../sentence-translation/LanguageSelector';
 
@@ -88,6 +89,7 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
               onClick={onGenerateClick}
               disabled={isLoading}
               loading={isLoading && !isTranslating}
+              startIcon={<ArrowClockwise />}
             >
               Generate Grammar Rules
             </Button>
@@ -97,6 +99,7 @@ const GrammarToolbar: React.FC<GrammarToolbarProps> = ({
               onClick={onTranslateClick}
               disabled={isLoading || !hasSentences}
               loading={isTranslating}
+              startIcon={<Play />}
             >
               Translate All
             </Button>

@@ -55,7 +55,7 @@ export default ({ strapi }: any) => {
 
     return {
         /**
-         * Method to get article data with validation - FIXED for Strapi v5
+         * Method to get article data with validation
          */
         async getArticleData(articleId: number): Promise<ArticleData | null> {
             try {
@@ -63,7 +63,7 @@ export default ({ strapi }: any) => {
 
                 console.log(`[CollectionAutoFill] Fetching article data for ID: ${validId}`);
 
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const article = await strapi.documents('api::article.article').findFirst({
                     filters: { id: validId },
                     populate: {
@@ -115,7 +115,7 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * FIXED: Duplicate check with proper article ID filtering for Strapi v5
+         * Duplicate check with proper article ID filtering
          */
         async checkExistingCollection(articleId: number): Promise<{ exists: boolean; collection?: any; fromCache: boolean }> {
             try {
@@ -132,7 +132,7 @@ export default ({ strapi }: any) => {
                     if (cached.exists && cached.collectionId) {
                         // Get the actual collection data (might have been updated)
                         try {
-                            // FIXED: Use Document Service API for Strapi v5
+                            // Use Document Service API
                             const collection = await strapi.documents('api::collection.collection').findFirst({
                                 filters: { id: cached.collectionId }
                             });
@@ -148,7 +148,7 @@ export default ({ strapi }: any) => {
 
                 console.log(`[CollectionAutoFill] Cache miss for article ${validId}, checking database`);
 
-                // FIXED: Proper query using Document Service API for Strapi v5
+                // Proper query using Document Service API
                 // Get all collections first, then filter in memory for precise control
                 const allCollections = await strapi.documents('api::collection.collection').findMany({
                     populate: {
@@ -215,7 +215,7 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * Quick collection creation with comprehensive error handling - FIXED for Strapi v5
+         * Quick collection creation with comprehensive error handling
          */
         async createQuickCollectionFromArticle(articleId: number): Promise<CollectionResult> {
             const startTime = Date.now();
@@ -253,7 +253,7 @@ export default ({ strapi }: any) => {
                     throw new NotFoundError(`Article with ID ${validId} not found`);
                 }
 
-                // Prepare collection data with defaults - FIXED: Handle custom fields properly
+                // Prepare collection data with defaults - Handle custom fields properly
                 const collectionData: any = {
                     Title: article.Title || `Collection - Article ${validId}`,
                     Date: article.Date || new Date().toISOString().split('T')[0],
@@ -261,14 +261,14 @@ export default ({ strapi }: any) => {
                     publishedAt: null // Start as draft
                 };
 
-                // FIXED: Only add Cover if it exists and has a valid ID
+                // Only add Cover if it exists and has a valid ID
                 if (article.Cover?.id) {
                     collectionData.Cover = article.Cover.id;
                 } else if (article.Cover && typeof article.Cover === 'number') {
                     collectionData.Cover = article.Cover;
                 }
 
-                // FIXED: Only add Category if it exists and is a valid number (custom field value)
+                // Only add Category if it exists and is a valid number (custom field value)
                 if (article.Category && typeof article.Category === 'number') {
                     collectionData.Category = article.Category;
                 }
@@ -281,7 +281,7 @@ export default ({ strapi }: any) => {
                     linkedArticles: collectionData.articles.length
                 });
 
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API
                 // Create new collection with transaction-like error handling
                 let collection;
                 try {
@@ -342,11 +342,11 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * Health check method for monitoring - FIXED for Strapi v5
+         * Health check method for monitoring
          */
         async healthCheck(): Promise<{ status: string; details: any }> {
             try {
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API
                 // Test database connectivity
                 await strapi.documents('api::article.article').findMany({
                     limit: 1

@@ -10,7 +10,7 @@ import {
     EmptyStateLayout,
     Loader
 } from '@strapi/design-system';
-import { ChartCircle } from '@strapi/icons';
+import { ArrowClockwise } from '@strapi/icons';
 import { useFetchClient } from "@strapi/strapi/admin";
 
 import {
@@ -425,7 +425,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                     <Alert variant="danger" title="Error">
                         {error}
                     </Alert>
-                    <Button onClick={handleRefresh} startIcon={<ChartCircle stroke="white" />}>
+                    <Button onClick={handleRefresh} startIcon={<ArrowClockwise />}>
                         Try Again
                     </Button>
                 </Flex>
@@ -439,7 +439,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 <EmptyStateLayout
                     content="No language content found for this article. Use the Language Processor field in the article editor to create translated content."
                     action={
-                        <Button onClick={handleRefresh} startIcon={<ChartCircle stroke="white" />}>
+                        <Button onClick={handleRefresh} startIcon={<ArrowClockwise />}>
                             Refresh
                         </Button>
                     }

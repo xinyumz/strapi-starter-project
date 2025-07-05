@@ -286,7 +286,7 @@ const ChineseArticleProcessor = () => {
                         <Button
                             onClick={handleNavigateBack}
                             variant="tertiary"
-                            startIcon={<ArrowLeft stroke="silver" />}
+                            startIcon={<ArrowLeft />}
                         >
                             Back
                         </Button>

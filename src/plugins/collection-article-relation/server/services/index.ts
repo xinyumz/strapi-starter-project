@@ -1,7 +1,11 @@
 // src/plugins/collection-article-relation/server/services/index.ts
 
-import collectionAutofill from './collection-autofill-service';
+import collectionAutofillService from './collection-autofill-service';
+import orphanDetectionService from './orphan-detection-service';
+import orphanCleanupService from './orphan-cleanup-service';
 
 export default {
-  collectionAutofill,
+  collectionAutofill: collectionAutofillService,
+  orphanDetection: orphanDetectionService,
+  orphanCleanup: orphanCleanupService,
 };

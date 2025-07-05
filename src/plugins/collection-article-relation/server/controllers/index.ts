@@ -1,7 +1,9 @@
 // src/plugins/collection-article-relation/server/controllers/index.ts
 
-import collectionAutofill from './collection-autofill-controller';
+import collectionAutofillController from './collection-autofill-controller';
+import orphanManagementController from './orphan-management-controller';
 
 export default {
-  collectionAutofill,
+  collectionAutofill: collectionAutofillController,
+  orphanManagement: orphanManagementController,
 };

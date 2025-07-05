@@ -79,9 +79,9 @@ const HSKLevelSelector: React.FC<HSKLevelSelectorProps> = ({
                 onClick={onSave}
                 disabled={!hasChanges || isLoading}
                 size="S"
-                variant="success-light"
+                variant="success"
                 loading={isLoading}
-                startIcon={< Check stroke='white' />}
+                startIcon={<Check />}
               >
                 Save HSK Level
               </Button>

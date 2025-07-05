@@ -34,12 +34,12 @@ export default ({ strapi }: any) => ({
                 return;
             }
 
-            // FIXED: Handle both documentId (string) and numeric ID with proper resolution
+            // Handle both documentId (string) and numeric ID with proper resolution
             let resolvedArticleId: number;
             let article: any;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5) - Use correct query syntax
                 console.log('[CollectionController] Processing documentId:', articleId);
 
                 try {
@@ -148,7 +148,7 @@ export default ({ strapi }: any) => ({
             const result = await autoFillService.createQuickCollectionFromArticle(resolvedArticleId);
             const processingTime = Date.now() - startTime;
 
-            // FIXED: Build redirect URL using collection's documentId (v5) or fallback to ID
+            // Build redirect URL using collection's documentId (v5) or fallback to ID
             let redirectUrl = result.redirectUrl;
             if (result.collection) {
                 const collectionDocumentId = result.collection.documentId || result.collection.id;

@@ -14,7 +14,7 @@ import {
     Divider
 } from '@strapi/design-system';
 import {
-    ChartCircle,
+    ArrowClockwise,
     Eye,
     EyeStriked,
     Play
@@ -250,7 +250,7 @@ Are you sure you want to delete all ${processor.name} content?`;
                             <Flex gap={2} alignItems="center">
                                 <Button
                                     variant="tertiary"
-                                    startIcon={<ChartCircle stroke="silver" />}
+                                    startIcon={<ArrowClockwise />}
                                     onClick={() => onRefresh(lang.id, lang.language)}
                                     disabled={isUpdating[`refresh_${lang.id}`]}
                                     size="S"
@@ -262,7 +262,7 @@ Are you sure you want to delete all ${processor.name} content?`;
                                     onClick={() => onOpenProcessor(lang.language)}
                                     disabled={!processor.hasProcessor}
                                     size="S"
-                                    startIcon={<Play stroke="white" />}
+                                    startIcon={<Play />}
                                 >
                                     Open Processor
                                 </Button>
@@ -283,7 +283,7 @@ Are you sure you want to delete all ${processor.name} content?`;
                                 </Flex>
 
                                 <Flex gap={2} alignItems="center">
-                                    {lang.published ? <Eye width="16px" height="16px" stroke="silver" /> : <EyeStriked width="16px" height="16px" stroke="silver" />}
+                                    {lang.published ? <Eye width="16px" height="16px" /> : <EyeStriked width="16px" height="16px" />}
                                     <Checkbox
                                         checked={lang.published || false}
                                         onCheckedChange={() => onPublishToggle(lang.id, lang.published)}

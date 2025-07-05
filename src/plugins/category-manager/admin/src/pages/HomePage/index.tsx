@@ -208,7 +208,7 @@ const HomePage = () => {
                         borderRadius="50%"
                         marginBottom={4}
                       >
-                        <stat.icon fill={stat.iconColor} width="2rem" height="2rem" stroke="silver" />
+                        <stat.icon fill={stat.iconColor} width="2rem" height="2rem" />
                       </Flex>
                       <Typography variant="delta" fontWeight="bold" textColor="neutral800" marginBottom={2}>
                         {stat.title}
@@ -246,7 +246,7 @@ const HomePage = () => {
                             justifyContent="center"
                             alignItems="center"
                           >
-                            <feature.icon fill="neutral600" stroke="silver" width="1.5rem" height="1.5rem" />
+                            <feature.icon fill="neutral600" width="1.5rem" height="1.5rem" />
                           </Flex>
                           <Typography variant="delta" fontWeight="bold" textColor="neutral800">
                             {feature.title}

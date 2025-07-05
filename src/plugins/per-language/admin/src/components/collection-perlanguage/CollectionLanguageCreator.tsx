@@ -14,6 +14,7 @@ import {
     Loader,
     Badge
 } from '@strapi/design-system';
+import { ArrowClockwise } from '@strapi/icons';
 import { SUPPORTED_LANGUAGES } from '../shared';
 import { CollectionLanguageData } from '../hooks';
 
@@ -212,11 +213,10 @@ export const CollectionLanguageCreator: React.FC<CollectionLanguageCreatorProps>
                                 </Badge>
                                 <Button
                                     variant="ghost"
-                                    size="S"
                                     onClick={onRefreshStats}
                                     title="Refresh collection info"
+                                    startIcon={<ArrowClockwise />}
                                 >
-                                    ↻
                                 </Button>
                             </Flex>
                         </Flex>
