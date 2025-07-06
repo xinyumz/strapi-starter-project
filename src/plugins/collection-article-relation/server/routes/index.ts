@@ -1,7 +1,7 @@
 // src/plugins/collection-article-relation/server/routes/index.ts
 
 import collectionAutofillRoutes from './collection-autofill-routes';
-import orphanManagementRoutes from './orphan-management-routes';
+import collectionManagementRoutes from './collection-management-routes';
 
 export default [
   {
@@ -15,5 +15,5 @@ export default [
     },
   },
   ...collectionAutofillRoutes,
-  ...orphanManagementRoutes
+  ...collectionManagementRoutes
 ];

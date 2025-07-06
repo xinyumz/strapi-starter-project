@@ -386,6 +386,32 @@ export default ({ strapi }: any) => ({
                 }
             };
         }
+    },
+
+    // ====================================
+    // FORCE REFRESH ENDPOINTS
+    // ====================================
+
+    /**
+     * Force orphan detection bypassing cache
+     * GET /collection-article-relation/orphans/detect/force
+     */
+    async forceDetectOrphans(ctx: any) {
+        // Set bypass flag and delegate to main detection method
+        ctx.query.bypass = 'true';
+        console.log('[OrphanDetectionController] Force orphan detection requested');
+        return this.detectOrphans(ctx);
+    },
+
+    /**
+     * Force orphan statistics bypassing cache
+     * GET /collection-article-relation/orphans/stats/force
+     */
+    async forceGetOrphanStats(ctx: any) {
+        // Set bypass flag and delegate to main stats method
+        ctx.query.bypass = 'true';
+        console.log('[OrphanDetectionController] Force orphan stats requested');
+        return this.getOrphanStats(ctx);
     }
 });
 
