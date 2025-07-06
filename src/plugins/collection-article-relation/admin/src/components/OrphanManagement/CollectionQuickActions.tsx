@@ -1,5 +1,4 @@
-// src/plugins/collection-article-relation/admin/src/components/OrphanManagement/OrphanQuickActions.tsx
-// Enhanced version with improved cache management and user feedback
+// src/plugins/collection-article-relation/admin/src/components/OrphanManagement/CollectionQuickActions.tsx
 
 import React, { useState } from 'react';
 import {
@@ -14,41 +13,50 @@ import {
     Toast
 } from '@strapi/design-system';
 import styled from 'styled-components';
-import { useOrphanDetection, OrphanStats } from '../../hooks/useOrphanManagement';
+import {
+    useOrphanDetection,
+    useDuplicateDetection,
+    CombinedHealthStats,
+    OrphanDetectionResult,
+    DuplicateGroup
+} from '../../hooks/useCollectionManagement';
 
 const QuickActionButton = styled(Button)`
   margin-top: 1rem;
   width: 100%;
 `;
 
-interface OrphanQuickActionsProps {
-    stats: OrphanStats;
+interface CollectionQuickActionsProps {
+    healthStats: CombinedHealthStats;
     onRefreshStats: () => Promise<void>;
     onForceRefresh: () => Promise<void>;
 }
 
-const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
-    stats,
+const CollectionQuickActions: React.FC<CollectionQuickActionsProps> = ({
+    healthStats,
     onRefreshStats,
     onForceRefresh
 }) => {
     const [showOrphanModal, setShowOrphanModal] = useState(false);
+    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [toastType, setToastType] = useState<'success' | 'danger'>('success');
 
-    const { orphans, loading: orphansLoading, forceDetect } = useOrphanDetection();
+    const { orphans, loading: orphansLoading, forceDetect: forceDetectOrphans } = useOrphanDetection();
+    const { duplicates, loading: duplicatesLoading, forceDetect: forceDetectDuplicates } = useDuplicateDetection();
 
     // Safe stats calculation
     const safeStats = {
-        totalCollections: stats.totalCollections || 0,
-        orphanedCollections: stats.orphanedCollections || 0,
-        healthyCollections: stats.healthyCollections || 0,
-        singleArticleCollections: stats.singleArticleCollections || 0,
-        emptyCollections: stats.emptyCollections || 0,
-        brokenReferenceCollections: stats.brokenReferenceCollections || 0
+        totalCollections: healthStats.totalCollections || 0,
+        orphanedCollections: healthStats.orphanedCollections || 0,
+        duplicateCollections: healthStats.duplicateCollections || 0,
+        duplicateGroups: healthStats.duplicateGroups || 0,
+        healthScore: healthStats.healthScore || 100
     };
+
+    const totalIssues = safeStats.orphanedCollections + safeStats.duplicateCollections;
 
     // Show toast notification
     const showNotification = (message: string, type: 'success' | 'danger' = 'success') => {
@@ -58,41 +66,55 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
         setTimeout(() => setShowToast(false), 4000);
     };
 
-    // Handler: Scan for Orphans - ENHANCED with better feedback
-    const handleScanForOrphans = async () => {
+    // Handler: Combined Refresh Scan (orphans + duplicates)
+    const handleCombinedRefreshScan = async () => {
         setRefreshing(true);
         try {
-            console.log('[OrphanQuickActions] Starting force refresh with cache clearing');
+            console.log('[CollectionQuickActions] Starting combined refresh scan');
 
             // Show immediate feedback
-            showNotification('🔄 Clearing cache and scanning for orphans...', 'success');
+            showNotification('🔄 Scanning for orphans and duplicates...', 'success');
 
-            // Use the enhanced force refresh that clears cache first
+            // Use the enhanced force refresh that clears all caches
             await onForceRefresh();
 
-            console.log('[OrphanQuickActions] Force refresh completed successfully');
-            showNotification('✅ Orphan scan completed! Data refreshed.', 'success');
+            console.log('[CollectionQuickActions] Combined refresh scan completed successfully');
+            showNotification('✅ Health scan completed! Data refreshed.', 'success');
 
         } catch (error) {
-            console.error('[OrphanQuickActions] Error during force refresh:', error);
-            showNotification('❌ Failed to refresh orphan data. Please try again.', 'danger');
+            console.error('[CollectionQuickActions] Error during combined refresh:', error);
+            showNotification('❌ Failed to refresh health data. Please try again.', 'danger');
         } finally {
             setRefreshing(false);
         }
     };
 
-    // Handler: Show Orphaned Collections - ENHANCED with force detect
+    // Handler: Show Orphaned Collections
     const handleShowOrphans = async () => {
         if (safeStats.orphanedCollections > 0) {
             setShowOrphanModal(true);
-            console.log('[OrphanQuickActions] Loading orphan details with force detection');
+            console.log('[CollectionQuickActions] Loading orphan details');
 
             try {
-                // Use force detect to ensure we have the latest data
-                await forceDetect();
+                await forceDetectOrphans();
             } catch (error) {
-                console.error('[OrphanQuickActions] Error loading orphan details:', error);
+                console.error('[CollectionQuickActions] Error loading orphan details:', error);
                 showNotification('⚠️ Could not refresh orphan details, showing cached data.', 'danger');
+            }
+        }
+    };
+
+    // Handler: Show Duplicate Collections
+    const handleShowDuplicates = async () => {
+        if (safeStats.duplicateCollections > 0) {
+            setShowDuplicateModal(true);
+            console.log('[CollectionQuickActions] Loading duplicate details');
+
+            try {
+                await forceDetectDuplicates();
+            } catch (error) {
+                console.error('[CollectionQuickActions] Error loading duplicate details:', error);
+                showNotification('⚠️ Could not refresh duplicate details, showing cached data.', 'danger');
             }
         }
     };
@@ -123,7 +145,7 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
         }
     };
 
-    // Filter to show only truly orphaned collections (empty or broken)
+    // Filter to show only truly orphaned collections
     const actualOrphans = orphans.filter(orphan =>
         orphan.status.orphanType === 'empty' || orphan.status.orphanType === 'broken_references'
     );
@@ -152,7 +174,7 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                 </Box>
             )}
 
-            {/* Quick Actions Section */}
+            {/* Enhanced Quick Actions Section */}
             <Box>
                 <Box marginBottom={3}>
                     <Typography variant="gamma" textColor="neutral800" fontWeight="semiBold">
@@ -160,10 +182,10 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                     </Typography>
                 </Box>
                 <Grid.Root gap={3}>
-                    <Grid.Item col={4}>
+                    <Grid.Item col={3}>
                         <QuickActionButton
                             variant="secondary"
-                            onClick={handleScanForOrphans}
+                            onClick={handleCombinedRefreshScan}
                             size="S"
                             disabled={refreshing}
                         >
@@ -173,11 +195,11 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                                     Scanning...
                                 </Flex>
                             ) : (
-                                '🔍 Scan for Orphans'
+                                '🔄 Refresh Scan'
                             )}
                         </QuickActionButton>
                     </Grid.Item>
-                    <Grid.Item col={4}>
+                    <Grid.Item col={3}>
                         <QuickActionButton
                             variant={safeStats.orphanedCollections > 0 ? "danger" : "tertiary"}
                             onClick={handleShowOrphans}
@@ -187,7 +209,17 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                             ⚠️ Show Orphaned Collections
                         </QuickActionButton>
                     </Grid.Item>
-                    <Grid.Item col={4}>
+                    <Grid.Item col={3}>
+                        <QuickActionButton
+                            variant={safeStats.duplicateCollections > 0 ? "secondary" : "tertiary"}
+                            onClick={handleShowDuplicates}
+                            size="S"
+                            disabled={safeStats.duplicateCollections === 0}
+                        >
+                            📂 Show Duplicate Collections
+                        </QuickActionButton>
+                    </Grid.Item>
+                    <Grid.Item col={3}>
                         <QuickActionButton
                             variant="primary"
                             onClick={handleGoToCollections}
@@ -198,11 +230,11 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                     </Grid.Item>
                 </Grid.Root>
 
-                {/* Additional Action Info */}
+                {/* Enhanced Action Info */}
                 <Box marginTop={3} padding="1rem" background="neutral100" borderRadius="8px">
                     <Typography variant="pi" textColor="neutral600">
-                        💡 <strong>Tip:</strong> Data auto-refreshes every 2 minutes. "Scan for Orphans" clears the cache
-                        and provides immediate results within seconds of any collection changes.
+                        💡 <strong>Health Monitoring:</strong> "Refresh Scan" checks both orphans and duplicates
+                        with cache clearing for immediate results. System auto-refreshes every 2 minutes.
                     </Typography>
                 </Box>
             </Box>
@@ -240,9 +272,8 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                                         borderRadius="8px"
                                         marginBottom={index < actualOrphans.length - 1 ? "1rem" : "0"}
                                         style={{
-                                            borderLeft: `4px solid ${orphan.status.severity === 'high' ? 'var(--danger-600)' :
-                                                orphan.status.severity === 'medium' ? 'var(--warning-600)' :
-                                                    'var(--secondary-600)'
+                                            borderLeft: `4px solid ${orphan.status.severity === 'high' ? '#dc3545' :
+                                                orphan.status.severity === 'medium' ? '#ffc107' : '#6c757d'
                                                 }`
                                         }}
                                     >
@@ -289,29 +320,6 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                                             </Typography>
                                         </Box>
 
-                                        {/* Suggested Actions */}
-                                        {orphan.suggestedActions.length > 0 && (
-                                            <Box marginBottom={2}>
-                                                <Box marginBottom={1}>
-                                                    <Typography variant="pi" fontWeight="semiBold" textColor="neutral800">
-                                                        Suggested Actions:
-                                                    </Typography>
-                                                </Box>
-                                                <Box paddingLeft="1rem">
-                                                    {orphan.suggestedActions.map((action, actionIndex) => (
-                                                        <Typography
-                                                            key={actionIndex}
-                                                            variant="pi"
-                                                            textColor="neutral600"
-                                                            style={{ display: 'block', marginBottom: '0.25rem' }}
-                                                        >
-                                                            • {action}
-                                                        </Typography>
-                                                    ))}
-                                                </Box>
-                                            </Box>
-                                        )}
-
                                         {/* Quick Actions for Individual Collection */}
                                         <Flex gap={2} marginTop={3}>
                                             <Button
@@ -337,11 +345,6 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                                         <Typography variant="omega" textColor="success700">
                                             🎉 No orphaned collections found! Your system is clean.
                                         </Typography>
-                                        <Box marginTop={2}>
-                                            <Typography variant="pi" textColor="success600">
-                                                All collections have valid article references.
-                                            </Typography>
-                                        </Box>
                                     </Box>
                                 )}
                             </Box>
@@ -356,17 +359,165 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                         </Dialog.Cancel>
                         <Button
                             variant="secondary"
-                            onClick={handleScanForOrphans}
+                            onClick={handleCombinedRefreshScan}
                             disabled={refreshing}
                         >
-                            {refreshing ? (
-                                <Flex alignItems="center" gap={2}>
-                                    <Loader small />
-                                    Refreshing...
+                            🔄 Refresh Data
+                        </Button>
+                        <Button variant="primary" onClick={handleGoToCollections}>
+                            📋 Go to Collections
+                        </Button>
+                    </Dialog.Footer>
+                </Dialog.Content>
+            </Dialog.Root>
+
+            {/* New Duplicate Collections Modal */}
+            <Dialog.Root open={showDuplicateModal} onOpenChange={setShowDuplicateModal}>
+                <Dialog.Content size="L">
+                    <Dialog.Header>
+                        📂 Duplicate Collections ({safeStats.duplicateGroups} groups, {safeStats.duplicateCollections} collections)
+                    </Dialog.Header>
+
+                    <Dialog.Body>
+                        <Box marginBottom={3}>
+                            <Typography variant="omega">
+                                The following groups contain collections with identical article sets:
+                            </Typography>
+                        </Box>
+
+                        {duplicatesLoading ? (
+                            <Box textAlign="center" padding="2rem">
+                                <Flex direction="column" alignItems="center" gap={2}>
+                                    <Loader>Loading latest duplicate collection details...</Loader>
+                                    <Typography variant="pi" textColor="neutral600">
+                                        Analyzing collection fingerprints...
+                                    </Typography>
                                 </Flex>
-                            ) : (
-                                '🔍 Refresh Data'
-                            )}
+                            </Box>
+                        ) : (
+                            <Box>
+                                {duplicates?.duplicateGroups?.map((group: DuplicateGroup, index: number) => (
+                                    <Box
+                                        key={group.fingerprint}
+                                        background="neutral100"
+                                        padding="1.5rem"
+                                        borderRadius="8px"
+                                        marginBottom={index < duplicates.duplicateGroups.length - 1 ? "1rem" : "0"}
+                                        style={{
+                                            borderLeft: `4px solid ${group.severity === 'high' ? '#dc3545' :
+                                                group.severity === 'medium' ? '#ffc107' : '#6c757d'
+                                                }`
+                                        }}
+                                    >
+                                        {/* Group Header */}
+                                        <Flex justifyContent="space-between" alignItems="flex-start" marginBottom={2}>
+                                            <Box width="80%">
+                                                <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
+                                                    Duplicate Group {index + 1}
+                                                </Typography>
+                                            </Box>
+                                            <Badge
+                                                backgroundColor={`${getSeverityColor(group.severity)}100`}
+                                                textColor={`${getSeverityColor(group.severity)}700`}
+                                            >
+                                                {group.collectionCount} Collections
+                                            </Badge>
+                                        </Flex>
+
+                                        {/* Group Details */}
+                                        <Box marginBottom={3}>
+                                            <Typography variant="pi" textColor="neutral600">
+                                                <strong>Fingerprint:</strong> {group.fingerprint}
+                                            </Typography>
+                                            <br />
+                                            <Typography variant="pi" textColor="neutral600">
+                                                <strong>Article Count:</strong> {group.articleCount} articles per collection
+                                            </Typography>
+                                        </Box>
+
+                                        {/* Collections in Group */}
+                                        <Box marginBottom={2}>
+                                            <Typography variant="pi" fontWeight="semiBold" textColor="neutral800">
+                                                Duplicate Collections:
+                                            </Typography>
+                                        </Box>
+                                        <Box marginLeft="1rem" marginBottom={3}>
+                                            {group.collections.map((collection, colIndex) => (
+                                                <Box key={collection.id} marginBottom={1}>
+                                                    <Typography variant="pi" textColor="neutral700">
+                                                        • {collection.title}
+                                                        <Typography variant="pi" textColor="neutral500" style={{ marginLeft: '0.5rem' }}>
+                                                            (ID: {collection.id})
+                                                        </Typography>
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                        </Box>
+
+                                        {/* Suggested Actions */}
+                                        {group.suggestedActions.length > 0 && (
+                                            <Box marginBottom={2}>
+                                                <Typography variant="pi" fontWeight="semiBold" textColor="neutral800">
+                                                    Suggested Actions:
+                                                </Typography>
+                                                <Box marginLeft="1rem" marginTop={1}>
+                                                    {group.suggestedActions.map((action, actionIndex) => (
+                                                        <Typography
+                                                            key={actionIndex}
+                                                            variant="pi"
+                                                            textColor="neutral600"
+                                                            style={{ display: 'block', marginBottom: '0.25rem' }}
+                                                        >
+                                                            • {action}
+                                                        </Typography>
+                                                    ))}
+                                                </Box>
+                                            </Box>
+                                        )}
+
+                                        {/* Quick Actions for Group */}
+                                        <Flex gap={2} marginTop={3}>
+                                            <Button
+                                                variant="tertiary"
+                                                size="S"
+                                                onClick={() => window.open(group.collections[0].url, '_blank')}
+                                            >
+                                                📝 Edit First Collection
+                                            </Button>
+                                            <Button
+                                                variant="secondary"
+                                                size="S"
+                                                onClick={handleGoToCollections}
+                                            >
+                                                📋 View All Collections
+                                            </Button>
+                                        </Flex>
+                                    </Box>
+                                ))}
+
+                                {(!duplicates?.duplicateGroups || duplicates.duplicateGroups.length === 0) && !duplicatesLoading && (
+                                    <Box background="success100" padding="1.5rem" borderRadius="8px" textAlign="center">
+                                        <Typography variant="omega" textColor="success700">
+                                            🎉 No duplicate collections found! All collections have unique article sets.
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+                    </Dialog.Body>
+
+                    <Dialog.Footer>
+                        <Dialog.Cancel asChild>
+                            <Button variant="tertiary">
+                                Close
+                            </Button>
+                        </Dialog.Cancel>
+                        <Button
+                            variant="secondary"
+                            onClick={handleCombinedRefreshScan}
+                            disabled={refreshing}
+                        >
+                            🔄 Refresh Data
                         </Button>
                         <Button variant="primary" onClick={handleGoToCollections}>
                             📋 Go to Collections
@@ -378,4 +529,4 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
     );
 };
 
-export default OrphanQuickActions;
+export default CollectionQuickActions;

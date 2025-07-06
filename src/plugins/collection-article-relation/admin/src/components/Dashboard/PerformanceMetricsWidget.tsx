@@ -1,5 +1,4 @@
 // src/plugins/collection-article-relation/admin/src/components/Dashboard/PerformanceMetricsWidget.tsx
-// Simplified version with separated concerns
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -251,12 +250,14 @@ const PerformanceMetricsWidget: React.FC = () => {
                                 {metrics.totalRequests.toLocaleString()}
                             </Typography>
                         </MetricValue>
-                        <MetricLabel variant="omega" fontWeight="semiBold" textColor="warning700">
-                            Total Requests
-                        </MetricLabel>
-                        <MetricDescription variant="pi" textColor="warning600">
-                            Since last restart
-                        </MetricDescription>
+                        <Flex marginTop={4} justifyContent='space-between'>
+                            <MetricLabel variant="omega" fontWeight="semiBold" textColor="warning700">
+                                Total Requests
+                            </MetricLabel>
+                            <MetricDescription variant="pi" textColor="warning600">
+                                Since last restart
+                            </MetricDescription>
+                        </Flex>
                     </MetricsCard>
                 </Grid.Item>
 
