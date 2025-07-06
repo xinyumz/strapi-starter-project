@@ -1,5 +1,5 @@
 // src/plugins/collection-article-relation/admin/src/components/OrphanManagement/OrphanQuickActions.tsx
-// Cleaned up version with proper cache control
+// Enhanced version with improved cache management and user feedback
 
 import React, { useState } from 'react';
 import {
@@ -10,7 +10,8 @@ import {
     Dialog,
     Flex,
     Badge,
-    Loader
+    Loader,
+    Toast
 } from '@strapi/design-system';
 import styled from 'styled-components';
 import { useOrphanDetection, OrphanStats } from '../../hooks/useOrphanManagement';
@@ -23,7 +24,7 @@ const QuickActionButton = styled(Button)`
 interface OrphanQuickActionsProps {
     stats: OrphanStats;
     onRefreshStats: () => Promise<void>;
-    onForceRefresh: () => Promise<void>; // New prop for cache-busting refresh
+    onForceRefresh: () => Promise<void>;
 }
 
 const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
@@ -33,6 +34,10 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
 }) => {
     const [showOrphanModal, setShowOrphanModal] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState<'success' | 'danger'>('success');
+
     const { orphans, loading: orphansLoading, forceDetect } = useOrphanDetection();
 
     // Safe stats calculation
@@ -45,26 +50,50 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
         brokenReferenceCollections: stats.brokenReferenceCollections || 0
     };
 
-    // Handler: Scan for Orphans - FORCE CACHE BYPASS
+    // Show toast notification
+    const showNotification = (message: string, type: 'success' | 'danger' = 'success') => {
+        setToastMessage(message);
+        setToastType(type);
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 4000);
+    };
+
+    // Handler: Scan for Orphans - ENHANCED with better feedback
     const handleScanForOrphans = async () => {
         setRefreshing(true);
         try {
-            console.log('[OrphanQuickActions] Force refreshing orphan data');
-            await onForceRefresh(); // Use the cache-busting refresh
-            console.log('[OrphanQuickActions] Force refresh completed');
+            console.log('[OrphanQuickActions] Starting force refresh with cache clearing');
+
+            // Show immediate feedback
+            showNotification('🔄 Clearing cache and scanning for orphans...', 'success');
+
+            // Use the enhanced force refresh that clears cache first
+            await onForceRefresh();
+
+            console.log('[OrphanQuickActions] Force refresh completed successfully');
+            showNotification('✅ Orphan scan completed! Data refreshed.', 'success');
+
         } catch (error) {
             console.error('[OrphanQuickActions] Error during force refresh:', error);
+            showNotification('❌ Failed to refresh orphan data. Please try again.', 'danger');
         } finally {
             setRefreshing(false);
         }
     };
 
-    // Handler: Show Orphaned Collections
+    // Handler: Show Orphaned Collections - ENHANCED with force detect
     const handleShowOrphans = async () => {
         if (safeStats.orphanedCollections > 0) {
             setShowOrphanModal(true);
-            console.log('[OrphanQuickActions] Loading orphan details with cache bypass');
-            await forceDetect(); // Force fresh detection
+            console.log('[OrphanQuickActions] Loading orphan details with force detection');
+
+            try {
+                // Use force detect to ensure we have the latest data
+                await forceDetect();
+            } catch (error) {
+                console.error('[OrphanQuickActions] Error loading orphan details:', error);
+                showNotification('⚠️ Could not refresh orphan details, showing cached data.', 'danger');
+            }
         }
     };
 
@@ -73,7 +102,7 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
         window.open('/admin/content-manager/collection-types/api::collection.collection', '_blank');
     };
 
-    // Helper function for orphan type display (simplified)
+    // Helper function for orphan type display
     const getOrphanTypeLabel = (orphanType: string) => {
         switch (orphanType) {
             case 'empty':
@@ -101,6 +130,28 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
 
     return (
         <>
+            {/* Toast Notification */}
+            {showToast && (
+                <Box
+                    position="fixed"
+                    top="1rem"
+                    right="1rem"
+                    background={toastType === 'success' ? 'success100' : 'danger100'}
+                    padding="1rem"
+                    borderRadius="8px"
+                    borderColor={toastType === 'success' ? 'success600' : 'danger600'}
+                    borderWidth="2px"
+                    style={{ zIndex: 9999 }}
+                >
+                    <Typography
+                        variant="omega"
+                        textColor={toastType === 'success' ? 'success700' : 'danger700'}
+                    >
+                        {toastMessage}
+                    </Typography>
+                </Box>
+            )}
+
             {/* Quick Actions Section */}
             <Box>
                 <Box marginBottom={3}>
@@ -116,7 +167,14 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                             size="S"
                             disabled={refreshing}
                         >
-                            {refreshing ? '🔄 Scanning...' : '🔍 Scan for Orphans'}
+                            {refreshing ? (
+                                <Flex alignItems="center" gap={2}>
+                                    <Loader small />
+                                    Scanning...
+                                </Flex>
+                            ) : (
+                                '🔍 Scan for Orphans'
+                            )}
                         </QuickActionButton>
                     </Grid.Item>
                     <Grid.Item col={4}>
@@ -139,9 +197,17 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                         </QuickActionButton>
                     </Grid.Item>
                 </Grid.Root>
+
+                {/* Additional Action Info */}
+                <Box marginTop={3} padding="1rem" background="neutral100" borderRadius="8px">
+                    <Typography variant="pi" textColor="neutral600">
+                        💡 <strong>Tip:</strong> Data auto-refreshes every 2 minutes. "Scan for Orphans" clears the cache
+                        and provides immediate results within seconds of any collection changes.
+                    </Typography>
+                </Box>
             </Box>
 
-            {/* Orphan Details Modal */}
+            {/* Enhanced Orphan Details Modal */}
             <Dialog.Root open={showOrphanModal} onOpenChange={setShowOrphanModal}>
                 <Dialog.Content size="L">
                     <Dialog.Header>
@@ -157,7 +223,12 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
 
                         {orphansLoading ? (
                             <Box textAlign="center" padding="2rem">
-                                <Loader>Loading orphaned collection details...</Loader>
+                                <Flex direction="column" alignItems="center" gap={2}>
+                                    <Loader>Loading latest orphaned collection details...</Loader>
+                                    <Typography variant="pi" textColor="neutral600">
+                                        Refreshing data to ensure accuracy...
+                                    </Typography>
+                                </Flex>
                             </Box>
                         ) : (
                             <Box>
@@ -264,8 +335,13 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                                 {actualOrphans.length === 0 && !orphansLoading && (
                                     <Box background="success100" padding="1.5rem" borderRadius="8px" textAlign="center">
                                         <Typography variant="omega" textColor="success700">
-                                            No orphaned collections found! Your system is clean.
+                                            🎉 No orphaned collections found! Your system is clean.
                                         </Typography>
+                                        <Box marginTop={2}>
+                                            <Typography variant="pi" textColor="success600">
+                                                All collections have valid article references.
+                                            </Typography>
+                                        </Box>
                                     </Box>
                                 )}
                             </Box>
@@ -278,8 +354,19 @@ const OrphanQuickActions: React.FC<OrphanQuickActionsProps> = ({
                                 Close
                             </Button>
                         </Dialog.Cancel>
-                        <Button variant="secondary" onClick={handleScanForOrphans}>
-                            🔍 Refresh Data
+                        <Button
+                            variant="secondary"
+                            onClick={handleScanForOrphans}
+                            disabled={refreshing}
+                        >
+                            {refreshing ? (
+                                <Flex alignItems="center" gap={2}>
+                                    <Loader small />
+                                    Refreshing...
+                                </Flex>
+                            ) : (
+                                '🔍 Refresh Data'
+                            )}
                         </Button>
                         <Button variant="primary" onClick={handleGoToCollections}>
                             📋 Go to Collections

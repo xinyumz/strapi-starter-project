@@ -143,7 +143,7 @@ const PerformanceActions: React.FC<PerformanceActionsProps> = ({
                         </Box>
 
                         {/* Performance Summary */}
-                        <Box background="neutral100" padding="1.5rem" borderRadius="8px" marginBottom={3}>
+                        <Box background="neutral100" width="100%" padding="2rem" borderRadius="8px" marginBottom={3}>
                             <Box marginBottom={2}>
                                 <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
                                     📊 Current Performance Summary
@@ -151,51 +151,55 @@ const PerformanceActions: React.FC<PerformanceActionsProps> = ({
                             </Box>
                             <Grid.Root gap={3}>
                                 <Grid.Item col={6}>
-                                    <Box>
-                                        <Typography variant="pi" textColor="neutral600">
-                                            <strong>Response Time:</strong> {Math.round(metrics.avgResponseTime)}ms
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography variant="pi" textColor="neutral600">
-                                            <strong>Cache Hit Rate:</strong> {Math.round(metrics.cacheHitRate)}%
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography variant="pi" textColor="neutral600">
-                                            <strong>Total Requests:</strong> {metrics.totalRequests.toLocaleString()}
-                                        </Typography>
+                                    <Box width="100%" height="100%">
+                                        <Box>
+                                            <Typography variant="pi" textColor="neutral600">
+                                                <strong>Response Time:</strong> {Math.round(metrics.avgResponseTime)}ms
+                                            </Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="pi" textColor="neutral600">
+                                                <strong>Cache Hit Rate:</strong> {Math.round(metrics.cacheHitRate)}%
+                                            </Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="pi" textColor="neutral600">
+                                                <strong>Total Requests:</strong> {metrics.totalRequests.toLocaleString()}
+                                            </Typography>
+                                        </Box>
                                     </Box>
                                 </Grid.Item>
                                 <Grid.Item col={6}>
-                                    <Box>
-                                        <Typography variant="pi" textColor="neutral600">
-                                            <strong>Error Rate:</strong> {metrics.errorRate.toFixed(2)}%
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography variant="pi" textColor="neutral600">
-                                            <strong>System Load:</strong> {Math.round(metrics.systemLoad)}%
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography variant="pi" textColor="neutral600">
-                                            <strong>DB Query Time:</strong> {Math.round(metrics.dbQueryTime)}ms
-                                        </Typography>
+                                    <Box width="100%" height="100%">
+                                        <Box>
+                                            <Typography variant="pi" textColor="neutral600">
+                                                <strong>Error Rate:</strong> {metrics.errorRate.toFixed(2)}%
+                                            </Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="pi" textColor="neutral600">
+                                                <strong>System Load:</strong> {Math.round(metrics.systemLoad)}%
+                                            </Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="pi" textColor="neutral600">
+                                                <strong>DB Query Time:</strong> {Math.round(metrics.dbQueryTime)}ms
+                                            </Typography>
+                                        </Box>
                                     </Box>
                                 </Grid.Item>
                             </Grid.Root>
                         </Box>
 
                         {/* Performance Analysis */}
-                        <Box background="primary100" padding="1.5rem" borderRadius="8px" marginBottom={3}>
+                        <Box background="primary100" width="100%" padding="2rem" borderRadius="8px" marginBottom={3}>
                             <Box marginBottom={2}>
-                                <Typography variant="omega" fontWeight="semiBold" textColor="primary700">
+                                <Typography variant="omega" fontWeight="semiBold" textColor="neutral700">
                                     🎯 Performance Analysis
                                 </Typography>
                             </Box>
                             <Box marginBottom={2}>
-                                <Typography variant="pi" textColor="primary700">
+                                <Typography variant="pi" textColor="neutral700">
                                     <strong>Overall Status:</strong> Your system is performing excellently!
                                 </Typography>
                             </Box>
@@ -210,7 +214,7 @@ const PerformanceActions: React.FC<PerformanceActionsProps> = ({
                         </Box>
 
                         {/* System Information */}
-                        <Box background="neutral50" padding="1.5rem" borderRadius="8px">
+                        <Box background="secondary100" width="100%" padding="2rem" borderRadius="8px">
                             <Box marginBottom={2}>
                                 <Typography variant="omega" fontWeight="semiBold" textColor="neutral800">
                                     💻 System Information

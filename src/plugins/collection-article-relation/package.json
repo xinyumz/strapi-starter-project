@@ -1,10 +1,10 @@
 {
   "name": "collection-article-relation",
   "version": "1.0.0",
-  "description": "Automated collection creation with intelligent auto-fill and floating button interface",
+  "description": "Advanced collection management with intelligent auto-fill, orphan detection, and cache-optimized workflows",
   "strapi": {
     "name": "collection-article-relation",
-    "description": "One-click collection creation with auto-filled metadata and duplicate detection",
+    "description": "Advanced collection management with one-click creation, orphan detection, and automated maintenance",
     "kind": "plugin",
     "displayName": "Collection Management Hub"
   },

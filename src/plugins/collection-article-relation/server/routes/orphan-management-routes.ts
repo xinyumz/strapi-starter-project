@@ -273,7 +273,102 @@ export default [
             description: 'Dashboard widget data for orphan management overview',
             tags: ['dashboard', 'orphan-management']
         },
-    }
+    },
+
+    // ====================================
+    // CACHE MANAGEMENT ROUTES
+    // ====================================
+
+    /**
+     * Clear all orphan detection cache
+     */
+    {
+        method: 'DELETE',
+        path: '/orphans/cache',
+        handler: 'orphanManagement.clearOrphanCache',
+        config: {
+            policies: [],
+            middlewares: [],
+            auth: {
+                scope: ['admin']
+            },
+            description: 'Clear all orphan detection cache for immediate refresh',
+            tags: ['cache-management', 'orphan-detection']
+        },
+    },
+
+    /**
+     * Clear cache for specific collection
+     */
+    {
+        method: 'DELETE',
+        path: '/orphans/cache/:id',
+        handler: 'orphanManagement.clearCollectionCache',
+        config: {
+            policies: [],
+            middlewares: [],
+            auth: {
+                scope: ['admin']
+            },
+            description: 'Clear orphan detection cache for a specific collection',
+            tags: ['cache-management', 'collection-specific']
+        },
+    },
+
+    /**
+     * Get cache statistics and performance metrics
+     */
+    {
+        method: 'GET',
+        path: '/orphans/cache-stats',
+        handler: 'orphanManagement.getCacheStats',
+        config: {
+            policies: [],
+            middlewares: [],
+            auth: {
+                scope: ['admin']
+            },
+            description: 'Get detailed cache statistics and performance metrics',
+            tags: ['cache-management', 'statistics', 'performance']
+        },
+    },
+
+    /**
+     * Force orphan statistics bypassing cache
+     */
+    {
+        method: 'GET',
+        path: '/orphans/stats/force',
+        handler: 'orphanManagement.forceGetOrphanStats',
+        config: {
+            policies: [],
+            middlewares: [],
+            auth: {
+                scope: ['admin']
+            },
+            description: 'Force orphan statistics generation bypassing cache',
+            tags: ['orphan-statistics', 'cache-bypass', 'force-refresh']
+        },
+    },
+
+    /**
+     * Force orphan detection bypassing cache
+     */
+    {
+        method: 'GET',
+        path: '/orphans/detect/force',
+        handler: 'orphanManagement.forceDetectOrphans',
+        config: {
+            policies: [],
+            middlewares: [],
+            auth: {
+                scope: ['admin']
+            },
+            description: 'Force orphan detection bypassing all cache layers',
+            tags: ['orphan-detection', 'cache-bypass', 'force-refresh']
+        },
+    },
+
 
     // ====================================
     // REPORTING ROUTES (for future extension)

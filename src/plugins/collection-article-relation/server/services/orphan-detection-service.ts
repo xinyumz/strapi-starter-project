@@ -1,5 +1,4 @@
 // src/plugins/collection-article-relation/server/services/orphan-detection-service.ts
-// Focused on orphan detection and analysis logic
 
 import type { Core } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
@@ -47,9 +46,16 @@ interface RelationshipStatus {
     recommendations: string[];
 }
 
-// Orphan detection cache
+// Orphan detection cache with improved management
 const orphanDetectionCache = new Map<number, { status: OrphanStatus; timestamp: number }>();
-const ORPHAN_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const ORPHAN_CACHE_TTL = 2 * 60 * 1000;
+
+// Stats cache for better performance
+const statsCache = {
+    data: null as any,
+    timestamp: 0,
+    ttl: 2 * 60 * 1000
+};
 
 export default ({ strapi }: any) => {
     // Helper function to validate collection ID
@@ -69,6 +75,11 @@ export default ({ strapi }: any) => {
                 orphanDetectionCache.delete(key);
             }
         }
+    };
+
+    // Helper to check if we should bypass cache
+    const shouldBypassCache = (bypassCache?: boolean): boolean => {
+        return bypassCache === true;
     };
 
     // Helper to check if articles exist
@@ -103,17 +114,23 @@ export default ({ strapi }: any) => {
     return {
         /**
          * Detect orphaned status of a specific collection
+         * @param collectionId - The collection ID to check
+         * @param bypassCache - Whether to bypass cache and force fresh detection
          */
-        async getCollectionOrphanStatus(collectionId: number): Promise<OrphanStatus> {
+        async getCollectionOrphanStatus(collectionId: number, bypassCache = false): Promise<OrphanStatus> {
             try {
                 const validId = validateCollectionId(collectionId);
 
-                // Check cache first
-                cleanExpiredCache();
-                const cached = orphanDetectionCache.get(validId);
-                if (cached && (Date.now() - cached.timestamp) < ORPHAN_CACHE_TTL) {
-                    console.log(`[OrphanDetection] Cache hit for collection ${validId}`);
-                    return cached.status;
+                // Check cache first (unless bypassing)
+                if (!shouldBypassCache(bypassCache)) {
+                    cleanExpiredCache();
+                    const cached = orphanDetectionCache.get(validId);
+                    if (cached && (Date.now() - cached.timestamp) < ORPHAN_CACHE_TTL) {
+                        console.log(`[OrphanDetection] Cache hit for collection ${validId}`);
+                        return cached.status;
+                    }
+                } else {
+                    console.log(`[OrphanDetection] Bypassing cache for collection ${validId}`);
                 }
 
                 console.log(`[OrphanDetection] Analyzing collection ${validId} for orphan status`);
@@ -184,7 +201,7 @@ export default ({ strapi }: any) => {
                     severity
                 };
 
-                // Cache the result
+                // Cache the result (always cache fresh results)
                 orphanDetectionCache.set(validId, {
                     status,
                     timestamp: Date.now()
@@ -196,7 +213,8 @@ export default ({ strapi }: any) => {
                     isOrphaned,
                     totalArticles: articles.length,
                     validArticles: validArticleIds.length,
-                    missingArticles: missingArticleIds.length
+                    missingArticles: missingArticleIds.length,
+                    cached: !bypassCache
                 });
 
                 return status;
@@ -215,12 +233,14 @@ export default ({ strapi }: any) => {
 
         /**
          * Get detailed relationship status for a collection
+         * @param collectionId - The collection ID to check
+         * @param bypassCache - Whether to bypass cache
          */
-        async getCollectionRelationshipStatus(collectionId: number): Promise<RelationshipStatus> {
+        async getCollectionRelationshipStatus(collectionId: number, bypassCache = false): Promise<RelationshipStatus> {
             try {
                 const validId = validateCollectionId(collectionId);
 
-                console.log(`[OrphanDetection] Getting detailed relationship status for collection ${validId}`);
+                console.log(`[OrphanDetection] Getting detailed relationship status for collection ${validId}${bypassCache ? ' (bypassing cache)' : ''}`);
 
                 // Get collection with full article details
                 const collection = await strapi.documents('api::collection.collection').findFirst({
@@ -305,10 +325,11 @@ export default ({ strapi }: any) => {
 
         /**
          * Detect all orphaned collections in the system
+         * @param bypassCache - Whether to bypass cache for all collections
          */
-        async detectOrphanedCollections(): Promise<OrphanDetectionResult[]> {
+        async detectOrphanedCollections(bypassCache = false): Promise<OrphanDetectionResult[]> {
             try {
-                console.log('[OrphanDetection] Starting system-wide orphan detection');
+                console.log(`[OrphanDetection] Starting system-wide orphan detection${bypassCache ? ' (bypassing cache)' : ''}`);
 
                 // Get all collections with article relationships
                 const allCollections = await strapi.documents('api::collection.collection').findMany({
@@ -327,7 +348,7 @@ export default ({ strapi }: any) => {
                 for (const collection of allCollections) {
                     try {
                         const collectionId = parseInt(collection.id.toString());
-                        const status = await this.getCollectionOrphanStatus(collectionId);
+                        const status = await this.getCollectionOrphanStatus(collectionId, bypassCache);
 
                         // Generate suggested actions based on status
                         const suggestedActions: string[] = [];
@@ -401,8 +422,9 @@ export default ({ strapi }: any) => {
 
         /**
          * Get orphan detection statistics
+         * @param bypassCache - Whether to bypass stats cache
          */
-        async getOrphanDetectionStats(): Promise<{
+        async getOrphanDetectionStats(bypassCache = false): Promise<{
             totalCollections: number;
             orphanedCollections: number;
             emptyCollections: number;
@@ -414,9 +436,15 @@ export default ({ strapi }: any) => {
             cacheStats: { size: number; hitRate: string };
         }> {
             try {
-                console.log('[OrphanStats] Generating orphan detection statistics');
+                console.log(`[OrphanStats] Generating orphan detection statistics${bypassCache ? ' (bypassing cache)' : ''}`);
 
-                const allResults = await this.detectOrphanedCollections();
+                // Check stats cache first
+                if (!bypassCache && statsCache.data && (Date.now() - statsCache.timestamp) < statsCache.ttl) {
+                    console.log('[OrphanStats] Using cached stats');
+                    return statsCache.data;
+                }
+
+                const allResults = await this.detectOrphanedCollections(bypassCache);
 
                 const stats = {
                     totalCollections: allResults.length,
@@ -433,9 +461,13 @@ export default ({ strapi }: any) => {
                     lastAnalysis: new Date().toISOString(),
                     cacheStats: {
                         size: orphanDetectionCache.size,
-                        hitRate: 'Not tracked' // Could implement hit rate tracking
+                        hitRate: `${Math.round((orphanDetectionCache.size / (allResults.length || 1)) * 100)}%`
                     }
                 };
+
+                // Cache the stats
+                statsCache.data = stats;
+                statsCache.timestamp = Date.now();
 
                 console.log('[OrphanStats] Statistics generated:', stats);
                 return stats;
@@ -449,14 +481,29 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * Cache management methods
+         * Enhanced cache management methods
          */
         clearOrphanCache(): void {
+            const cacheSize = orphanDetectionCache.size;
             orphanDetectionCache.clear();
-            console.log('[OrphanDetection] Orphan detection cache cleared');
+            statsCache.data = null;
+            statsCache.timestamp = 0;
+            console.log(`[OrphanDetection] Orphan detection cache cleared (removed ${cacheSize} entries)`);
         },
 
-        getOrphanCacheStats(): { size: number; entries: any[] } {
+        clearCollectionCache(collectionId: number): void {
+            const validId = validateCollectionId(collectionId);
+            const existed = orphanDetectionCache.has(validId);
+            orphanDetectionCache.delete(validId);
+
+            // Also clear stats cache since individual collection status affects overall stats
+            statsCache.data = null;
+            statsCache.timestamp = 0;
+
+            console.log(`[OrphanDetection] Cache cleared for collection ${validId}${existed ? ' (entry existed)' : ' (no entry)'}`);
+        },
+
+        getOrphanCacheStats(): { size: number; entries: any[]; statsCache: any } {
             cleanExpiredCache();
             return {
                 size: orphanDetectionCache.size,
@@ -464,8 +511,14 @@ export default ({ strapi }: any) => {
                     collectionId: key,
                     orphanType: value.status.orphanType,
                     severity: value.status.severity,
-                    age: Date.now() - value.timestamp
-                }))
+                    age: Date.now() - value.timestamp,
+                    expiresIn: Math.max(0, ORPHAN_CACHE_TTL - (Date.now() - value.timestamp))
+                })),
+                statsCache: {
+                    hasData: !!statsCache.data,
+                    age: statsCache.timestamp ? Date.now() - statsCache.timestamp : null,
+                    expiresIn: statsCache.timestamp ? Math.max(0, statsCache.ttl - (Date.now() - statsCache.timestamp)) : null
+                }
             };
         }
     };

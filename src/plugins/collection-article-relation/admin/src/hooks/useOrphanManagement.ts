@@ -1,5 +1,5 @@
 // src/plugins/collection-article-relation/admin/src/hooks/useOrphanManagement.ts
-// Cleaned up version with cache control
+// Enhanced version with proper cache management and force refresh capabilities
 
 import { useState, useEffect, useCallback } from 'react';
 import { getFetchClient } from '@strapi/admin/strapi-admin';
@@ -53,9 +53,9 @@ export const useOrphanStats = () => {
 
             const { get } = getFetchClient();
 
-            // Add cache busting parameter for manual refreshes
+            // Use force endpoint for cache bypass or regular endpoint with query param
             const url = bypassCache
-                ? `/collection-article-relation/orphans/stats?t=${Date.now()}`
+                ? '/collection-article-relation/orphans/stats/force'
                 : '/collection-article-relation/orphans/stats';
 
             console.log(`[useOrphanStats] Fetching stats${bypassCache ? ' (bypassing cache)' : ''}`);
@@ -87,7 +87,8 @@ export const useOrphanStats = () => {
             console.log('[useOrphanStats] Stats updated:', {
                 total: validatedStats.totalCollections,
                 orphaned: validatedStats.orphanedCollections,
-                healthy: validatedStats.healthyCollections
+                healthy: validatedStats.healthyCollections,
+                method: bypassCache ? 'force' : 'cached'
             });
 
             setStats(validatedStats);
@@ -100,6 +101,49 @@ export const useOrphanStats = () => {
         }
     }, []);
 
+    // Enhanced force refresh that clears cache first, then fetches fresh data
+    const forceRefresh = useCallback(async () => {
+        try {
+            console.log('[useOrphanStats] Force refresh: clearing cache first');
+            const { del } = getFetchClient();
+
+            // Clear the cache first
+            await del('/collection-article-relation/orphans/cache');
+            console.log('[useOrphanStats] Cache cleared, now fetching fresh data');
+
+            // Then fetch fresh data
+            await fetchStats(true);
+
+        } catch (err) {
+            console.error('[useOrphanStats] Error in force refresh:', err);
+            // Even if cache clearing fails, try to fetch fresh data
+            await fetchStats(true);
+        }
+    }, [fetchStats]);
+
+    // Cache management functions
+    const clearCache = useCallback(async () => {
+        try {
+            const { del } = getFetchClient();
+            await del('/collection-article-relation/orphans/cache');
+            console.log('[useOrphanStats] Cache cleared successfully');
+        } catch (err) {
+            console.error('[useOrphanStats] Error clearing cache:', err);
+            throw err;
+        }
+    }, []);
+
+    const getCacheStats = useCallback(async () => {
+        try {
+            const { get } = getFetchClient();
+            const response = await get('/collection-article-relation/orphans/cache-stats');
+            return response.data;
+        } catch (err) {
+            console.error('[useOrphanStats] Error getting cache stats:', err);
+            throw err;
+        }
+    }, []);
+
     useEffect(() => {
         fetchStats();
     }, [fetchStats]);
@@ -109,7 +153,9 @@ export const useOrphanStats = () => {
         loading,
         error,
         refetch: () => fetchStats(false),
-        forceRefresh: () => fetchStats(true)
+        forceRefresh,
+        clearCache,
+        getCacheStats
     };
 };
 
@@ -125,9 +171,9 @@ export const useOrphanDetection = () => {
 
             const { get } = getFetchClient();
 
-            // Add cache busting for detection too
+            // Use force endpoint for cache bypass or regular endpoint
             const url = bypassCache
-                ? `/collection-article-relation/orphans/detect?t=${Date.now()}`
+                ? '/collection-article-relation/orphans/detect/force'
                 : '/collection-article-relation/orphans/detect';
 
             console.log(`[useOrphanDetection] Detecting orphans${bypassCache ? ' (bypassing cache)' : ''}`);
@@ -150,12 +196,32 @@ export const useOrphanDetection = () => {
         }
     }, []);
 
+    // Enhanced force detect that clears cache first
+    const forceDetect = useCallback(async () => {
+        try {
+            console.log('[useOrphanDetection] Force detect: clearing cache first');
+            const { del } = getFetchClient();
+
+            // Clear the cache first
+            await del('/collection-article-relation/orphans/cache');
+            console.log('[useOrphanDetection] Cache cleared, now detecting fresh orphans');
+
+            // Then detect fresh orphans
+            await detectOrphans(true);
+
+        } catch (err) {
+            console.error('[useOrphanDetection] Error in force detect:', err);
+            // Even if cache clearing fails, try to detect fresh orphans
+            await detectOrphans(true);
+        }
+    }, [detectOrphans]);
+
     return {
         orphans,
         loading,
         error,
         detectOrphans: () => detectOrphans(false),
-        forceDetect: () => detectOrphans(true)
+        forceDetect
     };
 };
 
@@ -172,8 +238,19 @@ export const useOrphanCleanup = () => {
             setLoading(true);
             setError(null);
 
-            const { post } = getFetchClient();
+            const { post, del } = getFetchClient();
+
+            // Perform the cleanup
             const response = await post(`/collection-article-relation/orphans/cleanup/${collectionId}`, options);
+
+            // Clear cache for this specific collection after cleanup
+            try {
+                await del(`/collection-article-relation/orphans/cache/${collectionId}`);
+                console.log(`[useOrphanCleanup] Cache cleared for collection ${collectionId} after cleanup`);
+            } catch (cacheError) {
+                console.warn('[useOrphanCleanup] Failed to clear cache after cleanup:', cacheError);
+                // Don't fail the entire operation if cache clearing fails
+            }
 
             return response.data;
         } catch (err) {
