@@ -15,8 +15,8 @@ export default ({ env }) => ({
         enabled: true,
         resolve: './src/plugins/category-manager'
     },
-    'collection-article-relation': {
+    'collection-manager': {
         enabled: true,
-        resolve: './src/plugins/collection-article-relation'
+        resolve: './src/plugins/collection-manager'
     },
 });
