@@ -476,7 +476,7 @@ export const useOrphanDetection = () => {
         }
     }, []);
 
-    // SIMPLIFIED: Remove redundant cache clearing
+    // Remove redundant cache clearing
     const forceDetect = useCallback(async () => {
         console.log('[useOrphanDetection] Force detect: fetching fresh orphans directly');
 

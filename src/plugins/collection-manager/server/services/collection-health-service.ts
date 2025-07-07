@@ -76,72 +76,24 @@ export default ({ strapi }: any) => {
             return { healthScore: 100, orphanPenalty: 0, duplicatePenalty: 0 };
         }
 
-        // Calculate penalties
-        const orphanPenalty = (orphanedCollections / totalCollections);
-        const duplicatePenalty = (duplicateCollections / totalCollections);
+        // Weighted penalties approach
+        const orphanWeight = 1.0;
+        const duplicateWeight = 0.5;
 
-        // Apply your specified formula: healthScore = 100 - (orphanPenalty * 50) - (duplicatePenalty * 30)
-        const healthScore = Math.max(0, Math.round(100 - (orphanPenalty * 50) - (duplicatePenalty * 30)));
+        const weightedProblems = (orphanedCollections * orphanWeight) + (duplicateCollections * duplicateWeight);
+        const healthScore = Math.round(Math.max(0, 100 - (weightedProblems / totalCollections) * 100));
+
+        // Calculate individual penalties for display
+        const orphanPenalty = Math.round((orphanedCollections / totalCollections) * 100);
+        const duplicatePenalty = Math.round((duplicateCollections / totalCollections) * 100);
+
+        console.log(`[HealthScore] Weighted calculation: ${orphanedCollections} orphans (weight: ${orphanWeight}) + ${duplicateCollections} duplicates (weight: ${duplicateWeight}) = ${healthScore}% health`);
 
         return {
             healthScore,
-            orphanPenalty: Math.round(orphanPenalty * 100), // Convert to percentage
-            duplicatePenalty: Math.round(duplicatePenalty * 100) // Convert to percentage
+            orphanPenalty,
+            duplicatePenalty
         };
-    };
-
-    // Generate combined recommendations
-    const generateCombinedRecommendations = (
-        orphanStats: any,
-        duplicateStats: any,
-        healthScore: number
-    ): string[] => {
-        const recommendations: string[] = [];
-
-        // Overall health assessment
-        if (healthScore >= 90) {
-            recommendations.push('✅ Excellent collection health - minimal issues detected');
-        } else if (healthScore >= 70) {
-            recommendations.push('⚡ Good collection health with minor improvements needed');
-        } else if (healthScore >= 50) {
-            recommendations.push('⚠️ Moderate collection health - several issues need attention');
-        } else {
-            recommendations.push('🚨 Poor collection health - immediate cleanup required');
-        }
-
-        // Priority-based recommendations
-        const orphanIssues = orphanStats.orphanedCollections || 0;
-        const duplicateIssues = duplicateStats.duplicateCollections || 0;
-
-        if (orphanIssues > 0 && duplicateIssues > 0) {
-            recommendations.push(`📋 Address both ${orphanIssues} orphan(s) and ${duplicateIssues} duplicate(s)`);
-
-            // Prioritize based on severity
-            if (orphanStats.severityBreakdown?.high > 0) {
-                recommendations.push('🔥 Priority: Fix high-severity orphaned collections first');
-            } else if (duplicateStats.severityBreakdown?.high > 0) {
-                recommendations.push('🔥 Priority: Consolidate high-severity duplicate groups first');
-            }
-        } else if (orphanIssues > 0) {
-            recommendations.push(`🗑️ Focus on cleaning up ${orphanIssues} orphaned collection(s)`);
-        } else if (duplicateIssues > 0) {
-            recommendations.push(`📂 Focus on consolidating ${duplicateIssues} duplicate collection(s)`);
-        }
-
-        // Specific action recommendations
-        if (orphanStats.emptyCollections > 0) {
-            recommendations.push(`🗂️ Remove ${orphanStats.emptyCollections} empty collection(s)`);
-        }
-
-        if (duplicateStats.duplicateGroups > 3) {
-            recommendations.push('🔄 Implement duplicate prevention in content creation workflow');
-        }
-
-        if (orphanStats.singleArticleCollections > 10) {
-            recommendations.push('📚 Consider consolidating numerous single-article collections');
-        }
-
-        return recommendations.length > 0 ? recommendations : ['✅ No specific recommendations at this time'];
     };
 
     return {

@@ -1,44 +1,33 @@
 // src/plugins/collection-manager/admin/src/utils/pageMonitorSystem.ts
-// DEBUG VERSION - Enhanced logging for Strapi v5
+// Pure page monitoring and orchestration system - no specific component logic
 
-import { addFloatingButton, removeFloatingButton } from './floatingButtonSystem';
-
-/**
- * URL patterns for article edit pages in Strapi v5
- * Extended patterns based on actual Strapi v5 URL structures
- */
-const ARTICLE_PAGE_PATTERNS = [
-    // Strapi v5 primary patterns
-    /\/admin\/content-manager\/collection-types\/api::article\.article\/([a-zA-Z0-9]{20,})/,
-    /\/admin\/content-manager\/collectionType\/api::article\.article\/([a-zA-Z0-9]{20,})/,
-    // Alternative v5 patterns with shorter IDs
-    /\/admin\/content-manager\/collection-types\/api::article\.article\/(\d+)/,
-    /\/admin\/content-manager\/collectionType\/api::article\.article\/(\d+)/,
-    // Legacy v4 pattern (fallback)
-    /\/admin\/content-manager\/collectionType\/application::article\.article\/(\d+)/,
-    // Additional possible patterns
-    /\/content-manager\/collection-types\/api::article\.article\/([^\/\?]+)/,
-    /\/content-manager\/collectionType\/api::article\.article\/([^\/\?]+)/
-];
+import {
+    initializeFloatingButtonManager,
+    handleFloatingButtonNavigation,
+    cleanupFloatingButtonManager
+} from './floatingButtonManager';
+import {
+    initializeHealthBadgeSystem,
+    handleHealthBadgeNavigation,
+    cleanupHealthBadgeSystem
+} from './healthBadgeSystem';
 
 /**
- * Cache for current state to avoid unnecessary operations
+ * Main page monitoring state
  */
-let currentState = {
-    isOnArticlePage: false,
-    currentArticleId: null as string | null,
-    hasButton: false,
+let monitoringState = {
+    isInitialized: false,
     observers: [] as MutationObserver[],
-    lastLoggedUrl: '',
-    debugMode: false
+    debugMode: false,
+    lastLoggedUrl: ''
 };
 
 /**
- * Enhanced logging function
+ * Debug logging for main system
  */
 function debugLog(message: string, ...args: any[]) {
-    if (currentState.debugMode) {
-        console.log(`[PageMonitor DEBUG] ${message}`, ...args);
+    if (monitoringState.debugMode) {
+        console.log(`[PageMonitor MAIN] ${message}`, ...args);
     }
 }
 
@@ -47,79 +36,50 @@ function debugLog(message: string, ...args: any[]) {
  */
 function logUrlChange() {
     const currentUrl = window.location.pathname + window.location.search;
-    if (currentUrl !== currentState.lastLoggedUrl) {
+    if (currentUrl !== monitoringState.lastLoggedUrl) {
         debugLog('URL changed:', {
-            from: currentState.lastLoggedUrl,
+            from: monitoringState.lastLoggedUrl,
             to: currentUrl,
             timestamp: new Date().toISOString()
         });
-        currentState.lastLoggedUrl = currentUrl;
+        monitoringState.lastLoggedUrl = currentUrl;
+
+        // Notify all subsystems of navigation
+        handleNavigation();
     }
 }
 
 /**
- * Extract article ID from current URL using multiple patterns
+ * Handle navigation events by notifying all subsystems
  */
-function extractArticleIdFromUrl(): string | null {
-    const currentPath = window.location.pathname;
-    logUrlChange();
+async function handleNavigation(): Promise<void> {
+    debugLog('🔄 Handling navigation - notifying subsystems');
 
-    debugLog('Testing URL patterns against:', currentPath);
+    try {
+        // Run subsystem navigation handlers in parallel
+        await Promise.all([
+            handleFloatingButtonNavigation(),
+            handleHealthBadgeNavigation()
+        ]);
 
-    for (let i = 0; i < ARTICLE_PAGE_PATTERNS.length; i++) {
-        const pattern = ARTICLE_PAGE_PATTERNS[i];
-        const match = currentPath.match(pattern);
-        if (match) {
-            debugLog(`✅ Pattern ${i + 1} matched:`, {
-                pattern: pattern.toString(),
-                extractedId: match[1],
-                fullMatch: match[0]
-            });
-            return match[1];
-        } else {
-            debugLog(`❌ Pattern ${i + 1} failed:`, pattern.toString());
-        }
+        debugLog('✅ All subsystems notified of navigation');
+    } catch (error) {
+        console.error('[PageMonitor] Error during navigation handling:', error);
     }
-
-    debugLog('❌ No patterns matched for URL:', currentPath);
-    return null;
-}
-
-/**
- * Check if current page is an article edit page
- */
-function isArticlePage(): boolean {
-    const currentPath = window.location.pathname;
-    const isArticle = ARTICLE_PAGE_PATTERNS.some(pattern => pattern.test(currentPath));
-    debugLog('Article page check:', {
-        path: currentPath,
-        isArticlePage: isArticle,
-        patternsChecked: ARTICLE_PAGE_PATTERNS.length
-    });
-    return isArticle;
-}
-
-/**
- * Check if floating button already exists
- */
-function hasFloatingButton(): boolean {
-    const exists = document.getElementById('floating-collection-btn') !== null;
-    debugLog('Button existence check:', exists);
-    return exists;
 }
 
 /**
  * Debounced function to handle state changes efficiently
  */
 let debounceTimeout: NodeJS.Timeout | null = null;
-function debouncedStateUpdate() {
+function debouncedNavigationUpdate() {
     if (debounceTimeout) {
         clearTimeout(debounceTimeout);
     }
 
     debounceTimeout = setTimeout(() => {
-        debugLog('Debounced state update triggered');
-        checkAndManageButtonOptimized();
+        debugLog('Debounced navigation update triggered');
+        logUrlChange(); // This will call handleNavigation if URL changed
     }, 100);
 }
 
@@ -190,79 +150,6 @@ function waitForStrapiContent(): Promise<void> {
 }
 
 /**
- * Optimized button management with state caching
- */
-async function checkAndManageButtonOptimized(): Promise<void> {
-    debugLog('=== Button Management Check Started ===');
-
-    // Wait for DOM and Strapi content to be ready
-    await waitForDomReady();
-    await waitForStrapiContent();
-
-    const isOnArticle = isArticlePage();
-    const articleId = extractArticleIdFromUrl();
-    const buttonExists = hasFloatingButton();
-
-    const stateSnapshot = {
-        wasOnArticle: currentState.isOnArticlePage,
-        nowOnArticle: isOnArticle,
-        wasArticleId: currentState.currentArticleId,
-        nowArticleId: articleId,
-        hadButton: currentState.hasButton,
-        hasButton: buttonExists,
-        url: window.location.pathname,
-        timestamp: new Date().toISOString()
-    };
-
-    debugLog('State comparison:', stateSnapshot);
-
-    // Check if state actually changed
-    if (
-        currentState.isOnArticlePage === isOnArticle &&
-        currentState.currentArticleId === articleId &&
-        currentState.hasButton === buttonExists
-    ) {
-        debugLog('❌ No state change detected, skipping action');
-        return;
-    }
-
-    debugLog('✅ State change detected, taking action:', stateSnapshot);
-
-    // Update state
-    currentState.isOnArticlePage = isOnArticle;
-    currentState.currentArticleId = articleId;
-    currentState.hasButton = buttonExists;
-
-    // Manage button based on new state
-    if (isOnArticle && articleId && !buttonExists) {
-        debugLog('🎯 ACTION: Adding button for article:', articleId);
-        addFloatingButton(articleId);
-        currentState.hasButton = true;
-    } else if (!isOnArticle && buttonExists) {
-        debugLog('🎯 ACTION: Removing button - not on article page');
-        removeFloatingButton();
-        currentState.hasButton = false;
-    } else if (isOnArticle && articleId && buttonExists && currentState.currentArticleId !== articleId) {
-        debugLog('🎯 ACTION: Article changed, updating button:', articleId);
-        removeFloatingButton();
-        setTimeout(() => {
-            addFloatingButton(articleId);
-        }, 100);
-    } else {
-        debugLog('❓ No action taken. State:', {
-            isOnArticle,
-            articleId: articleId || 'null',
-            buttonExists,
-            reason: !isOnArticle ? 'Not on article page' :
-                !articleId ? 'No article ID' :
-                    buttonExists ? 'Button already exists' : 'Unknown'
-        });
-    }
-
-    debugLog('=== Button Management Check Completed ===');
-}
-
-/**
  * Set up URL change monitoring using modern browser APIs
  */
 function setupUrlMonitoring(): void {
@@ -271,7 +158,7 @@ function setupUrlMonitoring(): void {
     // Listen for popstate events (back/forward navigation)
     window.addEventListener('popstate', (event) => {
         debugLog('popstate event detected:', event);
-        debouncedStateUpdate();
+        debouncedNavigationUpdate();
     });
 
     // Override pushState and replaceState to catch programmatic navigation
@@ -285,7 +172,7 @@ function setupUrlMonitoring(): void {
             url: args[2]
         });
         originalPushState.apply(history, args);
-        debouncedStateUpdate();
+        debouncedNavigationUpdate();
     };
 
     history.replaceState = function (...args) {
@@ -295,7 +182,7 @@ function setupUrlMonitoring(): void {
             url: args[2]
         });
         originalReplaceState.apply(history, args);
-        debouncedStateUpdate();
+        debouncedNavigationUpdate();
     };
 
     // Listen for hash changes
@@ -304,7 +191,7 @@ function setupUrlMonitoring(): void {
             oldURL: event.oldURL,
             newURL: event.newURL
         });
-        debouncedStateUpdate();
+        debouncedNavigationUpdate();
     });
 
     debugLog('URL monitoring setup complete');
@@ -370,7 +257,7 @@ function setupDomMonitoring(): void {
 
         if (shouldUpdate) {
             debugLog('Relevant DOM changes detected:', relevantChanges);
-            debouncedStateUpdate();
+            debouncedNavigationUpdate();
         }
     });
 
@@ -382,15 +269,44 @@ function setupDomMonitoring(): void {
         characterData: false
     });
 
-    currentState.observers.push(observer);
+    monitoringState.observers.push(observer);
     debugLog('DOM observer started on:', targetNode.tagName);
 }
 
 /**
- * Initialize the optimized page monitoring system
+ * Initialize all subsystems
+ */
+async function initializeSubsystems(): Promise<void> {
+    debugLog('🔧 Initializing all subsystems');
+
+    try {
+        // Wait for DOM and Strapi to be ready
+        await waitForDomReady();
+        await waitForStrapiContent();
+
+        // Initialize subsystems
+        initializeFloatingButtonManager();
+        initializeHealthBadgeSystem();
+
+        // Initial navigation handling
+        await handleNavigation();
+
+        debugLog('✅ All subsystems initialized successfully');
+    } catch (error) {
+        console.error('[PageMonitor] Error during subsystem initialization:', error);
+    }
+}
+
+/**
+ * Initialize the main page monitoring system
  */
 export function initializePageMonitoring(): void {
-    debugLog('🚀 Initializing page monitoring system for Strapi v5');
+    if (monitoringState.isInitialized) {
+        debugLog('⚠️ Page monitoring already initialized, skipping');
+        return;
+    }
+
+    debugLog('🚀 Initializing main page monitoring system for Strapi v5');
     debugLog('Environment check:', {
         url: window.location.href,
         userAgent: navigator.userAgent,
@@ -398,35 +314,39 @@ export function initializePageMonitoring(): void {
         readyState: document.readyState
     });
 
+    // Mark as initialized
+    monitoringState.isInitialized = true;
+
     // Add a delay to ensure Strapi admin is fully loaded
     setTimeout(async () => {
-        debugLog('🔧 Starting initialization after delay');
+        debugLog('🔧 Starting main system initialization after delay');
 
-        // Initial state check
-        await checkAndManageButtonOptimized();
+        // Initialize subsystems
+        await initializeSubsystems();
 
-        // Set up event-driven monitoring
+        // Set up monitoring infrastructure
         setupUrlMonitoring();
         setupDomMonitoring();
 
-        debugLog('✅ Page monitoring system fully initialized');
+        debugLog('✅ Main page monitoring system fully initialized');
 
         // Log current state for debugging
-        debugLog('Current state after initialization:', {
-            ...currentState,
-            observerCount: currentState.observers.length
+        debugLog('Current monitoring state after initialization:', {
+            ...monitoringState,
+            observerCount: monitoringState.observers.length
         });
     }, 1000);
 }
 
 /**
- * Stop page monitoring and cleanup resources
+ * Stop page monitoring and cleanup all resources
  */
 export function stopPageMonitoring(): void {
-    debugLog('🛑 Stopping page monitoring and cleaning up');
+    debugLog('🛑 Stopping main page monitoring and cleaning up all subsystems');
 
-    // Remove floating button
-    removeFloatingButton();
+    // Cleanup all subsystems
+    cleanupFloatingButtonManager();
+    cleanupHealthBadgeSystem();
 
     // Clear debounce timeout
     if (debounceTimeout) {
@@ -435,24 +355,22 @@ export function stopPageMonitoring(): void {
     }
 
     // Disconnect all observers
-    currentState.observers.forEach(observer => observer.disconnect());
-    currentState.observers = [];
+    monitoringState.observers.forEach(observer => observer.disconnect());
+    monitoringState.observers = [];
 
     // Remove event listeners
-    window.removeEventListener('popstate', debouncedStateUpdate);
-    window.removeEventListener('hashchange', debouncedStateUpdate);
+    window.removeEventListener('popstate', debouncedNavigationUpdate);
+    window.removeEventListener('hashchange', debouncedNavigationUpdate);
 
     // Reset state
-    currentState = {
-        isOnArticlePage: false,
-        currentArticleId: null,
-        hasButton: false,
+    monitoringState = {
+        isInitialized: false,
         observers: [],
-        lastLoggedUrl: '',
-        debugMode: true
+        debugMode: false,
+        lastLoggedUrl: ''
     };
 
-    debugLog('✅ Cleanup completed');
+    debugLog('✅ Main system cleanup completed');
 }
 
 /**
@@ -460,45 +378,59 @@ export function stopPageMonitoring(): void {
  */
 export function getMonitoringState() {
     const state = {
-        ...currentState,
-        observerCount: currentState.observers.length,
+        ...monitoringState,
+        observerCount: monitoringState.observers.length,
         currentUrl: window.location.pathname,
-        isArticlePage: isArticlePage(),
-        extractedId: extractArticleIdFromUrl(),
-        buttonExists: hasFloatingButton(),
         timestamp: new Date().toISOString()
     };
 
-    debugLog('Current state requested:', state);
+    debugLog('Main monitoring state requested:', state);
     return state;
 }
 
 /**
- * Manual trigger for debugging
+ * Manual trigger for debugging - forces all subsystems to re-evaluate
  */
 export function manualCheck(): void {
-    debugLog('🔍 Manual check triggered by user');
+    debugLog('🔍 Manual check triggered by user - forcing subsystem re-evaluation');
     debugLog('Current state before manual check:', getMonitoringState());
-    checkAndManageButtonOptimized();
+    handleNavigation();
 }
 
 /**
- * Toggle debug mode
+ * Toggle debug mode for main system
  */
 export function toggleDebugMode(): void {
-    currentState.debugMode = !currentState.debugMode;
-    console.log(`[PageMonitor] Debug mode ${currentState.debugMode ? 'enabled' : 'disabled'}`);
+    monitoringState.debugMode = !monitoringState.debugMode;
+    console.log(`[PageMonitor MAIN] Debug mode ${monitoringState.debugMode ? 'enabled' : 'disabled'}`);
 }
 
-// Expose functions to window for debugging in browser console
+/**
+ * Force complete system refresh
+ */
+export function forceSystemRefresh(): void {
+    debugLog('🔄 Force system refresh triggered');
+
+    if (!monitoringState.isInitialized) {
+        debugLog('System not initialized, starting initialization');
+        initializePageMonitoring();
+    } else {
+        debugLog('Forcing navigation handling for all subsystems');
+        handleNavigation();
+    }
+}
+
+// Expose main system functions to window for debugging
 if (typeof window !== 'undefined') {
     (window as any).PageMonitorDebug = {
         getState: getMonitoringState,
         manualCheck,
+        forceRefresh: forceSystemRefresh,
         toggleDebug: toggleDebugMode,
-        extractId: extractArticleIdFromUrl,
-        isArticlePage: isArticlePage
+        // Easy access to subsystem debug tools
+        get floating() { return (window as any).FloatingButtonDebug; },
+        get health() { return (window as any).HealthBadgeDebug; }
     };
 
-    debugLog('Debug functions exposed to window.PageMonitorDebug');
+    debugLog('Main system debug functions exposed to window.PageMonitorDebug');
 }

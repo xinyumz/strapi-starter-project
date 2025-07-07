@@ -33,7 +33,7 @@ export default {
     console.log('[Collection Manager] Bootstrap started');
 
     setTimeout(() => {
-      console.log('[Collection Manager] Initializing floating button system');
+      console.log('[Collection Manager] Initializing page monitoring system');
       initializePageMonitoring();
     }, 2000);
 

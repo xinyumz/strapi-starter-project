@@ -124,7 +124,7 @@ export default [
         config: {
             policies: [],
             middlewares: [],
-            auth: { scope: ['admin'] },
+            auth: false,
             description: 'Get combined health overview including orphans and duplicates',
             tags: ['health-management', 'overview']
         },
@@ -137,7 +137,7 @@ export default [
         config: {
             policies: [],
             middlewares: [],
-            auth: { scope: ['admin'] },
+            auth: false,
             description: 'Force health overview bypassing cache',
             tags: ['health-management', 'force-refresh']
         },
@@ -150,7 +150,7 @@ export default [
         config: {
             policies: [],
             middlewares: [],
-            auth: { scope: ['admin'] },
+            auth: false,
             description: 'Get health metrics summary for dashboard widgets',
             tags: ['health-management', 'metrics']
         },

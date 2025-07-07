@@ -385,7 +385,7 @@ const FeaturesTab: React.FC = () => {
 
                     <Box marginBottom={3}>
                         <Typography variant="omega" textColor="primary700" fontWeight="medium">
-                            Unified Health Formula:
+                            Weighted Health Formula:
                         </Typography>
                     </Box>
 
@@ -397,16 +397,45 @@ const FeaturesTab: React.FC = () => {
                         textAlign="center"
                     >
                         <Typography variant="omega" textColor="primary800" fontWeight="bold">
-                            Health Score = 100 - (Orphan Penalty × 50) - (Duplicate Penalty × 30)
+                            Health Score = 100 - (Orphan Weight × 1.0) - (Duplicate Weight × 0.5)
                         </Typography>
                     </Box>
 
-                    <Box>
+                    <Box marginBottom={3}>
                         <Typography variant="omega" textColor="primary700" style={{ lineHeight: '1.6' }}>
-                            This formula prioritizes orphan cleanup (higher penalty) while also encouraging
-                            duplicate consolidation. The scoring system provides clear, actionable health metrics
-                            for enterprise content management.
+                            This weighted approach recognizes that <strong>orphaned collections are always problematic</strong>
+                            (full penalty), while <strong>duplicates may sometimes be intentional</strong> (half penalty).
+                            The system can reach 0% health when all collections have issues, providing realistic urgency levels.
                         </Typography>
+                    </Box>
+
+                    <Box marginBottom={3}>
+                        <Typography variant="omega" textColor="primary700" fontWeight="medium">
+                            Real-world Examples:
+                        </Typography>
+                    </Box>
+
+                    <Box marginLeft={2}>
+                        <Box marginBottom={1}>
+                            <Typography variant="pi" textColor="primary700">
+                                • <strong>All orphaned:</strong> 0% health (urgent action required)
+                            </Typography>
+                        </Box>
+                        <Box marginBottom={1}>
+                            <Typography variant="pi" textColor="primary700">
+                                • <strong>All duplicated:</strong> 50% health (cleanup recommended)
+                            </Typography>
+                        </Box>
+                        <Box marginBottom={1}>
+                            <Typography variant="pi" textColor="primary700">
+                                • <strong>Mixed issues:</strong> Proportional scoring based on severity
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="pi" textColor="primary700">
+                                • <strong>All healthy:</strong> 100% health (system optimized)
+                            </Typography>
+                        </Box>
                     </Box>
                 </InfoCard>
             </SectionContainer>

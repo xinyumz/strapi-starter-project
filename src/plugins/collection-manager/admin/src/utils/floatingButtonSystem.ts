@@ -1,4 +1,5 @@
 // src/plugins/collection-manager/admin/src/utils/floatingButtonSystem.ts
+// Low-level implementation (styling, API, interactions)
 
 /**
  * Notification system with CSP compliance
