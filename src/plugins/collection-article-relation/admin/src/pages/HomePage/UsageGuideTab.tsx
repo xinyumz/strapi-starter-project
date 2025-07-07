@@ -12,7 +12,7 @@ import {
     StepNumber,
     ReadyBadge,
     InfoCard
-} from './shared/StyledComponents';
+} from '../../components/shared/StyledComponents';
 
 const UsageGuideTab: React.FC = () => {
     return (

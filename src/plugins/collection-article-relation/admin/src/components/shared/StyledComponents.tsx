@@ -1,6 +1,6 @@
 // src/plugins/collection-article-relation/admin/src/pages/HomePage/shared/StyledComponents.tsx
 
-import { Box } from '@strapi/design-system';
+import { Box, Button, Typography } from '@strapi/design-system';
 import styled from 'styled-components';
 
 // ====================================
@@ -136,7 +136,7 @@ export const BenefitsGrid = styled(Box)`
 // INTERACTIVE COMPONENTS
 // ====================================
 
-export const QuickActionButton = styled(Box)`
+export const QuickActionButton = styled(Button)`
   margin-top: 1rem;
   width: 100%;
 `;
@@ -168,9 +168,9 @@ export const StatusBadge = styled(Box)`
 // ====================================
 
 export const ProgressRing = styled(Box) <{
-    $percentage: number;
-    $color: string;
-    $backgroundColor?: string;
+  $percentage: number;
+  $color: string;
+  $backgroundColor?: string;
 }>`
   width: 60px;
   height: 60px;
@@ -186,18 +186,20 @@ export const ProgressRing = styled(Box) <{
   
   &::before {
     content: '';
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background: white;
+    background: #ffffff;
+    border: 2px solid #ffffff;
     position: absolute;
   }
 `;
 
-export const MetricText = styled(Box)`
+export const MetricText = styled(Typography)`
   position: relative;
   z-index: 1;
   font-weight: bold;
+  color: #212529 !important; /* Force dark color */
 `;
 
 // ====================================
@@ -346,11 +348,46 @@ export const FocusVisible = styled(Box)`
   }
 `;
 
+
+// =========================================
+// ScrollableModal Components
+// =========================================
+
+
+export const ScrollableModalContent = styled(Box)`
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+  
+  /* Firefox scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+`;
+
 // ====================================
 // EXPORT ALL COMPONENTS
 // ====================================
 
 export {
-    // Re-export for easier imports
-    Box
+  // Re-export for easier imports
+  Box
 } from '@strapi/design-system';

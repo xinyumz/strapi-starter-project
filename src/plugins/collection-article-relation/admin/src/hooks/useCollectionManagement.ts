@@ -100,7 +100,158 @@ export interface DuplicateDetectionResult {
     recommendations: string[];
 }
 
-// Enhanced useOrphanStats hook with duplicate detection support
+// Enhanced useCombinedHealth hook with FIXED response parsing and comprehensive debugging
+export const useCombinedHealth = () => {
+    const [healthStats, setHealthStats] = useState<CombinedHealthStats | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchCombinedHealth = useCallback(async (bypassCache = false) => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const { get } = getFetchClient();
+
+            // Use force endpoint for cache bypass or regular endpoint
+            const url = bypassCache
+                ? '/collection-article-relation/health/overview/force'
+                : '/collection-article-relation/health/overview';
+
+            console.log(`[useCombinedHealth] Fetching combined health${bypassCache ? ' (bypassing cache)' : ''}`);
+            console.log(`[useCombinedHealth] URL: ${url}`);
+
+            const response = await get(url);
+
+            // ENHANCED DEBUGGING: Log the complete response
+            console.log('[useCombinedHealth] Raw response:', response);
+            console.log('[useCombinedHealth] Response structure:', {
+                hasData: !!response.data,
+                dataKeys: response.data ? Object.keys(response.data) : 'no data',
+                dataDataKeys: response.data?.data ? Object.keys(response.data.data) : 'no data.data'
+            });
+
+            // FIXED: Handle response structure correctly based on actual backend response
+            let healthData;
+
+            // The backend returns: { success: true, data: { healthOverview: { overallHealth: {...} } } }
+            if (response.data?.data?.healthOverview?.overallHealth) {
+                console.log('[useCombinedHealth] Found healthOverview.overallHealth structure');
+                healthData = response.data.data.healthOverview.overallHealth;
+            }
+            // Fallback: if the structure is { data: { healthOverview: {...} } } where healthOverview IS the health data
+            else if (response.data?.data?.healthOverview) {
+                console.log('[useCombinedHealth] Found direct healthOverview structure');
+                healthData = response.data.data.healthOverview;
+            }
+            // Fallback: if the structure is { data: { overallHealth: {...} } }
+            else if (response.data?.data?.overallHealth) {
+                console.log('[useCombinedHealth] Found direct overallHealth structure');
+                healthData = response.data.data.overallHealth;
+            }
+            // Last fallback: try data directly
+            else if (response.data?.data) {
+                console.log('[useCombinedHealth] Using response.data.data directly');
+                healthData = response.data.data;
+            } else {
+                console.error('[useCombinedHealth] Invalid response structure - no matching patterns found');
+                console.error('[useCombinedHealth] Full response:', JSON.stringify(response, null, 2));
+                throw new Error('Invalid response structure: no health data found');
+            }
+
+            console.log('[useCombinedHealth] Extracted health data:', healthData);
+
+            // Validate the health data has required fields
+            if (!healthData || typeof healthData !== 'object') {
+                throw new Error('Health data is invalid or missing');
+            }
+
+            // Ensure we have the basic required fields (with safe defaults)
+            const validatedHealthData: CombinedHealthStats = {
+                totalCollections: Number(healthData.totalCollections) || 0,
+                orphanedCollections: Number(healthData.orphanedCollections) || 0,
+                duplicateCollections: Number(healthData.duplicateCollections) || 0,
+                healthyCollections: Number(healthData.healthyCollections) || 0,
+                singleArticleCollections: Number(healthData.singleArticleCollections) || 0,
+                emptyCollections: Number(healthData.emptyCollections) || 0,
+                brokenReferenceCollections: Number(healthData.brokenReferenceCollections) || 0,
+                duplicateGroups: Number(healthData.duplicateGroups) || 0,
+                healthScore: Number(healthData.healthScore) || 100,
+                orphanPenalty: Number(healthData.orphanPenalty) || 0,
+                duplicatePenalty: Number(healthData.duplicatePenalty) || 0,
+                severityBreakdown: healthData.severityBreakdown || {
+                    orphans: { high: 0, medium: 0, low: 0 },
+                    duplicates: { high: 0, medium: 0, low: 0 }
+                },
+                lastAnalysis: healthData.lastAnalysis || new Date().toISOString(),
+                cacheStats: healthData.cacheStats || {
+                    orphanCacheSize: 0,
+                    duplicateCacheSize: 0,
+                    combinedHitRate: 'Unknown'
+                }
+            };
+
+            console.log('[useCombinedHealth] Validated health stats:', {
+                healthScore: validatedHealthData.healthScore,
+                totalCollections: validatedHealthData.totalCollections,
+                orphans: validatedHealthData.orphanedCollections,
+                duplicates: validatedHealthData.duplicateCollections,
+                method: bypassCache ? 'force' : 'cached'
+            });
+
+            setHealthStats(validatedHealthData);
+
+        } catch (err) {
+            console.error('[useCombinedHealth] Error fetching combined health:', err);
+
+            // Enhanced error logging
+            if (err instanceof Error) {
+                console.error('[useCombinedHealth] Error details:', {
+                    message: err.message,
+                    stack: err.stack
+                });
+            }
+
+            setError(err instanceof Error ? err.message : 'Failed to fetch health statistics');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Enhanced force refresh with combined cache clearing
+    const forceRefresh = useCallback(async () => {
+        try {
+            console.log('[useCombinedHealth] Force refresh: clearing all caches');
+            const { del } = getFetchClient();
+
+            // Clear all health-related caches
+            await del('/collection-article-relation/health/cache');
+            console.log('[useCombinedHealth] All caches cleared, fetching fresh data');
+
+            // Then fetch fresh data
+            await fetchCombinedHealth(true);
+
+        } catch (err) {
+            console.error('[useCombinedHealth] Error in force refresh:', err);
+            // Even if cache clearing fails, try to fetch fresh data
+            await fetchCombinedHealth(true);
+        }
+    }, [fetchCombinedHealth]);
+
+    useEffect(() => {
+        fetchCombinedHealth();
+    }, [fetchCombinedHealth]);
+
+    return {
+        healthStats,
+        loading,
+        error,
+        refetch: () => fetchCombinedHealth(false),
+        forceRefresh
+    };
+};
+
+// Enhanced useOrphanStats hook with debugging
 export const useOrphanStats = () => {
     const [stats, setStats] = useState<OrphanStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -119,7 +270,11 @@ export const useOrphanStats = () => {
                 : '/collection-article-relation/orphans/stats';
 
             console.log(`[useOrphanStats] Fetching stats${bypassCache ? ' (bypassing cache)' : ''}`);
+            console.log(`[useOrphanStats] URL: ${url}`);
+
             const response = await get(url);
+
+            console.log('[useOrphanStats] Raw response:', response);
 
             // Handle response structure
             let statsData;
@@ -219,7 +374,7 @@ export const useOrphanStats = () => {
     };
 };
 
-// New useDuplicateDetection hook
+// useDuplicateDetection hook with debugging
 export const useDuplicateDetection = () => {
     const [duplicates, setDuplicates] = useState<DuplicateDetectionResult | null>(null);
     const [loading, setLoading] = useState(false);
@@ -238,7 +393,11 @@ export const useDuplicateDetection = () => {
                 : '/collection-article-relation/duplicates/detect';
 
             console.log(`[useDuplicateDetection] Detecting duplicates${bypassCache ? ' (bypassing cache)' : ''}`);
+            console.log(`[useDuplicateDetection] URL: ${url}`);
+
             const response = await get(url);
+
+            console.log('[useDuplicateDetection] Raw response:', response);
 
             // Handle response structure
             let duplicatesData;
@@ -259,24 +418,14 @@ export const useDuplicateDetection = () => {
         }
     }, []);
 
-    // Enhanced force detect that clears cache first
+    // Remove redundant cache clearing since "Refresh Scan" handles it
     const forceDetect = useCallback(async () => {
-        try {
-            console.log('[useDuplicateDetection] Force detect: clearing cache first');
-            const { del } = getFetchClient();
+        console.log('[useDuplicateDetection] Force detect: fetching fresh duplicates directly');
 
-            // Clear the cache first
-            await del('/collection-article-relation/duplicates/cache');
-            console.log('[useDuplicateDetection] Cache cleared, now detecting fresh duplicates');
+        // Just detect with cache bypass - no need to clear cache separately
+        // The backend force endpoint handles cache bypass automatically
+        await detectDuplicates(true);
 
-            // Then detect fresh duplicates
-            await detectDuplicates(true);
-
-        } catch (err) {
-            console.error('[useDuplicateDetection] Error in force detect:', err);
-            // Even if cache clearing fails, try to detect fresh duplicates
-            await detectDuplicates(true);
-        }
     }, [detectDuplicates]);
 
     return {
@@ -288,88 +437,7 @@ export const useDuplicateDetection = () => {
     };
 };
 
-// New useCombinedHealth hook for unified health monitoring
-export const useCombinedHealth = () => {
-    const [healthStats, setHealthStats] = useState<CombinedHealthStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchCombinedHealth = useCallback(async (bypassCache = false) => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const { get } = getFetchClient();
-
-            // Use force endpoint for cache bypass or regular endpoint
-            const url = bypassCache
-                ? '/collection-article-relation/health/overview/force'
-                : '/collection-article-relation/health/overview';
-
-            console.log(`[useCombinedHealth] Fetching combined health${bypassCache ? ' (bypassing cache)' : ''}`);
-            const response = await get(url);
-
-            // Handle response structure
-            let healthData;
-            if (response.data?.data?.overallHealth) {
-                healthData = response.data.data.overallHealth;
-            } else if (response.data?.data) {
-                healthData = response.data.data;
-            } else {
-                throw new Error('Invalid response structure');
-            }
-
-            console.log('[useCombinedHealth] Health stats updated:', {
-                healthScore: healthData.healthScore,
-                orphans: healthData.orphanedCollections,
-                duplicates: healthData.duplicateCollections,
-                method: bypassCache ? 'force' : 'cached'
-            });
-
-            setHealthStats(healthData);
-
-        } catch (err) {
-            console.error('[useCombinedHealth] Error fetching combined health:', err);
-            setError(err instanceof Error ? err.message : 'Failed to fetch health statistics');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Enhanced force refresh with combined cache clearing
-    const forceRefresh = useCallback(async () => {
-        try {
-            console.log('[useCombinedHealth] Force refresh: clearing all caches');
-            const { del } = getFetchClient();
-
-            // Clear all health-related caches
-            await del('/collection-article-relation/health/cache');
-            console.log('[useCombinedHealth] All caches cleared, fetching fresh data');
-
-            // Then fetch fresh data
-            await fetchCombinedHealth(true);
-
-        } catch (err) {
-            console.error('[useCombinedHealth] Error in force refresh:', err);
-            // Even if cache clearing fails, try to fetch fresh data
-            await fetchCombinedHealth(true);
-        }
-    }, [fetchCombinedHealth]);
-
-    useEffect(() => {
-        fetchCombinedHealth();
-    }, [fetchCombinedHealth]);
-
-    return {
-        healthStats,
-        loading,
-        error,
-        refetch: () => fetchCombinedHealth(false),
-        forceRefresh
-    };
-};
-
-// Enhanced useOrphanDetection hook
+// useOrphanDetection hook with debugging
 export const useOrphanDetection = () => {
     const [orphans, setOrphans] = useState<OrphanDetectionResult[]>([]);
     const [loading, setLoading] = useState(false);
@@ -382,15 +450,16 @@ export const useOrphanDetection = () => {
 
             const { get } = getFetchClient();
 
-            // Use force endpoint for cache bypass or regular endpoint
             const url = bypassCache
                 ? '/collection-article-relation/orphans/detect/force'
                 : '/collection-article-relation/orphans/detect';
 
             console.log(`[useOrphanDetection] Detecting orphans${bypassCache ? ' (bypassing cache)' : ''}`);
-            const response = await get(url);
+            console.log(`[useOrphanDetection] URL: ${url}`);
 
-            // Handle response structure - use orphanedCollections array
+            const response = await get(url);
+            console.log('[useOrphanDetection] Raw response:', response);
+
             let orphansData = [];
             if (response.data?.data?.orphanedCollections && Array.isArray(response.data.data.orphanedCollections)) {
                 orphansData = response.data.data.orphanedCollections;
@@ -407,24 +476,13 @@ export const useOrphanDetection = () => {
         }
     }, []);
 
-    // Enhanced force detect that clears cache first
+    // SIMPLIFIED: Remove redundant cache clearing
     const forceDetect = useCallback(async () => {
-        try {
-            console.log('[useOrphanDetection] Force detect: clearing cache first');
-            const { del } = getFetchClient();
+        console.log('[useOrphanDetection] Force detect: fetching fresh orphans directly');
 
-            // Clear the cache first
-            await del('/collection-article-relation/orphans/cache');
-            console.log('[useOrphanDetection] Cache cleared, now detecting fresh orphans');
+        // Just detect with cache bypass - the backend handles cache bypass
+        await detectOrphans(true);
 
-            // Then detect fresh orphans
-            await detectOrphans(true);
-
-        } catch (err) {
-            console.error('[useOrphanDetection] Error in force detect:', err);
-            // Even if cache clearing fails, try to detect fresh orphans
-            await detectOrphans(true);
-        }
     }, [detectOrphans]);
 
     return {
@@ -450,6 +508,8 @@ export const useOrphanCleanup = () => {
             setError(null);
 
             const { post, del } = getFetchClient();
+
+            console.log(`[useOrphanCleanup] Cleaning up orphan ${collectionId}`, options);
 
             // Perform the cleanup
             const response = await post(`/collection-article-relation/orphans/cleanup/${collectionId}`, options);

@@ -5,7 +5,7 @@ import React from 'react';
 import { Box, Typography, } from '@strapi/design-system';
 
 // Import our enhanced widgets
-import CollectionSummaryWidget from '../../components/OrphanManagement/CollectionSummaryWidget';
+import CollectionSummaryWidget from '../../components/CollectionManagement/CollectionSummaryWidget';
 import PerformanceMetricsWidget from '../../components/Dashboard/PerformanceMetricsWidget';
 
 // Import shared styles
@@ -14,7 +14,7 @@ import {
     SectionContainer,
     DashboardCard,
     InfoCard
-} from './shared/StyledComponents';
+} from '../../components/shared/StyledComponents';
 
 const DashboardTab: React.FC = () => {
     return (

@@ -15,71 +15,14 @@ import { WarningCircle, Database, CheckCircle, ChartCircle } from '@strapi/icons
 import styled from 'styled-components';
 import { useCombinedHealth } from '../../hooks/useCollectionManagement';
 import CollectionQuickActions from './CollectionQuickActions';
+import {
+    StatsCard,
+    InsightCard,
+    MetricNumber,
+    ProgressRing,
+    MetricText
+} from '../shared/StyledComponents';
 
-const StatsCard = styled(Box)`
-  text-align: center;
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 100%;
-  height: 100%;
-  transition: all 0.2s ease;
-  cursor: default;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const InsightCard = styled(Box)`
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 100%;
-  height: 100%;
-  transition: all 0.2s ease;
-  cursor: default;
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-`;
-
-const MetricNumber = styled(Box)`
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  text-align: center;
-`;
-
-const ProgressRing = styled(Box) <{ $percentage: number; $color: string; $backgroundColor?: string }>`
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: conic-gradient(
-    ${props => props.$color} ${props => props.$percentage * 3.6}deg,
-    ${props => props.$backgroundColor || '#e9ecef'} 0deg
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 0.5rem;
-  
-  &::before {
-    content: '';
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: white;
-    position: absolute;
-  }
-`;
-
-const MetricText = styled(Typography)`
-  position: relative;
-  z-index: 1;
-  font-weight: bold;
-`;
 
 const CollectionSummaryWidget: React.FC = () => {
     const { healthStats, loading, error, refetch, forceRefresh } = useCombinedHealth();
@@ -159,13 +102,6 @@ const CollectionSummaryWidget: React.FC = () => {
         return '#dc3545'; // Poor health - needs attention
     };
 
-    const getHealthTextColor = (score: number) => {
-        if (score >= 90) return 'success600';
-        if (score >= 70) return 'warning600';
-        if (score >= 50) return 'warning600';
-        return 'danger600';
-    };
-
     // Enhanced system status message
     const getSystemStatus = () => {
         if (totalIssues === 0) {
@@ -229,7 +165,7 @@ const CollectionSummaryWidget: React.FC = () => {
                 <Grid.Item col={3}>
                     <StatsCard background="neutral100">
                         <ProgressRing $percentage={safeStats.healthScore} $color={getHealthColor(safeStats.healthScore)}>
-                            <MetricText variant="omega" textColor={getHealthTextColor(safeStats.healthScore)}>
+                            <MetricText variant="omega">
                                 {safeStats.healthScore}%
                             </MetricText>
                         </ProgressRing>
@@ -264,7 +200,7 @@ const CollectionSummaryWidget: React.FC = () => {
 
                         <Box>
                             <Typography variant="pi" textColor={safeStats.orphanedCollections > 0 ? "danger600" : "success600"}>
-                                {safeStats.orphanedCollections > 0 ? "Need cleanup" : "None found"}
+                                {safeStats.orphanedCollections > 0 ? "Need attention" : "None found"}
                             </Typography>
                         </Box>
                     </StatsCard>
@@ -272,21 +208,21 @@ const CollectionSummaryWidget: React.FC = () => {
 
                 {/* Duplicate Collections */}
                 <Grid.Item col={3}>
-                    <StatsCard background={safeStats.duplicateCollections > 0 ? "secondary100" : "success100"}>
+                    <StatsCard background={safeStats.duplicateCollections > 0 ? "warning100" : "success100"}>
                         <MetricNumber>
-                            <Typography variant="alpha" textColor={safeStats.duplicateCollections > 0 ? "secondary700" : "success700"}>
+                            <Typography variant="alpha" textColor={safeStats.duplicateCollections > 0 ? "warning700" : "success700"}>
                                 {safeStats.duplicateCollections}
                             </Typography>
                         </MetricNumber>
 
                         <Box marginBottom={1}>
-                            <Typography variant="omega" fontWeight="semiBold" textColor={safeStats.duplicateCollections > 0 ? "secondary700" : "success700"}>
+                            <Typography variant="omega" fontWeight="semiBold" textColor={safeStats.duplicateCollections > 0 ? "warning700" : "success700"}>
                                 Duplicate Collections
                             </Typography>
                         </Box>
 
                         <Box>
-                            <Typography variant="pi" textColor={safeStats.duplicateCollections > 0 ? "secondary600" : "success600"}>
+                            <Typography variant="pi" textColor={safeStats.duplicateCollections > 0 ? "warning600" : "success600"}>
                                 {safeStats.duplicateGroups > 0 ? `${safeStats.duplicateGroups} groups` : "None found"}
                             </Typography>
                         </Box>

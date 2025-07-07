@@ -12,7 +12,7 @@ import UsageGuideTab from './UsageGuideTab';
 import FeaturesTab from './FeaturesTab';
 
 // Import shared styles
-import { ContentWrapper } from './shared/StyledComponents';
+import { ContentWrapper } from '../../components/shared/StyledComponents';
 
 const HomePage: React.FC = () => {
   return (

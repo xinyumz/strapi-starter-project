@@ -14,7 +14,7 @@ import {
     BenefitMetric,
     BenefitsGrid,
     InfoCard
-} from './shared/StyledComponents';
+} from '../../components/shared/StyledComponents';
 
 const FeaturesTab: React.FC = () => {
     return (
