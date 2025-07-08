@@ -13,6 +13,7 @@ import {
 } from '@strapi/design-system';
 import { ArrowClockwise } from '@strapi/icons';
 import styled from 'styled-components';
+import { getFetchClient } from '@strapi/admin/strapi-admin';
 import pluginId from '../../pluginId';
 import packageJson from '../../../../package.json';
 
@@ -27,6 +28,13 @@ const HomePage = () => {
     const [result, setResult] = useState<{
         type: 'success' | 'error';
         message: string;
+        details?: {
+            path?: string;
+            status?: number;
+            statusText?: string;
+            processingTime?: number;
+            responseText?: string | null;
+        };
     } | null>(null);
     const [recentRevalidations, setRecentRevalidations] = useState<string[]>([]);
 
@@ -43,38 +51,67 @@ const HomePage = () => {
         setResult(null);
 
         try {
-            // Construct the revalidation URL
-            const revalidateUrl = `https://pandaist.com/api/revalidate?secret=tempsecret&path=${encodeURIComponent(path)}`;
+            console.log(`[Revalidate Frontend] Triggering revalidation for: ${path}`);
 
-            // Send GET request to trigger revalidation
-            const response = await fetch(revalidateUrl, {
-                method: 'GET',
+            const { post } = getFetchClient();
+
+            // Make request to our Strapi plugin API endpoint
+            const response = await post(`/${pluginId}/trigger`, {
+                path: path.trim()
             });
 
-            if (response.ok) {
+            console.log(`[Revalidate Frontend] ✅ Success response:`, response);
+
+            // Handle response structure - expect { success: true, data: {...} }
+            if (response.data?.success && response.data?.data) {
                 setResult({
                     type: 'success',
-                    message: `Successfully revalidated: ${path}`,
+                    message: response.data.data.message || `Successfully revalidated: ${path}`,
+                    details: response.data.data
                 });
-
-                // Add to recent revalidations (keep last 5)
-                setRecentRevalidations(prev => {
-                    const updated = [path, ...prev.filter(p => p !== path)].slice(0, 5);
-                    return updated;
-                });
-
-                // Clear the input
-                setPath('');
             } else {
-                setResult({
-                    type: 'error',
-                    message: `Failed to revalidate. Status: ${response.status}`,
-                });
+                throw new Error('Invalid response structure from server');
             }
-        } catch (error) {
+
+            // Add to recent revalidations (keep last 5)
+            setRecentRevalidations(prev => {
+                const updated = [path.trim(), ...prev.filter(p => p !== path.trim())].slice(0, 5);
+                return updated;
+            });
+
+            // Clear the input
+            setPath('');
+
+        } catch (err) {
+            console.error(`[Revalidate Frontend] ❌ Error:`, err);
+
+            // Handle different types of errors with proper TypeScript handling
+            let errorMessage = 'Unknown error occurred';
+
+            if (err && typeof err === 'object') {
+                // Check for error message in the standard error structure
+                if ('message' in err && typeof err.message === 'string') {
+                    errorMessage = err.message;
+                }
+                // Check for Strapi API error structure
+                else if ('error' in err && err.error && typeof err.error === 'object' && 'message' in err.error) {
+                    errorMessage = String(err.error.message);
+                }
+                // Check for response error structure
+                else if ('response' in err && err.response && typeof err.response === 'object' && 'data' in err.response) {
+                    const responseData = err.response.data;
+                    if (responseData && typeof responseData === 'object' && 'error' in responseData) {
+                        const errorData = responseData.error;
+                        if (errorData && typeof errorData === 'object' && 'message' in errorData) {
+                            errorMessage = String(errorData.message);
+                        }
+                    }
+                }
+            }
+
             setResult({
                 type: 'error',
-                message: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
+                message: errorMessage
             });
         } finally {
             setIsLoading(false);
@@ -98,7 +135,7 @@ const HomePage = () => {
                         </Box>
                         <Box>
                             <Typography variant="epsilon" textColor="neutral600" maxWidth="600px">
-                                Trigger Next.js ISR revalidation for specific pages and paths
+                                Trigger Next.js ISR revalidation for specific pages and paths via server-side API
                             </Typography>
                         </Box>
                     </Box>
@@ -117,7 +154,7 @@ const HomePage = () => {
                                         <Box marginBottom={6}>
                                             <Typography variant="omega" textColor="neutral600">
                                                 Enter the relative path of the page you want to revalidate.
-                                                The system will send a request to trigger Next.js ISR regeneration.
+                                                The system will send a server-side request to trigger Next.js ISR regeneration.
                                             </Typography>
                                         </Box>
 
@@ -162,9 +199,21 @@ const HomePage = () => {
                                                     onClose={() => setResult(null)}
                                                 >
                                                     {result.message}
+                                                    {result.details && result.type === 'success' && (
+                                                        <>
+                                                            <br />
+                                                            <Typography variant="omega" textColor="neutral600">
+                                                                Status: {result.details.status} {result.details.statusText}
+                                                                {result.details.processingTime && (
+                                                                    ` • Processing time: ${result.details.processingTime}ms`
+                                                                )}
+                                                            </Typography>
+                                                        </>
+                                                    )}
                                                 </Alert>
                                             </Box>
                                         )}
+
                                     </Box>
                                 </CardBody>
                             </Card>
@@ -219,7 +268,7 @@ const HomePage = () => {
                                                 {recentRevalidations.map((recentPath, index) => (
                                                     <Box key={index} padding={2} background="neutral100" hasRadius>
                                                         <Flex justifyContent="space-between" alignItems="center">
-                                                            <Typography variant="pi" textColor="neutral700" ellipsis>
+                                                            <Typography variant="pi" textColor="neutral700" style={{ wordBreak: 'break-all', lineHeight: '1.3' }}>
                                                                 {recentPath}
                                                             </Typography>
                                                             <Button
@@ -246,9 +295,9 @@ const HomePage = () => {
                                     </CardHeader>
                                     <CardBody padding={4}>
                                         <Typography variant="omega" textColor="neutral600">
-                                            This tool sends a GET request to your Next.js revalidation API endpoint.
-                                            Make sure your Next.js application has the revalidation API route set up
-                                            and the secret key is properly configured.
+                                            This tool sends a request to the Strapi revalidate plugin API, which then
+                                            makes a server-side request to your Next.js revalidation endpoint. This
+                                            eliminates CORS issues and provides proper error handling.
                                         </Typography>
                                     </CardBody>
                                 </Card>
@@ -263,7 +312,7 @@ const HomePage = () => {
                                 Plugin ID: {pluginId}
                             </Typography>
                             <Typography variant="pi" textColor="neutral500">
-                                Version {packageJson.version}
+                                Version {packageJson.version} • Server-side API
                             </Typography>
                         </Flex>
                     </Box>
