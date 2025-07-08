@@ -8,14 +8,28 @@ export default [
         useDefaults: true,
         directives: {
           'connect-src': ["'self'", 'https:'],
-          'img-src': ["'self'", 'data:', 'blob:', 'https:'],
-          'media-src': ["'self'", 'data:', 'blob:', 'https:'],
+          'img-src': [
+            "'self'",
+            'data:',
+            'blob:',
+            'https://market-assets.strapi.io',
+            'https://cdn.pandaist.com',
+            'https://akmvcaugzq.cloudimg.io',
+            'https:', // Allow all HTTPS images as fallback
+          ],
+          'media-src': [
+            "'self'",
+            'data:',
+            'blob:',
+            'https://cdn.pandaist.com',
+            'https://akmvcaugzq.cloudimg.io',
+            'https:', // Allow all HTTPS media as fallback
+          ],
           upgradeInsecureRequests: null,
         },
       },
     },
   },
-  'strapi::security',
   'strapi::cors',
   'strapi::poweredBy',
   'strapi::query',

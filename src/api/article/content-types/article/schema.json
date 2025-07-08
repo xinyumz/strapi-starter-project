@@ -18,13 +18,13 @@
   "attributes": {
     "Title": {
       "type": "string",
-      "required": true,
-      "unique": true,
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
-      }
+      },
+      "required": true,
+      "unique": true
     },
     "Date": {
       "type": "date",
@@ -36,33 +36,33 @@
     },
     "Cover": {
       "type": "media",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
       "multiple": false,
       "required": true,
       "allowedTypes": [
         "images"
-      ],
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      }
-    },
-    "Base": {
-      "type": "richtext",
-      "required": true,
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      }
-    },
-    "LanguageProcessor": {
-      "type": "customField",
-      "customField": "plugin::per-language.language-processor"
+      ]
     },
     "Category": {
       "type": "customField",
       "customField": "plugin::category-manager.category-selector"
+    },
+    "Base": {
+      "type": "richtext",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": true
+    },
+    "LanguageProcessor": {
+      "type": "customField",
+      "customField": "plugin::per-language.language-processor"
     },
     "collections": {
       "type": "relation",

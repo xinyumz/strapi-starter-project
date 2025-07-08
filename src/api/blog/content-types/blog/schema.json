@@ -17,10 +17,6 @@
       "required": true,
       "unique": true
     },
-    "Body": {
-      "type": "blocks",
-      "required": true
-    },
     "Date": {
       "type": "date"
     },
@@ -32,10 +28,18 @@
         "images"
       ]
     },
+    "Body": {
+      "type": "customField",
+      "customField": "plugin::ckeditor5.CKEditor",
+      "options": {
+        "preset": "defaultHtml"
+      },
+      "required": true
+    },
     "seo": {
       "type": "component",
-      "repeatable": true,
-      "component": "shared.seo"
+      "component": "shared.seo",
+      "repeatable": true
     }
   }
 }

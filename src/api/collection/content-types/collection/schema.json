@@ -17,25 +17,30 @@
   },
   "attributes": {
     "Title": {
+      "type": "string",
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
       },
-      "type": "string",
       "required": true,
       "unique": true
     },
     "Date": {
+      "type": "date",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "Cover": {
+      "type": "media",
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
       },
-      "type": "date"
-    },
-    "Cover": {
-      "type": "media",
       "multiple": false,
       "required": true,
       "allowedTypes": [
@@ -43,36 +48,31 @@
         "files",
         "videos",
         "audios"
-      ],
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      }
+      ]
     },
     "Category": {
+      "type": "customField",
       "pluginOptions": {
         "i18n": {
           "localized": true
         }
       },
-      "type": "customField",
       "customField": "plugin::category-manager.category-selector"
-    },
-    "PerLanguage": {
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
-      "type": "customField",
-      "customField": "plugin::per-language.collection-perlanguage"
     },
     "articles": {
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::article.article",
       "mappedBy": "collections"
+    },
+    "PerLanguage": {
+      "type": "customField",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "customField": "plugin::per-language.collection-perlanguage"
     }
   }
 }
