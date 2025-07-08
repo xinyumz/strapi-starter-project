@@ -1,5 +1,19 @@
 // src/plugins/collection-manager/admin/src/utils/floatingButtonSystem.ts
-// Low-level implementation (styling, API, interactions)
+// Streamlined version with reduced console noise
+
+/**
+ * Debug mode flag - set to false to reduce console output
+ */
+const DEBUG_MODE = false;
+
+/**
+ * Debug logging - only logs when DEBUG_MODE is true
+ */
+function debugLog(message: string, ...args: any[]) {
+  if (DEBUG_MODE) {
+    console.log(`[FloatingButton] ${message}`, ...args);
+  }
+}
 
 /**
  * Notification system with CSP compliance
@@ -240,19 +254,19 @@ class ButtonStateManager {
 }
 
 /**
- * API call with retry logic - FIXED for documentId support
+ * API call with retry logic
  */
 async function makeApiCall(articleId: string, retries: number = 2): Promise<any> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      // FIXED: Don't parse articleId as integer - support both documentId and numeric ID
+      // Support both documentId and numeric ID
       const response = await fetch('/collection-manager/quick-create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ articleId: articleId }) // CHANGED: Don't parseInt here
+        body: JSON.stringify({ articleId: articleId })
       });
 
       if (!response.ok) {
@@ -269,7 +283,7 @@ async function makeApiCall(articleId: string, retries: number = 2): Promise<any>
       return data;
 
     } catch (error) {
-      console.error(`[FloatingButton] API call attempt ${attempt + 1} failed:`, error);
+      debugLog(`API call attempt ${attempt + 1} failed:`, error);
 
       if (attempt === retries) {
         throw error; // Last attempt failed
@@ -285,7 +299,7 @@ async function makeApiCall(articleId: string, retries: number = 2): Promise<any>
  * Create and add floating button to article pages
  */
 export function addFloatingButton(articleId: string): void {
-  console.log('[FloatingButton] Adding button for article:', articleId);
+  debugLog('Adding button for article:', articleId);
 
   // Remove existing button if any
   removeFloatingButton();
@@ -350,7 +364,7 @@ export function addFloatingButton(articleId: string): void {
     stateManager.setLoading();
 
     try {
-      console.log('[FloatingButton] Creating collection for article:', articleId);
+      debugLog('Creating collection for article:', articleId);
 
       const data = await makeApiCall(articleId);
       const { isExisting, message, redirectUrl } = data.data;
@@ -420,7 +434,7 @@ export function addFloatingButton(articleId: string): void {
     button.style.opacity = '1';
   }, 100);
 
-  console.log('[FloatingButton] button added successfully');
+  debugLog('Button added successfully');
 }
 
 /**
@@ -429,7 +443,8 @@ export function addFloatingButton(articleId: string): void {
 export function removeFloatingButton(): void {
   const existingButton = document.getElementById('floating-collection-btn');
   if (existingButton) {
-    console.log('[FloatingButton] Removing button with animation');
+    // Only log removal in debug mode
+    debugLog('Removing button with animation');
 
     existingButton.style.opacity = '0';
     existingButton.style.transform = 'translateY(10px)';
@@ -440,4 +455,20 @@ export function removeFloatingButton(): void {
       }
     }, 300);
   }
+}
+
+/**
+ * Enable debug mode (for troubleshooting)
+ */
+export function enableFloatingButtonDebug(): void {
+  (window as any).FLOATING_BUTTON_DEBUG = true;
+  console.log('[FloatingButton] Debug mode enabled');
+}
+
+/**
+ * Disable debug mode (default state)
+ */
+export function disableFloatingButtonDebug(): void {
+  (window as any).FLOATING_BUTTON_DEBUG = false;
+  console.log('[FloatingButton] Debug mode disabled');
 }

@@ -27,7 +27,7 @@ const HomePage: React.FC = () => {
           </Box>
           <Box marginBottom={8}>
             <Typography variant="epsilon" textColor="neutral600">
-              Advanced collection management with intelligent orphan detection, duplicate prevention, and auto-fill capabilities
+              Advanced collection management with intelligent orphan detection, duplicate prevention, auto-fill capabilities, and real-time health monitoring
             </Typography>
           </Box>
         </Box>

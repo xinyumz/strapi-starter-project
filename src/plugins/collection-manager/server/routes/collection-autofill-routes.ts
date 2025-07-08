@@ -13,9 +13,7 @@ export default [
         handler: 'collectionAutofill.quickCreateCollection',
         config: {
             policies: [],
-            auth: {
-                scope: ['admin'] // Changed: Require admin auth for collection creation
-            },
+            auth: false,
             description: 'Create a new collection quickly from a single article with auto-filled fields',
             tags: ['collection', 'article', 'auto-fill'],
         }

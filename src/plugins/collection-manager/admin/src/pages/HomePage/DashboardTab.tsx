@@ -1,5 +1,5 @@
 // src/plugins/collection-manager/admin/src/pages/HomePage/DashboardTab.tsx
-// Dashboard component for health overview
+// Streamlined version with reduced redundancy
 
 import React from 'react';
 import { Box, Typography, } from '@strapi/design-system';
@@ -23,51 +23,40 @@ const DashboardTab: React.FC = () => {
                 <CollectionSummaryWidget />
             </SectionContainer>
 
-            {/* Dashboard Features Section */}
+            {/* Dashboard Features Section - Streamlined */}
             <SectionContainer>
                 <Box marginBottom={4}>
                     <Typography variant="beta" textColor="neutral800" fontWeight="semiBold">
-                        🎯 Dashboard Features
+                        🎯 Health Monitoring Features
                     </Typography>
                 </Box>
 
                 <InfoCard background="primary100">
                     <Box marginBottom={4}>
                         <Typography variant="gamma" textColor="primary700" fontWeight="semiBold">
-                            💡 Advanced Health Monitoring
-                        </Typography>
-                    </Box>
-
-                    <Box marginBottom={3}>
-                        <Typography variant="omega" textColor="primary700" fontWeight="medium">
-                            Complete Collection Health System:
+                            💡 Real-Time Health System
                         </Typography>
                     </Box>
 
                     <Box marginLeft={3}>
                         <Box marginBottom={2}>
                             <Typography variant="omega" textColor="primary700" style={{ lineHeight: '1.6' }}>
-                                ✅ <strong>Orphan Detection:</strong> Automatically identifies empty collections and broken article references
+                                ✅ <strong>Floating Health Badge:</strong> Appears on Collections list page with live health score
                             </Typography>
                         </Box>
                         <Box marginBottom={2}>
                             <Typography variant="omega" textColor="primary700" style={{ lineHeight: '1.6' }}>
-                                ✅ <strong>Duplicate Detection:</strong> Uses fingerprint algorithm to detect identical article sets
+                                ✅ <strong>Smart Detection:</strong> Automatic orphan and duplicate identification
                             </Typography>
                         </Box>
                         <Box marginBottom={2}>
                             <Typography variant="omega" textColor="primary700" style={{ lineHeight: '1.6' }}>
-                                ✅ <strong>Real-time Monitoring:</strong> 2-minute auto-refresh with instant manual refresh capability
-                            </Typography>
-                        </Box>
-                        <Box marginBottom={2}>
-                            <Typography variant="omega" textColor="primary700" style={{ lineHeight: '1.6' }}>
-                                ✅ <strong>Smart Caching:</strong> Sub-100ms response times with intelligent cache management
+                                ✅ <strong>Performance Optimized:</strong> Sub-100ms responses with intelligent caching
                             </Typography>
                         </Box>
                         <Box>
                             <Typography variant="omega" textColor="primary700" style={{ lineHeight: '1.6' }}>
-                                ✅ <strong>Unified Health Score:</strong> Combined scoring system with actionable recommendations
+                                ✅ <strong>Actionable Insights:</strong> Clear recommendations with one-click access to tools
                             </Typography>
                         </Box>
                     </Box>
@@ -85,64 +74,59 @@ const DashboardTab: React.FC = () => {
 
                     <Box marginBottom={3}>
                         <Typography variant="omega" textColor="neutral600">
-                            Use the quick actions above to manage your collection health:
+                            Use the dashboard controls above or visit the Collections page to see the health badge:
                         </Typography>
                     </Box>
 
                     <Box marginLeft={2}>
                         <Box marginBottom={2}>
                             <Typography variant="pi" textColor="neutral700">
-                                🔍 <strong>Scan for Issues:</strong> Force refresh both orphan and duplicate detection with cache clearing
+                                🔍 <strong>Scan for Issues:</strong> Force refresh health data with cache clearing
                             </Typography>
                         </Box>
                         <Box marginBottom={2}>
                             <Typography variant="pi" textColor="neutral700">
-                                ⚠️ <strong>Show Issues:</strong> View detailed information about orphaned or duplicate collections
+                                ⚠️ <strong>Show Issues:</strong> View detailed information about problem collections
                             </Typography>
                         </Box>
                         <Box>
                             <Typography variant="pi" textColor="neutral700">
-                                📋 <strong>Manage Collections:</strong> Navigate to the collection manager for hands-on editing
+                                📋 <strong>Health Badge:</strong> Real-time monitoring on Collections list page
                             </Typography>
                         </Box>
                     </Box>
                 </DashboardCard>
             </SectionContainer>
 
-            {/* Collection Management Insights */}
+            {/* Health Scoring Info - Consolidated */}
             <SectionContainer>
                 <InfoCard background="success100">
                     <Box marginBottom={4}>
                         <Typography variant="gamma" textColor="success700" fontWeight="semiBold">
-                            📊 Collection Quality Insights
+                            📊 Health Scoring System
                         </Typography>
                     </Box>
 
                     <Box marginBottom={3}>
                         <Typography variant="omega" textColor="success700" fontWeight="medium">
-                            Key Quality Indicators:
+                            Weighted Formula: Health = 100 - (Orphans × 1.0) - (Duplicates × 0.5)
                         </Typography>
                     </Box>
 
                     <Box marginLeft={3}>
                         <Box marginBottom={2}>
                             <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
-                                🎯 <strong>Health Score:</strong> Unified metric combining orphan and duplicate penalties
+                                🎯 <strong>Orphan Penalty:</strong> Full weight (1.0) - always problematic
                             </Typography>
                         </Box>
                         <Box marginBottom={2}>
                             <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
-                                📈 <strong>Content Distribution:</strong> Balance between single and multi-article collections
-                            </Typography>
-                        </Box>
-                        <Box marginBottom={2}>
-                            <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
-                                🔍 <strong>Issue Detection:</strong> Proactive identification of content organization problems
+                                📂 <strong>Duplicate Penalty:</strong> Half weight (0.5) - sometimes intentional
                             </Typography>
                         </Box>
                         <Box>
                             <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
-                                💡 <strong>Actionable Recommendations:</strong> Clear guidance for improving collection quality
+                                💡 <strong>Color Coding:</strong> Green (90%+), Yellow (70-89%), Red (&lt;70%)
                             </Typography>
                         </Box>
                     </Box>

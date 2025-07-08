@@ -1,5 +1,4 @@
 // src/plugins/collection-manager/admin/src/utils/healthBadgeSystem.ts
-// Dedicated health badge system for collection list pages
 
 /**
  * URL patterns for collection list pages in Strapi v5
@@ -23,7 +22,7 @@ let healthBadgeState = {
 };
 
 /**
- * Debug logging for health badge system
+ * Debug logging for health badge system (only when debug mode is enabled)
  */
 function debugLog(message: string, ...args: any[]) {
     if (healthBadgeState.debugMode) {
@@ -40,8 +39,7 @@ function isCollectionListPage(): boolean {
 
     debugLog('Collection list page check:', {
         path: currentPath,
-        isCollectionListPage: isCollectionList,
-        patternsChecked: COLLECTION_LIST_PAGE_PATTERNS.length
+        isCollectionListPage: isCollectionList
     });
 
     return isCollectionList;
@@ -52,23 +50,18 @@ function isCollectionListPage(): boolean {
  */
 function hasHealthBadge(): boolean {
     const exists = document.getElementById('floating-health-badge') !== null;
-    debugLog('Health badge existence check:', exists);
     return exists;
 }
 
 /**
- * Fetch health data from Collection Manager API with authentication
+ * Fetch health data from Collection Manager API
  */
 async function fetchHealthData(bypassCache: boolean = false): Promise<any> {
     try {
-        debugLog('Fetching health data, bypass cache:', bypassCache);
-
-        // Use the same endpoint as Collection Manager
         const endpoint = bypassCache
             ? '/collection-manager/health/overview/force'
             : '/collection-manager/health/overview';
 
-        // No auth needed since endpoints are now public
         const response = await fetch(endpoint, {
             method: 'GET',
             headers: {
@@ -81,9 +74,8 @@ async function fetchHealthData(bypassCache: boolean = false): Promise<any> {
         }
 
         const data = await response.json();
-        debugLog('Health data received:', data);
 
-        // Parse the same way as Collection Manager
+        // Parse the health data
         let healthData;
         if (data.data?.healthOverview?.overallHealth) {
             healthData = data.data.healthOverview.overallHealth;
@@ -95,7 +87,8 @@ async function fetchHealthData(bypassCache: boolean = false): Promise<any> {
             healthData = data;
         }
 
-        console.log('DEBUG: Parsed health data:', healthData);
+        // Only log in debug mode to reduce noise
+        debugLog('Health data received:', healthData);
         return healthData;
 
     } catch (error) {
@@ -137,16 +130,12 @@ function getHealthBadgeStyles(healthScore: number): {
  * Create and add floating health badge
  */
 async function addHealthBadge(): Promise<void> {
-    debugLog('Adding health badge');
-
     // Remove existing badge if any
     removeHealthBadge();
 
     try {
         const healthData = await fetchHealthData();
         const healthScore = healthData.healthScore || 100;
-
-        debugLog('Creating health badge with score:', healthScore);
 
         const badge = document.createElement('div');
         badge.id = 'floating-health-badge';
@@ -156,24 +145,24 @@ async function addHealthBadge(): Promise<void> {
         const styles = getHealthBadgeStyles(healthScore);
 
         badge.style.cssText = `
-              position: fixed;
-    bottom: 30px;
-    right: 30px;
-    z-index: 999;
-    background: ${styles.backgroundColor};
-    border: 2px solid ${styles.borderColor};
-    color: ${styles.color};
-    border-radius: 20px;
-    padding: 8px 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    transition: all 0.2s ease;
-    opacity: 0.95;
-    user-select: none;
-    white-space: nowrap;
+            position: fixed;
+            bottom: 30px;
+            right: 50px;
+            z-index: 999;
+            background: ${styles.backgroundColor};
+            border: 2px solid ${styles.borderColor};
+            color: ${styles.color};
+            border-radius: 20px;
+            padding: 8px 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            transition: all 0.2s ease;
+            opacity: 0.95;
+            user-select: none;
+            white-space: nowrap;
         `;
 
         // Badge content - always show the health score
@@ -183,24 +172,22 @@ async function addHealthBadge(): Promise<void> {
             badge.innerHTML = `${Math.round(healthScore)}% System Health`;
         }
 
-        // Click handler - only refresh, show navigation option if needed
+        // Click handler - refresh functionality
         let isRefreshing = false;
         badge.onclick = async (e) => {
             e.stopPropagation();
 
             if (isRefreshing) return;
-
-            debugLog('Health badge clicked - immediate refresh');
             isRefreshing = true;
 
-            // IMMEDIATE visual feedback (like Collection Manager)
+            // Visual feedback
             const originalContent = badge.innerHTML;
             badge.innerHTML = '🔄 Refreshing...';
             badge.style.opacity = '0.7';
             badge.style.cursor = 'wait';
 
             try {
-                // Clear cache first with authentication (like Collection Manager does)
+                // Clear cache first
                 const authToken = localStorage.getItem('jwtToken') ||
                     localStorage.getItem('strapi-jwt-token') ||
                     sessionStorage.getItem('jwtToken');
@@ -214,22 +201,20 @@ async function addHealthBadge(): Promise<void> {
                         }
                     });
                     debugLog('Cache cleared successfully');
-                } else {
-                    debugLog('No auth token found, skipping cache clear');
                 }
 
-                // Force refresh data
+                // Get fresh data
                 const freshData = await fetchHealthData(true);
-                debugLog('Fresh health data:', freshData);
-                console.log('DEBUG: Fresh data received:', freshData);
-                console.log('DEBUG: Current badge content before update:', badge.innerHTML);
-                console.log('DEBUG: New health score:', freshData.healthScore);
 
+                // Simplified logging - only log meaningful changes
+                if (Math.round(freshData.healthScore) !== Math.round(healthScore)) {
+                    console.log(`[HealthBadge] Health updated: ${Math.round(healthScore)}% → ${Math.round(freshData.healthScore)}%`);
+                }
 
-                // Add back the animation effect (controlled delay)
+                // Add animation delay
                 await new Promise(resolve => setTimeout(resolve, 300));
 
-                // Update immediately when data arrives
+                // Update badge
                 const newStyles = getHealthBadgeStyles(freshData.healthScore);
 
                 if (freshData.healthScore >= 100) {
@@ -284,10 +269,7 @@ async function addHealthBadge(): Promise<void> {
         document.body.appendChild(badge);
         healthBadgeState.hasHealthBadge = true;
 
-        debugLog('Health badge added successfully:', {
-            healthScore,
-            ...styles
-        });
+        debugLog('Health badge added successfully with score:', healthScore);
 
         if (healthScore < 100) {
             setTimeout(() => showNavigationOption(), 300);
@@ -311,7 +293,7 @@ function showNavigationOption() {
     navButton.style.cssText = `
         position: fixed;
         bottom: 80px;
-        right: 30px;
+        right: 50px;
         z-index: 998;
         background: linear-gradient(135deg, #4945ff 0%, #7c3aed 100%);
         color: white;
@@ -332,7 +314,7 @@ function showNavigationOption() {
 
     navButton.onclick = () => {
         debugLog('Navigation button clicked - going to collection manager');
-        window.location.href = '/admin/collection-manager';
+        window.open('/admin/collection-manager', '_blank', 'noopener,noreferrer');
     };
 
     // Hover effects
@@ -376,7 +358,6 @@ function hideNavigationOption() {
 function removeHealthBadge(): void {
     const badge = document.getElementById('floating-health-badge');
     if (badge) {
-        debugLog('Removing health badge');
         badge.remove();
         healthBadgeState.hasHealthBadge = false;
     }
@@ -389,32 +370,20 @@ function removeHealthBadge(): void {
  * Check and manage health badge based on current page
  */
 async function checkAndManageHealthBadge(): Promise<void> {
-    debugLog('=== Health Badge Management Check Started ===');
-
     const isOnCollectionList = isCollectionListPage();
     const badgeExists = hasHealthBadge();
 
-    const stateSnapshot = {
-        wasOnCollectionList: healthBadgeState.isOnCollectionListPage,
-        nowOnCollectionList: isOnCollectionList,
-        hadBadge: healthBadgeState.hasHealthBadge,
-        hasBadge: badgeExists,
-        url: window.location.pathname,
-        timestamp: new Date().toISOString()
-    };
+    // Only log when state actually changes to reduce noise
+    if (healthBadgeState.isOnCollectionListPage !== isOnCollectionList ||
+        healthBadgeState.hasHealthBadge !== badgeExists) {
 
-    debugLog('Health badge state comparison:', stateSnapshot);
-
-    // Check if state actually changed
-    if (
-        healthBadgeState.isOnCollectionListPage === isOnCollectionList &&
-        healthBadgeState.hasHealthBadge === badgeExists
-    ) {
-        debugLog('❌ No health badge state change detected, skipping action');
-        return;
+        debugLog('Health badge state change detected:', {
+            wasOnCollectionList: healthBadgeState.isOnCollectionListPage,
+            nowOnCollectionList: isOnCollectionList,
+            hadBadge: healthBadgeState.hasHealthBadge,
+            hasBadge: badgeExists
+        });
     }
-
-    debugLog('✅ Health badge state change detected, taking action:', stateSnapshot);
 
     // Update state
     healthBadgeState.isOnCollectionListPage = isOnCollectionList;
@@ -422,35 +391,31 @@ async function checkAndManageHealthBadge(): Promise<void> {
 
     // Manage health badge - always show on collection list page
     if (isOnCollectionList && !badgeExists) {
-        debugLog('🎯 ACTION: Adding health badge for collection list page');
+        debugLog('Adding health badge for collection list page');
         await addHealthBadge();
     } else if (!isOnCollectionList && badgeExists) {
-        debugLog('🎯 ACTION: Removing health badge - not on collection list page');
+        debugLog('Removing health badge - not on collection list page');
         removeHealthBadge();
     }
-
-    debugLog('=== Health Badge Management Check Completed ===');
 }
 
 /**
  * Initialize health badge monitoring
  */
 export function initializeHealthBadgeSystem(): void {
-    debugLog('🚀 Initializing health badge system');
+    debugLog('Initializing health badge system');
 
     // Initial check after a delay to ensure Strapi is loaded
     setTimeout(async () => {
-        debugLog('🔧 Starting health badge initialization after delay');
         await checkAndManageHealthBadge();
-        debugLog('✅ Health badge system initialized');
-    }, 1500); // Slightly longer delay than main system
+        debugLog('Health badge system initialized');
+    }, 1500);
 }
 
 /**
  * Handle page navigation for health badge
  */
 export async function handleHealthBadgeNavigation(): Promise<void> {
-    debugLog('🔄 Handling health badge navigation');
     await checkAndManageHealthBadge();
 }
 
@@ -458,7 +423,7 @@ export async function handleHealthBadgeNavigation(): Promise<void> {
  * Force refresh health badge
  */
 export async function refreshHealthBadge(): Promise<void> {
-    debugLog('🔄 Manual health badge refresh triggered');
+    debugLog('Manual health badge refresh triggered');
     if (isCollectionListPage()) {
         removeHealthBadge();
         await addHealthBadge();
@@ -471,7 +436,7 @@ export async function refreshHealthBadge(): Promise<void> {
  * Cleanup health badge system
  */
 export function cleanupHealthBadgeSystem(): void {
-    debugLog('🛑 Cleaning up health badge system');
+    debugLog('Cleaning up health badge system');
     removeHealthBadge();
 
     // Reset state
@@ -481,8 +446,6 @@ export function cleanupHealthBadgeSystem(): void {
         debugMode: false,
         lastLoggedUrl: ''
     };
-
-    debugLog('✅ Health badge cleanup completed');
 }
 
 /**
@@ -509,7 +472,7 @@ export function toggleHealthBadgeDebug(): void {
     console.log(`[HealthBadge] Debug mode ${healthBadgeState.debugMode ? 'enabled' : 'disabled'}`);
 }
 
-// Expose health badge functions to window for debugging
+// Expose health badge functions to window for debugging (only in debug mode)
 if (typeof window !== 'undefined') {
     (window as any).HealthBadgeDebug = {
         getState: getHealthBadgeState,
@@ -519,5 +482,6 @@ if (typeof window !== 'undefined') {
         manualCheck: handleHealthBadgeNavigation
     };
 
+    // Only log this in debug mode
     debugLog('Health badge debug functions exposed to window.HealthBadgeDebug');
 }

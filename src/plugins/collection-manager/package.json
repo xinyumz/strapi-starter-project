@@ -1,6 +1,6 @@
 {
   "name": "collection-manager",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Comprehensive collection management with auto-fill creation and health monitoring",
   "strapi": {
     "name": "collection-manager",

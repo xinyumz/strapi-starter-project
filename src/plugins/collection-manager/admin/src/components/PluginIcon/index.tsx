@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import { Lightning } from '@strapi/icons';
+import { Database } from '@strapi/icons';
 
-const PluginIcon = () => <Lightning width="2rem" height="2rem" />;
+const PluginIcon = () => <Database width="2rem" height="2rem" />;
 
 export default PluginIcon;

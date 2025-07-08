@@ -17,7 +17,7 @@ import {
 const UsageGuideTab: React.FC = () => {
     return (
         <TabContentContainer>
-            {/* Status Section */}
+            {/* Status Section - Enhanced with Health Badge */}
             <SectionContainer>
                 <InfoCard background="success100">
                     <Box marginBottom={4}>
@@ -39,7 +39,7 @@ const UsageGuideTab: React.FC = () => {
                         </Typography>
                     </Box>
 
-                    {/* Health Monitoring Status */}
+                    {/* Health Monitoring Status - Enhanced */}
                     <Box marginBottom={3}>
                         <Typography variant="omega" textColor="success700" fontWeight="medium">
                             📊 Health Monitoring:
@@ -47,8 +47,8 @@ const UsageGuideTab: React.FC = () => {
                     </Box>
                     <Box marginBottom={4} marginLeft={2}>
                         <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
-                            Real-time collection health monitoring is active. Check the Dashboard tab above to view
-                            health scores, detect orphaned collections, and identify duplicates.
+                            Real-time collection health monitoring is active. Check the Dashboard tab for detailed analytics,
+                            or visit the <strong>Collections list page</strong> to see the floating health badge in the bottom-right corner.
                         </Typography>
                     </Box>
 
@@ -60,7 +60,7 @@ const UsageGuideTab: React.FC = () => {
                         </ReadyBadge>
                         <ReadyBadge background="secondary200">
                             <Typography variant="pi" textColor="secondary700" fontWeight="medium">
-                                Health Monitoring Active
+                                Health Badge Active
                             </Typography>
                         </ReadyBadge>
                     </Flex>
@@ -127,7 +127,7 @@ const UsageGuideTab: React.FC = () => {
                 </WhiteCard>
             </SectionContainer>
 
-            {/* Health Monitoring Guide */}
+            {/* Health Monitoring Guide - Enhanced with Badge Info */}
             <SectionContainer>
                 <WhiteCard background="neutral0" borderColor="neutral200">
                     <Box marginBottom={6}>
@@ -140,26 +140,26 @@ const UsageGuideTab: React.FC = () => {
                         {[
                             {
                                 step: '1',
-                                title: 'Check Dashboard',
-                                description: 'View the health overview to see orphaned and duplicate collections',
+                                title: 'Check Collections Page',
+                                description: 'Visit Collections list to see the floating health badge, or use the Dashboard tab',
                                 color: 'primary600' as const
                             },
                             {
                                 step: '2',
-                                title: 'Scan for Issues',
-                                description: 'Click "🔍 Scan for Issues" to force refresh and get latest health data',
+                                title: 'Refresh Health Data',
+                                description: 'Click the health badge or "🔍 Scan for Issues" to get the latest health data',
                                 color: 'warning600' as const
                             },
                             {
                                 step: '3',
                                 title: 'Review Problems',
-                                description: 'Click "⚠️ Show Issues" to see detailed information about problem collections',
+                                description: 'Click "Details" on the badge or "⚠️ Show Issues" to see problem collections',
                                 color: 'danger600' as const
                             },
                             {
                                 step: '4',
                                 title: 'Take Action',
-                                description: 'Use "📝 Edit Collection" or "📋 Manage Collections" to fix issues',
+                                description: 'Use the dashboard tools or collection manager to fix detected issues',
                                 color: 'success600' as const
                             }
                         ].map((item, index) => (
@@ -187,7 +187,7 @@ const UsageGuideTab: React.FC = () => {
                 </WhiteCard>
             </SectionContainer>
 
-            {/* Understanding Health Issues */}
+            {/* Understanding Health Issues - Streamlined */}
             <SectionContainer>
                 <Grid.Root gap={6}>
                     {/* Orphaned Collections Guide */}
@@ -195,30 +195,30 @@ const UsageGuideTab: React.FC = () => {
                         <InfoCard background="warning100">
                             <Box marginBottom={4}>
                                 <Typography variant="gamma" textColor="warning700" fontWeight="semiBold">
-                                    ⚠️ Understanding Orphaned Collections
+                                    ⚠️ Orphaned Collections
                                 </Typography>
                             </Box>
 
                             <Box marginBottom={3}>
                                 <Typography variant="omega" textColor="warning700" fontWeight="medium">
-                                    What are orphaned collections?
+                                    What are they?
                                 </Typography>
                             </Box>
 
                             <Box marginLeft={2} marginBottom={3}>
-                                <Box marginBottom={2}>
+                                <Box marginBottom={1}>
                                     <Typography variant="pi" textColor="warning700">
-                                        • <strong>Empty Collections:</strong> Collections with no articles attached
+                                        • Empty collections with no articles
                                     </Typography>
                                 </Box>
-                                <Box marginBottom={2}>
+                                <Box marginBottom={1}>
                                     <Typography variant="pi" textColor="warning700">
-                                        • <strong>Broken References:</strong> Collections pointing to deleted articles
+                                        • Collections with deleted article references
                                     </Typography>
                                 </Box>
                             </Box>
 
-                            <Box marginBottom={3}>
+                            <Box marginBottom={2}>
                                 <Typography variant="omega" textColor="warning700" fontWeight="medium">
                                     Why fix them?
                                 </Typography>
@@ -226,8 +226,7 @@ const UsageGuideTab: React.FC = () => {
 
                             <Box>
                                 <Typography variant="pi" textColor="warning700" style={{ lineHeight: '1.5' }}>
-                                    Orphaned collections clutter your content management system and can confuse
-                                    content editors. Regular cleanup maintains a professional, organized platform.
+                                    They clutter your CMS and confuse editors. Regular cleanup maintains organization.
                                 </Typography>
                             </Box>
                         </InfoCard>
@@ -235,50 +234,49 @@ const UsageGuideTab: React.FC = () => {
 
                     {/* Duplicate Collections Guide */}
                     <Grid.Item col={6}>
-                        <Box background="secondary100" padding="3rem" borderRadius="12px" height="100%">
+                        <InfoCard background="secondary100">
                             <Box marginBottom={4}>
                                 <Typography variant="gamma" textColor="secondary700" fontWeight="semiBold">
-                                    📂 Understanding Duplicate Collections
+                                    📂 Duplicate Collections
                                 </Typography>
                             </Box>
 
                             <Box marginBottom={3}>
                                 <Typography variant="omega" textColor="secondary700" fontWeight="medium">
-                                    What are duplicate collections?
+                                    What are they?
                                 </Typography>
                             </Box>
 
                             <Box marginLeft={2} marginBottom={3}>
-                                <Box marginBottom={2}>
+                                <Box marginBottom={1}>
                                     <Typography variant="pi" textColor="secondary700">
-                                        • <strong>Exact Duplicates:</strong> Multiple collections with identical article sets
+                                        • Multiple collections with identical articles
                                     </Typography>
                                 </Box>
-                                <Box marginBottom={2}>
+                                <Box marginBottom={1}>
                                     <Typography variant="pi" textColor="secondary700">
-                                        • <strong>Fingerprint Detection:</strong> Uses sorted article IDs for precise matching
+                                        • Detected using fingerprint algorithm
                                     </Typography>
                                 </Box>
                             </Box>
 
-                            <Box marginBottom={3}>
+                            <Box marginBottom={2}>
                                 <Typography variant="omega" textColor="secondary700" fontWeight="medium">
-                                    Why consolidate them?
+                                    Why consolidate?
                                 </Typography>
                             </Box>
 
                             <Box>
                                 <Typography variant="pi" textColor="secondary700" style={{ lineHeight: '1.5' }}>
-                                    Duplicate collections create confusion for content consumers and make content
-                                    management inefficient. Consolidating improves content organization and user experience.
+                                    Reduces confusion and improves content organization for better user experience.
                                 </Typography>
                             </Box>
-                        </Box>
+                        </InfoCard>
                     </Grid.Item>
                 </Grid.Root>
             </SectionContainer>
 
-            {/* Best Practices */}
+            {/* Best Practices - Streamlined */}
             <SectionContainer>
                 <WhiteCard background="neutral0" borderColor="neutral200">
                     <Box marginBottom={6}>
@@ -292,23 +290,23 @@ const UsageGuideTab: React.FC = () => {
                             <Box marginLeft={2}>
                                 <Box marginBottom={3}>
                                     <Typography variant="omega" fontWeight="semiBold" textColor="success700">
-                                        ✅ Do This:
+                                        ✅ Recommended:
                                     </Typography>
                                 </Box>
                                 <Box marginLeft={2}>
                                     <Box marginBottom={2}>
                                         <Typography variant="pi" textColor="neutral700">
-                                            • Use the auto-fill button for consistent collection creation
+                                            • Use auto-fill for consistent collection creation
                                         </Typography>
                                     </Box>
                                     <Box marginBottom={2}>
                                         <Typography variant="pi" textColor="neutral700">
-                                            • Check the dashboard weekly for health issues
+                                            • Monitor health badge on Collections page
                                         </Typography>
                                     </Box>
                                     <Box marginBottom={2}>
                                         <Typography variant="pi" textColor="neutral700">
-                                            • Consolidate duplicates as soon as they're detected
+                                            • Address issues promptly when detected
                                         </Typography>
                                     </Box>
                                     <Box>
@@ -324,28 +322,28 @@ const UsageGuideTab: React.FC = () => {
                             <Box marginLeft={2}>
                                 <Box marginBottom={3}>
                                     <Typography variant="omega" fontWeight="semiBold" textColor="danger700">
-                                        ❌ Avoid This:
+                                        ❌ Avoid:
                                     </Typography>
                                 </Box>
                                 <Box marginLeft={2}>
                                     <Box marginBottom={2}>
                                         <Typography variant="pi" textColor="neutral700">
-                                            • Creating collections manually without checking for duplicates
+                                            • Creating collections manually without checking duplicates
                                         </Typography>
                                     </Box>
                                     <Box marginBottom={2}>
                                         <Typography variant="pi" textColor="neutral700">
-                                            • Leaving orphaned collections for extended periods
+                                            • Ignoring health score warnings
                                         </Typography>
                                     </Box>
                                     <Box marginBottom={2}>
                                         <Typography variant="pi" textColor="neutral700">
-                                            • Ignoring health score warnings in the dashboard
+                                            • Leaving orphaned collections unaddressed
                                         </Typography>
                                     </Box>
                                     <Box>
                                         <Typography variant="pi" textColor="neutral700">
-                                            • Creating multiple collections with identical article sets
+                                            • Creating identical collections repeatedly
                                         </Typography>
                                     </Box>
                                 </Box>
