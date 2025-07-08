@@ -1,0 +1,12 @@
+{
+    "plugin.name": "Page Revalidation",
+    "plugin.description": "Trigger Next.js ISR revalidation for specific pages",
+    "homepage.title": "Page Revalidation",
+    "homepage.subtitle": "Trigger Next.js ISR revalidation for specific pages",
+    "revalidate.button": "Revalidate Page",
+    "revalidate.success": "Page revalidated successfully",
+    "revalidate.error": "Failed to revalidate page",
+    "path.label": "Page Path",
+    "path.placeholder": "/article/your-article-slug",
+    "path.hint": "Enter the relative URL path"
+}

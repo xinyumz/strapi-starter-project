@@ -19,4 +19,8 @@ export default ({ env }) => ({
         enabled: true,
         resolve: './src/plugins/collection-manager'
     },
+    'revalidate': {
+        enabled: true,
+        resolve: './src/plugins/revalidate'
+    },
 });

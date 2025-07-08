@@ -1,0 +1,50 @@
+{
+    "name": "revalidate",
+    "version": "1.0.0",
+    "description": "Next.js ISR revalidation trigger for static page regeneration",
+    "strapi": {
+        "name": "revalidate",
+        "description": "Trigger Next.js ISR revalidation for specific pages and paths",
+        "kind": "plugin",
+        "displayName": "Page Revalidation"
+    },
+    "dependencies": {
+        "@strapi/design-system": "2.0.0-rc.28",
+        "@strapi/icons": "2.0.0-rc.28",
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0",
+        "react-router-dom": "^6.0.0",
+        "styled-components": "6.1.19",
+        "prop-types": "^15.7.2"
+    },
+    "devDependencies": {
+        "@strapi/typescript-utils": "^5.17.0",
+        "@types/react": "^18.0.0",
+        "@types/react-dom": "^18.0.28",
+        "@types/react-router-dom": "^6.0.0",
+        "typescript": "5.0.4"
+    },
+    "peerDependencies": {
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0",
+        "react-router-dom": "^6.0.0",
+        "styled-components": "6.1.19"
+    },
+    "author": {
+        "name": "A Strapi developer"
+    },
+    "maintainers": [
+        {
+            "name": "A Strapi developer"
+        }
+    ],
+    "engines": {
+        "node": ">=18.0.0 <=20.x.x",
+        "npm": ">=6.0.0"
+    },
+    "scripts": {
+        "develop": "tsc -p tsconfig.server.json -w",
+        "build": "tsc -p tsconfig.server.json"
+    },
+    "license": "MIT"
+}
