@@ -9,8 +9,8 @@
     "displayName": "Translator"
   },
   "dependencies": {
-    "@strapi/design-system": "2.0.0-rc.27",
-    "@strapi/icons": "2.0.0-rc.27",
+    "@strapi/design-system": "2.0.0-rc.28",
+    "@strapi/icons": "2.0.0-rc.28",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
