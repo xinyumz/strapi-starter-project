@@ -100,7 +100,7 @@ export interface DuplicateDetectionResult {
     recommendations: string[];
 }
 
-// Enhanced useCombinedHealth hook with FIXED response parsing and comprehensive debugging
+// useCombinedHealth hook with response parsing and comprehensive debugging
 export const useCombinedHealth = () => {
     const [healthStats, setHealthStats] = useState<CombinedHealthStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -123,7 +123,7 @@ export const useCombinedHealth = () => {
 
             const response = await get(url);
 
-            // ENHANCED DEBUGGING: Log the complete response
+            // DEBUGGING: Log the complete response
             console.log('[useCombinedHealth] Raw response:', response);
             console.log('[useCombinedHealth] Response structure:', {
                 hasData: !!response.data,
@@ -131,7 +131,7 @@ export const useCombinedHealth = () => {
                 dataDataKeys: response.data?.data ? Object.keys(response.data.data) : 'no data.data'
             });
 
-            // FIXED: Handle response structure correctly based on actual backend response
+            // Handle response structure correctly based on actual backend response
             let healthData;
 
             // The backend returns: { success: true, data: { healthOverview: { overallHealth: {...} } } }
@@ -204,7 +204,7 @@ export const useCombinedHealth = () => {
         } catch (err) {
             console.error('[useCombinedHealth] Error fetching combined health:', err);
 
-            // Enhanced error logging
+            // Error logging
             if (err instanceof Error) {
                 console.error('[useCombinedHealth] Error details:', {
                     message: err.message,
@@ -251,7 +251,7 @@ export const useCombinedHealth = () => {
     };
 };
 
-// Enhanced useOrphanStats hook with debugging
+// useOrphanStats hook with debugging
 export const useOrphanStats = () => {
     const [stats, setStats] = useState<OrphanStats | null>(null);
     const [loading, setLoading] = useState(true);

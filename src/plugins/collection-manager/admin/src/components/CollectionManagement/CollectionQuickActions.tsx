@@ -11,7 +11,6 @@ import {
     Badge,
     Loader
 } from '@strapi/design-system';
-import styled from 'styled-components';
 import {
     useOrphanDetection,
     useDuplicateDetection,
@@ -167,7 +166,7 @@ const CollectionQuickActions: React.FC<CollectionQuickActionsProps> = ({
                 </Box>
             )}
 
-            {/* Enhanced Quick Actions Section */}
+            {/* Quick Actions Section */}
             <Box>
                 <Box marginBottom={3}>
                     <Typography variant="gamma" textColor="neutral800" fontWeight="semiBold">
@@ -223,7 +222,7 @@ const CollectionQuickActions: React.FC<CollectionQuickActionsProps> = ({
                     </Grid.Item>
                 </Grid.Root>
 
-                {/* Enhanced Action Info */}
+                {/* Action Info */}
                 <Box marginTop={3} padding="1rem" background="neutral100" borderRadius="8px">
                     <Typography variant="pi" textColor="neutral600">
                         💡 <strong>Health Monitoring:</strong> "Refresh Scan" checks both orphans and duplicates

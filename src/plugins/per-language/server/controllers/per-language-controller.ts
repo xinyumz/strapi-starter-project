@@ -18,7 +18,7 @@ export default ({ strapi }: any) => ({
     },
 
     /**
-     * Get all languages for a specific article - FIXED ID resolution
+     * Get all languages for a specific article
      */
     async getArticleLanguages(ctx) {
         const { articleId } = ctx.params;
@@ -30,16 +30,16 @@ export default ({ strapi }: any) => ({
         }
 
         try {
-            // FIXED: Proper documentId resolution
+            // Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5) - Use correct query syntax
                 console.log('[PerLanguageController] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
                     filters: {
-                        documentId: articleId  // FIXED: Filter by documentId instead of using findFirst with documentId
+                        documentId: articleId  // Filter by documentId instead of using findFirst with documentId
                     }
                 });
 
@@ -213,7 +213,7 @@ export default ({ strapi }: any) => ({
         }
     },
 
-    // FIXED: Language-specific refresh with proper ID resolution
+    // Language-specific refresh with proper ID resolution
     async refreshLanguageData(ctx) {
         const { articleId, language } = ctx.params;
 
@@ -224,11 +224,11 @@ export default ({ strapi }: any) => ({
         try {
             console.log(`[Refresh] Refreshing data for article ${articleId}, language ${language}`);
 
-            // FIXED: Proper documentId resolution before calling service
+            // Proper documentId resolution before calling service
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5) - Use correct query syntax
                 console.log('[Refresh] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
@@ -250,7 +250,7 @@ export default ({ strapi }: any) => ({
                 console.log('[Refresh] Using numeric ID:', resolvedArticleId);
             }
 
-            // FIXED: Pass resolved numeric ID to service instead of potentially string documentId
+            // Pass resolved numeric ID to service instead of potentially string documentId
             const articleService = strapi.plugin('per-language').service('articleService');
             const refreshedData = await articleService.getLanguageContent(resolvedArticleId, language);
 

@@ -223,7 +223,7 @@ export const useCollectionLanguages = ({
 
             await loadCollectionLanguages();
 
-            // Enhanced success message based on auto-retrieval
+            // success message based on auto-retrieval
             if (useAutoRetrieval && result.autoRetrievalInfo) {
                 const info = result.autoRetrievalInfo;
                 onSuccess?.(`${languageCode} collection created with auto-retrieval. ${info.message}`);

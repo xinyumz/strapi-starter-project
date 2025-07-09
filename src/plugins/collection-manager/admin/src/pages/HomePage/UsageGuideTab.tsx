@@ -17,7 +17,7 @@ import {
 const UsageGuideTab: React.FC = () => {
     return (
         <TabContentContainer>
-            {/* Status Section - Enhanced with Health Badge */}
+            {/* Status Section */}
             <SectionContainer>
                 <InfoCard background="success100">
                     <Box marginBottom={4}>
@@ -39,7 +39,7 @@ const UsageGuideTab: React.FC = () => {
                         </Typography>
                     </Box>
 
-                    {/* Health Monitoring Status - Enhanced */}
+                    {/* Health Monitoring Status */}
                     <Box marginBottom={3}>
                         <Typography variant="omega" textColor="success700" fontWeight="medium">
                             📊 Health Monitoring:
@@ -127,7 +127,7 @@ const UsageGuideTab: React.FC = () => {
                 </WhiteCard>
             </SectionContainer>
 
-            {/* Health Monitoring Guide - Enhanced with Badge Info */}
+            {/* Health Monitoring Guide */}
             <SectionContainer>
                 <WhiteCard background="neutral0" borderColor="neutral200">
                     <Box marginBottom={6}>

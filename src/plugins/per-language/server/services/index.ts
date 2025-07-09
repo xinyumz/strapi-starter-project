@@ -7,10 +7,13 @@ import processingService from './processing-service';
 import articleService from './article-service';
 import collectionService from './collection-service';
 
+import languageProcessorRegistry from './language-processor-registry';
+
 export default {
   languageService,
   translationService,
   processingService,
   articleService,
   collectionService,
+  languageProcessorRegistry,
 };

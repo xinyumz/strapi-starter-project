@@ -13,7 +13,7 @@ export default ({ strapi }: any) => ({
     async processArticle(
         content: string,
         targetLanguages: string[] = ['en']
-    ): Promise<EnhancedSentence[]> {
+    ): Promise<any> {
         if (typeof content !== 'string') {
             throw new ApplicationError('Content must be a string');
         }
@@ -39,8 +39,8 @@ export default ({ strapi }: any) => ({
                 translationsByLanguage[language] = await translationService.translateSentences(sentences, language);
             }
 
-            // Combine everything
-            return sentences.map((chinese, index) => {
+            // Combine sentence data
+            const processedSentences = sentences.map((chinese, index) => {
                 // Create translations object with all target languages
                 const translations: { [language: string]: string } = {};
                 for (const language of targetLanguages) {
@@ -53,6 +53,44 @@ export default ({ strapi }: any) => ({
                     grammarRules: grammarRules[index]?.rules || []
                 };
             });
+
+            // 🔧 ADD: HSK difficulty calculation using existing service
+            let hskAnalysis = null;
+            try {
+                console.log(`[ChineseProcessor] Calculating HSK difficulty for content`);
+                const hskService = strapi.plugin('chinese-article-processor').service('hskService');
+                const hskResult = await hskService.calculateHSK(content);
+
+                hskAnalysis = {
+                    distribution: hskResult.skillDistribution,
+                    selectedLevel: hskResult.skillLevel,
+                    calculatedLevel: hskResult.skillLevel
+                };
+
+                console.log(`[ChineseProcessor] ✅ HSK analysis: Level ${hskResult.skillLevel}`);
+            } catch (error) {
+                console.error('[ChineseProcessor] HSK calculation failed:', error);
+                // Continue without HSK data rather than failing entirely
+            }
+
+            // Return enhanced structure with HSK data
+            return {
+                sentences: processedSentences,  // Original sentence data
+                hsk: hskAnalysis,              // HSK difficulty data
+
+                // Add grammar summary for easier access
+                grammar: {
+                    sentences: processedSentences.map(sentence => ({
+                        sentence: sentence.chinese,
+                        rules: sentence.grammarRules,
+                        translation: sentence.translations.en || '',
+                        translations: Object.entries(sentence.translations).map(([language, text]) => ({
+                            language,
+                            text
+                        }))
+                    }))
+                }
+            };
         } catch (error: unknown) {
             if (error instanceof ApplicationError) {
                 throw error;
@@ -64,7 +102,7 @@ export default ({ strapi }: any) => ({
     },
 
     /**
-     * ENHANCED: Save processed article data using proper foreign key relationships
+     * Save processed article data using proper foreign key relationships
      */
     async saveProcessedArticle(articleId: number, processedSentences: EnhancedSentence[]): Promise<void> {
         if (!strapi.db) {
@@ -159,13 +197,13 @@ export default ({ strapi }: any) => ({
 
     /**
      * Helper method to get per_language_id for a specific language
-     * FIXED: Use Document Service API instead of Entity Service API
+     * Use Document Service API instead of Entity Service API
      */
     async getPerLanguageId(articleId: number, language: string): Promise<number | null> {
         try {
             console.log(`[ChineseProcessor] Getting per_language_id for article ${articleId}, language ${language}`);
 
-            // FIXED: Use Document Service API instead of Entity Service API
+            // Use Document Service API instead of Entity Service API
             const perLanguageEntries = await strapi.documents('plugin::per-language.article-perlanguage').findMany({
                 filters: {
                     article_id: articleId,

@@ -81,7 +81,7 @@ const FeaturesTab: React.FC = () => {
                         ))}
                     </Grid.Root>
 
-                    {/* Key Benefits Section - FIXED RESPONSIVE GRID */}
+                    {/* Key Benefits Section */}
                     <Box marginTop={6}>
                         <Box marginBottom={4}>
                             <Typography variant="beta" textColor="neutral800" fontWeight="semiBold">

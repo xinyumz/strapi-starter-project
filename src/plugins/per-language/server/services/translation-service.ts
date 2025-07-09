@@ -155,7 +155,7 @@ export default ({ strapi }: any) => {
 
         /**
          * Get translated content from article_perlanguages table
-         * FIXED: Added proper ID resolution for v5 compatibility
+         * Proper ID resolution for v5 compatibility
          */
         async getTranslatedContent(articleId: number | string, languageCode: string): Promise<string> {
             try {

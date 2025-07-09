@@ -12,7 +12,7 @@ interface RequestWithBody extends Context {
 export default ({ strapi }: any) => ({
     /**
      * Create or update content for a specific language
-     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
+     * Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async updateArticleContent(ctx: RequestWithBody) {
         try {
@@ -30,12 +30,12 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID, language, and content are required');
             }
 
-            // FIXED: Proper documentId resolution
+            // Proper documentId resolution
             let resolvedArticleId: number;
             let article: any;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5)
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
@@ -78,12 +78,12 @@ export default ({ strapi }: any) => ({
 
     /**
      * Get content for a specific language
-     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
+     * Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getArticleContent(ctx: Context) {
         try {
             const { id: articleId } = ctx.params;
-            const { language = 'zh' } = ctx.query;
+            const { language } = ctx.query;
 
             console.log('[ArticleController] Getting article content:', {
                 articleId,
@@ -95,12 +95,17 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // FIXED: Proper documentId resolution
+            // Require explicit language parameter
+            if (!language) {
+                return ctx.badRequest('Language parameter is required');
+            }
+
+            // Proper documentId resolution
             let resolvedArticleId: number;
             let article: any;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5)
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
@@ -172,7 +177,7 @@ export default ({ strapi }: any) => ({
 
     /**
      * Get all languages for an article (for ProcessedDataDisplay)
-     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
+     * Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getArticleLanguages(ctx: Context) {
         try {
@@ -187,11 +192,11 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // FIXED: Proper documentId resolution
+            // Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5)
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
@@ -248,11 +253,11 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID and language are required');
             }
 
-            // FIXED: Proper documentId resolution
+            // Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5) - Use correct query syntax
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
@@ -289,13 +294,13 @@ export default ({ strapi }: any) => ({
     },
 
     /**
-     * Get processing data for Chinese processor
-     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
+     * Get processing data for language processors
+     * Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getProcessingData(ctx: Context) {
         try {
             const { id: articleId } = ctx.params;
-            const { language = 'zh' } = ctx.query;
+            const { language } = ctx.query;
 
             console.log('[ArticleController] Getting processing data:', {
                 articleId,
@@ -307,11 +312,16 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // FIXED: Proper documentId resolution
+            // Require explicit language parameter
+            if (!language) {
+                return ctx.badRequest('Language parameter is required');
+            }
+
+            // Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5)
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
@@ -344,7 +354,7 @@ export default ({ strapi }: any) => ({
                 return ctx.notFound('Processing data not found');
             }
 
-            // Structure the response for Chinese processor compatibility
+            // Structure the response for language processor compatibility
             const response = {
                 data: {
                     content: perLanguageData.per_language_text,
@@ -369,8 +379,8 @@ export default ({ strapi }: any) => ({
     },
 
     /**
-     * Enhanced translate endpoint with manual content support
-     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
+     * Translate endpoint with manual content support
+     * Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async translateContent(ctx: RequestWithBody) {
         try {
@@ -388,11 +398,11 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID, target language, and text are required');
             }
 
-            // FIXED: Proper documentId resolution
+            // Proper documentId resolution
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5) - Use correct query syntax
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
@@ -456,13 +466,13 @@ export default ({ strapi }: any) => ({
     },
 
     /**
-     * Get article data in format compatible with Chinese processor
-     * FIXED: Support both documentId (v5) and numeric ID (v4 compatibility)
+     * Get article data in format compatible with language processors
+     * Support both documentId (v5) and numeric ID (v4 compatibility)
      */
     async getCompatibleArticleData(ctx: Context) {
         try {
             const { id: articleId } = ctx.params;
-            const { language = 'zh' } = ctx.query;
+            const { language } = ctx.query;
 
             console.log('[ArticleController] Getting compatible article data:', {
                 articleId,
@@ -474,12 +484,17 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Article ID is required');
             }
 
-            // FIXED: Proper documentId resolution
+            // Require explicit language parameter
+            if (!language) {
+                return ctx.badRequest('Language parameter is required');
+            }
+
+            // Proper documentId resolution
             let resolvedArticleId: number;
             let article: any;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - FIXED: Use correct query syntax
+                // This is a documentId (Strapi v5)
                 console.log('[ArticleController] Using documentId to find article:', articleId);
 
                 const articles = await strapi.documents('api::article.article').findMany({
@@ -515,7 +530,7 @@ export default ({ strapi }: any) => ({
                 language as string
             );
 
-            // Build response compatible with Chinese processor expectations
+            // Build response compatible with language processor expectations
             const response = {
                 data: {
                     id: article.id,
@@ -603,6 +618,127 @@ export default ({ strapi }: any) => ({
         } catch (error: any) {
             console.error('[ArticleController] Error updating access tier:', error);
             ctx.throw(500, `Failed to update access tier: ${error.message}`);
+        }
+    },
+
+    /**
+     * Generic processing endpoint that routes to appropriate processor
+    */
+    async processContentGeneric(ctx: RequestWithBody) {
+        try {
+            const { id: articleId } = ctx.params;
+            const { language, options = {} } = ctx.request.body || {};
+
+            if (!articleId || !language) {
+                return ctx.badRequest('Article ID and language are required');
+            }
+
+            // Get content from article_perlanguages
+            const articleService = strapi.plugin('per-language').service('articleService');
+            const perLanguageData = await articleService.getLanguageContent(
+                parseInt(articleId),
+                language
+            );
+
+            if (!perLanguageData?.per_language_text) {
+                return ctx.badRequest('No content found for processing');
+            }
+
+            // Use registry to process
+            const registry = strapi.plugin('per-language').service('languageProcessorRegistry');
+
+            if (!registry.canProcess(language)) {
+                return ctx.badRequest(`No processor available for language: ${language}`);
+            }
+
+            const result = await registry.processContent(
+                parseInt(articleId),
+                language,
+                perLanguageData.per_language_text,
+                options
+            );
+
+            ctx.body = {
+                data: result,
+                message: 'Content processed successfully',
+                processor: registry.getProcessorForLanguage(language)?.processorId
+            };
+
+        } catch (error: any) {
+            console.error('[ArticleController] Error in generic processing:', error);
+            ctx.throw(500, `Processing failed: ${error.message}`);
+        }
+    },
+
+    /**
+     * Get supported languages for processing
+     */
+    async getSupportedLanguages(ctx: Context) {
+        try {
+            const registry = strapi.plugin('per-language').service('languageProcessorRegistry');
+            const supportedLanguages = registry.getSupportedLanguages();
+
+            ctx.body = {
+                data: supportedLanguages,
+                count: supportedLanguages.length
+            };
+        } catch (error: any) {
+            console.error('[ArticleController] Error getting supported languages:', error);
+            ctx.throw(500, 'Failed to get supported languages');
+        }
+    },
+
+    /**
+     * Get registry status and supported languages
+     * GET /per-language/registry/status
+     */
+    async getRegistryStatus(ctx: Context) {
+        try {
+            const registry = strapi.plugin('per-language').service('languageProcessorRegistry');
+            const supportedLanguages = registry.getSupportedLanguages();
+
+            ctx.body = {
+                success: true,
+                data: {
+                    supportedLanguages,
+                    processorCount: supportedLanguages.length,
+                    registryActive: true
+                },
+                message: 'Registry status retrieved successfully'
+            };
+        } catch (error: any) {
+            console.error('[ArticleController] Registry status error:', error);
+            ctx.throw(500, 'Failed to get registry status');
+        }
+    },
+
+    /**
+     * Check if language processing is available
+     * GET /per-language/registry/check/:language
+     */
+    async checkLanguageSupport(ctx: Context) {
+        try {
+            const { language } = ctx.params;
+            const registry = strapi.plugin('per-language').service('languageProcessorRegistry');
+
+            const isSupported = registry.canProcess(language);
+            const processor = registry.getProcessorForLanguage(language);
+
+            ctx.body = {
+                success: true,
+                data: {
+                    language,
+                    supported: isSupported,
+                    processor: processor ? {
+                        id: processor.processorId,
+                        displayName: processor.displayName,
+                        languageCodes: processor.languageCodes
+                    } : null
+                }
+            };
+        } catch (error: any) {
+            console.error('[ArticleController] Language support check error:', error);
+            ctx.throw(500, 'Failed to check language support');
         }
     }
 });

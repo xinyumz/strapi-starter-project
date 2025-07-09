@@ -16,7 +16,7 @@ export default ({ strapi }: any) => {
             content: string
         ): Promise<PerLanguageContentType> {
             try {
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findMany({
                     filters: {
                         article_id: articleId,
@@ -60,7 +60,7 @@ export default ({ strapi }: any) => {
          */
         async getLanguageContent(articleId: number, languageCode: string): Promise<any> {
             try {
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findMany({
                     filters: {
                         article_id: articleId,
@@ -81,13 +81,13 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * ADDED: Get all languages for an article (missing method that controller calls)
+         * Get all languages for an article (missing method that controller calls)
          */
         async getAllLanguagesForArticle(articleId: number): Promise<any[]> {
             try {
                 console.log(`[ArticleService] Getting all languages for article ${articleId}`);
 
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const languages = await strapi.documents('plugin::per-language.article-perlanguage').findMany({
                     filters: {
                         article_id: articleId
@@ -104,7 +104,7 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * ADDED: Refresh language data (missing method that controller calls)
+         * Refresh language data (missing method that controller calls)
          */
         async refreshLanguageData(articleId: number, language: string): Promise<any> {
             try {
@@ -136,7 +136,7 @@ export default ({ strapi }: any) => {
             displaySkill?: string
         ): Promise<PerLanguageContentType> {
             try {
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 // First find the document by its numeric ID
                 const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
                     filters: { id: contentId }
@@ -173,7 +173,7 @@ export default ({ strapi }: any) => {
          */
         async setPublishStatus(contentId: number, published: boolean): Promise<PerLanguageContentType> {
             try {
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
                     filters: { id: contentId }
                 });
@@ -205,7 +205,7 @@ export default ({ strapi }: any) => {
             try {
                 console.log(`[ArticleService] Starting delete for content ID: ${contentId}`);
 
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const languageContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
                     filters: { id: contentId }
                 });
@@ -321,7 +321,7 @@ export default ({ strapi }: any) => {
             uniqueTranslationLanguages: string[];
         }> {
             try {
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const languageContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
                     filters: { id: contentId }
                 });
@@ -399,7 +399,7 @@ export default ({ strapi }: any) => {
             displaySkill?: string
         ): Promise<PerLanguageContentType> {
             try {
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
                     filters: { id: contentId }
                 });
@@ -462,7 +462,7 @@ export default ({ strapi }: any) => {
          */
         async updateAccessTier(contentId: number, accessTier: string): Promise<PerLanguageContentType> {
             try {
-                // FIXED: Use Document Service API for Strapi v5
+                // Use Document Service API for Strapi v5
                 const existingContent = await strapi.documents('plugin::per-language.article-perlanguage').findFirst({
                     filters: { id: contentId }
                 });

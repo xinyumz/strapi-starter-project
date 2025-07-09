@@ -1,15 +1,28 @@
 // src/plugins/chinese-article-processor/server/bootstrap.ts
 
+export default ({ strapi }: any) => {
+  // Attempt registration with per-language registry
+  const attemptRegistration = () => {
+    const registry = strapi.plugin('per-language')?.service('languageProcessorRegistry');
+    const adapter = strapi.plugin('chinese-article-processor').service('processorAdapter');
 
+    if (registry && adapter) {
+      registry.registerProcessor(adapter);
+      strapi.log.info('[Chinese Processor] ✅ Registered with language processor registry');
+      return true;
+    }
+    return false;
+  };
 
-export default async ({ strapi }: any) => {
-  try {
-    strapi.log.info('[Chinese Article Processor] Plugin loaded successfully');
-
-    // No migration needed - sentence tables are now proper Strapi content types
-    // defined in src/plugins/chinese-article-processor/server/content-types/
-
-  } catch (error) {
-    strapi.log.error('[Chinese Article Processor] Error in bootstrap:', error);
+  // Try immediate registration
+  if (!attemptRegistration()) {
+    // Retry with delay if per-language plugin not ready
+    setTimeout(() => {
+      if (attemptRegistration()) {
+        strapi.log.info('[Chinese Processor] ✅ Registration successful on retry');
+      } else {
+        strapi.log.error('[Chinese Processor] ❌ Registration failed - per-language plugin unavailable');
+      }
+    }, 1000);
   }
 };

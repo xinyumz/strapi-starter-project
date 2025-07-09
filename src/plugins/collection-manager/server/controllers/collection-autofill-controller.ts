@@ -6,7 +6,7 @@ export default ({ strapi }: any) => ({
     /**
      * Create quick collection from single article
      * POST /collection-manager/quick-create
-     * Body: { articleId: string | number } - FIXED: Support both documentId and numeric ID
+     * Body: { articleId: string | number } - Support both documentId and numeric ID
      */
     async quickCreateCollection(ctx: any) {
         const startTime = Date.now();

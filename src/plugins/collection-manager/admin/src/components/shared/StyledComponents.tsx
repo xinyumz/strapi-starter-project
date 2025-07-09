@@ -255,7 +255,7 @@ export const TextCenter = styled(Box)`
 `;
 
 // ====================================
-// ENHANCED VARIANTS FOR SPECIFIC USE CASES
+// VARIANTS FOR SPECIFIC USE CASES
 // ====================================
 
 export const DashboardCard = styled(WhiteCard)`

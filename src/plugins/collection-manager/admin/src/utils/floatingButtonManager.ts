@@ -108,7 +108,7 @@ function isValidArticleId(articleId: string | null): boolean {
 
 /**
  * Extract article ID from current URL using multiple patterns
- * Enhanced with create page detection and ID validation
+ * with create page detection and ID validation
  */
 function extractArticleIdFromUrl(): string | null {
     const currentPath = window.location.pathname;

@@ -62,6 +62,28 @@ const perLanguageRoutes = [
     path: '/article/:articleId/language/:language/refresh',
     handler: 'perLanguage.refreshLanguageData',
     config: { auth: false, policies: [], description: 'Refresh data for a specific language' }
+  },
+
+  // Registry routes
+  {
+    method: 'GET',
+    path: '/registry/status',
+    handler: 'article.getRegistryStatus',
+    config: {
+      policies: [],
+      auth: false,
+      description: 'Get language processor registry status'
+    },
+  },
+  {
+    method: 'GET',
+    path: '/registry/check/:language',
+    handler: 'article.checkLanguageSupport',
+    config: {
+      policies: [],
+      auth: false,
+      description: 'Check if language processing is supported'
+    },
   }
 ];
 

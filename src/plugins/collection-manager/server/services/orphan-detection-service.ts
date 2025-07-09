@@ -481,7 +481,7 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * Enhanced cache management methods
+         * Cache management methods
          */
         clearOrphanCache(): void {
             const cacheSize = orphanDetectionCache.size;

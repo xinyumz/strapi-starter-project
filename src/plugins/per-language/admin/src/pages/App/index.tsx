@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Page } from '@strapi/strapi/admin'; // FIXED: Correct import for v5
+import { Page } from '@strapi/strapi/admin';
 import pluginId from '../../pluginId';
 import HomePage from '../HomePage';
 

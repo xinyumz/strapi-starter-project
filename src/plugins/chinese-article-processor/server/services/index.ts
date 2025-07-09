@@ -6,6 +6,8 @@ import translationService from './translation-service';
 import articleService from './article-service';
 import processService from './process-service';
 
+import processorAdapter from './processor-adapter';
+
 export default {
     grammarService,
     hskService,
@@ -13,4 +15,5 @@ export default {
     translationService,
     articleService,
     processService,
+    processorAdapter,
 };

@@ -75,5 +75,17 @@ export default [
             policies: [],
             description: 'Update access tier for language content'
         }
-    }
+    },
+
+    // Generic processing
+    {
+        method: 'POST',
+        path: '/article/:id/process-generic',
+        handler: 'article.processContentGeneric',
+        config: {
+            policies: [],
+            auth: false,
+            description: 'Generic processing endpoint that routes to appropriate processor'
+        }
+    },
 ];

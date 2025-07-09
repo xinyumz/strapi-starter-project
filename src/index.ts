@@ -137,7 +137,7 @@ export default {
       return originalDeleteMany.call(this, uid, params);
     };
 
-    // Updated cleanup function for cascading deletes (articles)
+    // Cleanup function for cascading deletes (articles)
     async function cleanupArticleData(articleIds: number[]) {
       try {
         const knex = strapi.db.connection;

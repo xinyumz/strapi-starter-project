@@ -351,7 +351,7 @@ export default ({ strapi }: any) => {
         },
 
         /**
-         * Enhanced cache management methods
+         * Cache management methods
          */
         clearDuplicateCache(): void {
             const cacheSize = duplicateDetectionCache.size;

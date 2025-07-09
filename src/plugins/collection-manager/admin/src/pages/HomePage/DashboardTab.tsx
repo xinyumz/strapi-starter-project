@@ -4,7 +4,7 @@
 import React from 'react';
 import { Box, Typography, } from '@strapi/design-system';
 
-// Import our enhanced widgets
+// Import widgets
 import CollectionSummaryWidget from '../../components/CollectionManagement/CollectionSummaryWidget';
 
 // Import shared styles

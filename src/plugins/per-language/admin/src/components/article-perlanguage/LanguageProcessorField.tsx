@@ -127,7 +127,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
     const hasSelectedLanguage = Boolean(targetLanguage);
     const modifiedData = document || allProps || {};
 
-    // Enhanced document ID extraction for Strapi v5
+    // document ID extraction for Strapi v5
     const articleId = (() => {
         // Try documentId first (Strapi v5)
         if (documentId) {
