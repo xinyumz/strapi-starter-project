@@ -145,8 +145,8 @@ export default ({ strapi }: any) => ({
                     const [sentenceId] = await trx('article_sentences')
                         .insert({
                             article_id: articleId,           // Keep for compatibility
-                            per_language_id: perLanguageId,  // NEW: Proper foreign key
-                            language: 'zh',                  // NEW: Language identifier
+                            per_language_id: perLanguageId,  // Proper foreign key
+                            language: 'zh',                  // Language identifier
                             sentence_text: sentence.chinese,
                             sentence_order: i + 1,
                             created_at: trx.fn.now(),

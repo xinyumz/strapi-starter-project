@@ -46,8 +46,8 @@ const FeaturesTab: React.FC = () => {
                             {
                                 title: 'Article Relation',
                                 desc: 'The source article is automatically linked to the new collection',
-                                bg: 'warning100',
-                                textColor: 'warning700'
+                                bg: 'alternative100',
+                                textColor: 'alternative700'
                             },
                             {
                                 title: 'Duplicate Prevention',
@@ -109,8 +109,8 @@ const FeaturesTab: React.FC = () => {
                                     metric: 'Zero',
                                     title: 'Learning Curve',
                                     desc: 'Intuitive floating button requires no training',
-                                    bg: 'warning100',
-                                    color: 'warning600'
+                                    bg: 'alternative100',
+                                    color: 'alternative600'
                                 }
                             ].map((benefit, index) => (
                                 <BenefitCard key={index} background={benefit.bg as any}>
@@ -151,8 +151,8 @@ const FeaturesTab: React.FC = () => {
                                 title: 'Orphan Detection',
                                 desc: 'Automatically identifies empty collections and broken article references',
                                 icon: '🗑️',
-                                bg: 'danger100',
-                                textColor: 'danger700'
+                                bg: 'warning100',
+                                textColor: 'warning700'
                             },
                             {
                                 title: 'Duplicate Detection',
@@ -313,19 +313,19 @@ const FeaturesTab: React.FC = () => {
                         </Grid.Item>
 
                         <Grid.Item col={4}>
-                            <Box textAlign="center" padding="2rem" background="warning100" borderRadius="8px" width="100%">
+                            <Box textAlign="center" padding="2rem" background="alternative100" borderRadius="8px" width="100%">
                                 <Box marginBottom={3}>
-                                    <Typography variant="alpha" textColor="warning700">
+                                    <Typography variant="alpha" textColor="alternative700">
                                         20+
                                     </Typography>
                                 </Box>
                                 <Box marginBottom={2}>
-                                    <Typography variant="omega" fontWeight="semiBold" textColor="warning700">
+                                    <Typography variant="omega" fontWeight="semiBold" textColor="alternative700">
                                         API Endpoints
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography variant="pi" textColor="warning600">
+                                    <Typography variant="pi" textColor="alternative600">
                                         Complete collection management coverage
                                     </Typography>
                                 </Box>
@@ -385,7 +385,7 @@ const FeaturesTab: React.FC = () => {
 
                     <Box marginBottom={3}>
                         <Typography variant="omega" textColor="primary700" fontWeight="medium">
-                            Weighted Health Formula:
+                            Hybrid Scoring System:
                         </Typography>
                     </Box>
 
@@ -397,19 +397,48 @@ const FeaturesTab: React.FC = () => {
                         textAlign="center"
                     >
                         <Typography variant="omega" textColor="primary800" fontWeight="bold">
-                            Health Score = 100 - (Orphan Weight × 1.0) - (Duplicate Weight × 0.5)
+                            Health = 100 - Base Penalties - Scaled Penalties
                         </Typography>
                     </Box>
 
                     <Box marginBottom={3}>
                         <Typography variant="omega" textColor="primary700" style={{ lineHeight: '1.6' }}>
-                            This weighted approach recognizes that <strong>orphaned collections are always problematic</strong>
-                            (full penalty), while <strong>duplicates may sometimes be intentional</strong> (half penalty).
-                            The system can reach 0% health when all collections have issues, providing realistic urgency levels.
+                            This <strong>hybrid approach</strong> ensures issues are always visible regardless of system size.
+                            <strong> Base penalties</strong> guarantee any problem drops the score visibly, while
+                            <strong> scaled penalties</strong> provide appropriate severity based on collection ratio.
                         </Typography>
                     </Box>
 
                     <Box marginBottom={3}>
+                        <Typography variant="omega" textColor="primary700" fontWeight="medium">
+                            Penalty Structure:
+                        </Typography>
+                    </Box>
+
+                    <Box marginLeft={2}>
+                        <Box marginBottom={1}>
+                            <Typography variant="pi" textColor="primary700">
+                                • <strong>Orphan Base:</strong> 5 points (any orphaned collections)
+                            </Typography>
+                        </Box>
+                        <Box marginBottom={1}>
+                            <Typography variant="pi" textColor="primary700">
+                                • <strong>Duplicate Base:</strong> 2 points (any duplicate collections)
+                            </Typography>
+                        </Box>
+                        <Box marginBottom={1}>
+                            <Typography variant="pi" textColor="primary700">
+                                • <strong>Orphan Scaled:</strong> Up to 40 points (based on % orphaned)
+                            </Typography>
+                        </Box>
+                        <Box marginBottom={1}>
+                            <Typography variant="pi" textColor="primary700">
+                                • <strong>Duplicate Scaled:</strong> Up to 20 points (based on % duplicated)
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    <Box marginTop={3} marginBottom={3}>
                         <Typography variant="omega" textColor="primary700" fontWeight="medium">
                             Real-world Examples:
                         </Typography>
@@ -418,22 +447,22 @@ const FeaturesTab: React.FC = () => {
                     <Box marginLeft={2}>
                         <Box marginBottom={1}>
                             <Typography variant="pi" textColor="primary700">
-                                • <strong>All orphaned:</strong> 0% health (urgent action required)
+                                • <strong>1000 collections, 1 orphan:</strong> 95% health (clearly visible)
                             </Typography>
                         </Box>
                         <Box marginBottom={1}>
                             <Typography variant="pi" textColor="primary700">
-                                • <strong>All duplicated:</strong> 50% health (cleanup recommended)
+                                • <strong>100 collections, 5 orphans:</strong> 90% health (proportional impact)
                             </Typography>
                         </Box>
                         <Box marginBottom={1}>
                             <Typography variant="pi" textColor="primary700">
-                                • <strong>Mixed issues:</strong> Proportional scoring based on severity
+                                • <strong>10 collections, 3 orphans:</strong> 77% health (appropriate severity)
                             </Typography>
                         </Box>
                         <Box>
                             <Typography variant="pi" textColor="primary700">
-                                • <strong>All healthy:</strong> 100% health (system optimized)
+                                • <strong>Perfect system:</strong> 100% health (no issues detected)
                             </Typography>
                         </Box>
                     </Box>

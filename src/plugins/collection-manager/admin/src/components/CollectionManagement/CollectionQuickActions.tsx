@@ -19,6 +19,10 @@ import {
 } from '../../hooks/useCollectionManagement';
 import { ScrollableModalContent, QuickActionButton } from '../shared/StyledComponents';
 
+const isDebugMode = () => window.location.search.includes('debug');
+const debugLog = (message: string, ...args: any[]) => {
+    if (isDebugMode()) console.log(message, ...args);
+};
 
 interface CollectionQuickActionsProps {
     healthStats: CombinedHealthStats;
@@ -62,7 +66,7 @@ const CollectionQuickActions: React.FC<CollectionQuickActionsProps> = ({
     const handleCombinedRefreshScan = async () => {
         setRefreshing(true);
         try {
-            console.log('[CollectionQuickActions] Starting combined refresh scan');
+            debugLog('[CollectionQuickActions] Starting combined refresh scan');
 
             // Show immediate feedback
             showNotification('🔄 Scanning for orphans and duplicates...', 'success');
@@ -70,7 +74,7 @@ const CollectionQuickActions: React.FC<CollectionQuickActionsProps> = ({
             // Use the enhanced force refresh that clears all caches
             await onForceRefresh();
 
-            console.log('[CollectionQuickActions] Combined refresh scan completed successfully');
+            debugLog('[CollectionQuickActions] Combined refresh scan completed successfully');
             showNotification('✅ Health scan completed! Data refreshed.', 'success');
 
         } catch (error) {
@@ -85,7 +89,7 @@ const CollectionQuickActions: React.FC<CollectionQuickActionsProps> = ({
     const handleShowOrphans = async () => {
         if (safeStats.orphanedCollections > 0) {
             setShowOrphanModal(true);
-            console.log('[CollectionQuickActions] Loading orphan details');
+            debugLog('[CollectionQuickActions] Loading orphan details');
 
             try {
                 await forceDetectOrphans();
@@ -100,7 +104,7 @@ const CollectionQuickActions: React.FC<CollectionQuickActionsProps> = ({
     const handleShowDuplicates = async () => {
         if (safeStats.duplicateCollections > 0) {
             setShowDuplicateModal(true);
-            console.log('[CollectionQuickActions] Loading duplicate details');
+            debugLog('[CollectionQuickActions] Loading duplicate details');
 
             try {
                 await forceDetectDuplicates();

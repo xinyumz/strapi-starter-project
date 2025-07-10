@@ -355,7 +355,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 }));
             });
 
-            // NEW: Show success message
+            // Show success message
             const statusText = shouldPublish ? 'published' : 'set to draft';
             const languageText = updateCount === 1 ? 'language' : 'languages';
             onSuccess?.(`Successfully ${statusText} ${updateCount} ${languageText}`);
@@ -397,7 +397,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 await handleAccessTierChange(lang.id, tier);
             }
 
-            // NEW: Show success message
+            // Show success message
             const languageText = updateCount === 1 ? 'language' : 'languages';
             onSuccess?.(`Successfully updated ${updateCount} ${languageText} to ${tier} access tier`);
 

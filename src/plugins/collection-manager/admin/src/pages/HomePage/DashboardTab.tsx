@@ -98,7 +98,7 @@ const DashboardTab: React.FC = () => {
                 </DashboardCard>
             </SectionContainer>
 
-            {/* Health Scoring Info - Consolidated */}
+            {/* Health Scoring Info */}
             <SectionContainer>
                 <InfoCard background="success100">
                     <Box marginBottom={4}>
@@ -109,24 +109,29 @@ const DashboardTab: React.FC = () => {
 
                     <Box marginBottom={3}>
                         <Typography variant="omega" textColor="success700" fontWeight="medium">
-                            Weighted Formula: Health = 100 - (Orphans × 1.0) - (Duplicates × 0.5)
+                            Hybrid Formula: Health = 100 - Base Penalties - Scaled Penalties
                         </Typography>
                     </Box>
 
                     <Box marginLeft={3}>
                         <Box marginBottom={2}>
                             <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
-                                🎯 <strong>Orphan Penalty:</strong> Full weight (1.0) - always problematic
+                                🎯 <strong>Base Penalties:</strong> 5 points for any orphans, 2 points for any duplicates
                             </Typography>
                         </Box>
                         <Box marginBottom={2}>
                             <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
-                                📂 <strong>Duplicate Penalty:</strong> Half weight (0.5) - sometimes intentional
+                                📊 <strong>Scaled Penalties:</strong> Additional penalties based on collection ratio (max 40% orphans, 20% duplicates)
+                            </Typography>
+                        </Box>
+                        <Box marginBottom={2}>
+                            <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
+                                ⚖️ <strong>Smart Scaling:</strong> Issues always visible regardless of system size
                             </Typography>
                         </Box>
                         <Box>
                             <Typography variant="omega" textColor="success700" style={{ lineHeight: '1.6' }}>
-                                💡 <strong>Color Coding:</strong> Green (90%+), Yellow (70-89%), Red (&lt;70%)
+                                💡 <strong>Color Coding:</strong> Green (100%), Yellow (95-99%), Red (&lt;95%)
                             </Typography>
                         </Box>
                     </Box>

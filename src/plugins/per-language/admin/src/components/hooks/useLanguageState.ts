@@ -30,7 +30,7 @@ interface UseLanguageStateReturn {
     hasChanges: (languageId: number) => boolean;
     clearPendingChanges: (languageId?: number) => void;
     applyPendingChanges: (languageId: number, languageData: CollectionLanguageData[]) => CollectionLanguageData[];
-    discardPendingChanges: (languageId: number) => void; // NEW: Add discard function
+    discardPendingChanges: (languageId: number) => void; // Add discard function
 }
 
 /**

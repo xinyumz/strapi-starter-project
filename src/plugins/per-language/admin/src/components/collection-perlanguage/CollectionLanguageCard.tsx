@@ -31,7 +31,7 @@ interface CollectionLanguageCardProps {
     onFieldChange: (field: string, value: any) => void;
     onSave: () => void;
     onDelete: () => void;
-    onDiscard?: () => void; // NEW: Add discard function
+    onDiscard?: () => void; // Add discard function
 }
 
 /**
@@ -54,7 +54,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
     onDelete,
     onDiscard
 }) => {
-    // NEW: Track original values to detect when changes are reverted
+    // Track original values to detect when changes are reverted
     const [originalValues, setOriginalValues] = useState({
         description: language.description,
         published: language.published,
@@ -72,7 +72,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
         });
     }, [language.description, language.published, language.access_tier, language.display_skill]);
 
-    // NEW: Calculate if there are ACTUAL changes from original values
+    // Calculate if there are ACTUAL changes from original values
     const hasActualChanges = () => {
         const currentDescription = getCurrentValue(language, 'description') || '';
         const currentPublished = getCurrentValue(language, 'published') || false;
@@ -87,7 +87,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
         );
     };
 
-    // NEW: Show save/discard buttons only when there are actual changes
+    // Show save/discard buttons only when there are actual changes
     const showSaveControls = hasChanges && hasActualChanges();
 
     // Helper functions
@@ -170,7 +170,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
                             variant="danger-light"
                             onClick={onDelete}
                             size="S"
-                            disabled={showSaveControls} // NEW: Disable delete when there are unsaved changes
+                            disabled={showSaveControls} // Disable delete when there are unsaved changes
                         >
                             Delete
                         </Button>
@@ -274,7 +274,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
                                     >
                                         {isSaving ? 'Saving...' : 'Save Changes'}
                                     </Button>
-                                    {/* NEW: Discard button */}
+                                    {/* Discard button */}
                                     {onDiscard && (
                                         <Button
                                             onClick={onDiscard}

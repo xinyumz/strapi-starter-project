@@ -66,7 +66,7 @@ export default ({ strapi }: any) => {
         return bypassCache === true;
     };
 
-    // Calculate unified health score
+    // Calculate unified health score using hybrid system
     const calculateHealthScore = (
         totalCollections: number,
         orphanedCollections: number,
@@ -76,18 +76,39 @@ export default ({ strapi }: any) => {
             return { healthScore: 100, orphanPenalty: 0, duplicatePenalty: 0 };
         }
 
-        // Weighted penalties approach
-        const orphanWeight = 1.0;
-        const duplicateWeight = 0.5;
+        // HYBRID SYSTEM: Base penalties + Scaled penalties
 
-        const weightedProblems = (orphanedCollections * orphanWeight) + (duplicateCollections * duplicateWeight);
-        const healthScore = Math.round(Math.max(0, 100 - (weightedProblems / totalCollections) * 100));
+        // Step 1: Base penalties (fixed impact for any issues)
+        const ORPHAN_BASE_PENALTY = 5;      // Fixed penalty for any orphans
+        const DUPLICATE_BASE_PENALTY = 2;   // Fixed penalty for any duplicates
 
-        // Calculate individual penalties for display
-        const orphanPenalty = Math.round((orphanedCollections / totalCollections) * 100);
-        const duplicatePenalty = Math.round((duplicateCollections / totalCollections) * 100);
+        const orphanBasePenalty = orphanedCollections > 0 ? ORPHAN_BASE_PENALTY : 0;
+        const duplicateBasePenalty = duplicateCollections > 0 ? DUPLICATE_BASE_PENALTY : 0;
 
-        console.log(`[HealthScore] Weighted calculation: ${orphanedCollections} orphans (weight: ${orphanWeight}) + ${duplicateCollections} duplicates (weight: ${duplicateWeight}) = ${healthScore}% health`);
+        // Step 2: Scaled penalties (proportional impact)
+        const ORPHAN_SCALE_MULTIPLIER = 40;  // Max additional penalty for 100% orphaned
+        const DUPLICATE_SCALE_MULTIPLIER = 20; // Max additional penalty for 100% duplicated
+
+        const orphanScaledPenalty = (orphanedCollections / totalCollections) * ORPHAN_SCALE_MULTIPLIER;
+        const duplicateScaledPenalty = (duplicateCollections / totalCollections) * DUPLICATE_SCALE_MULTIPLIER;
+
+        // Step 3: Combine penalties
+        const totalOrphanPenalty = orphanBasePenalty + orphanScaledPenalty;
+        const totalDuplicatePenalty = duplicateBasePenalty + duplicateScaledPenalty;
+        const totalPenalty = totalOrphanPenalty + totalDuplicatePenalty;
+
+        // Step 4: Calculate final score
+        const healthScore = Math.max(0, Math.round(100 - totalPenalty));
+
+        // For display purposes, calculate individual penalty percentages
+        const orphanPenalty = Math.round(totalOrphanPenalty);
+        const duplicatePenalty = Math.round(totalDuplicatePenalty);
+
+        // Enhanced logging to show the hybrid calculation
+        console.log(`[HealthScore] Hybrid calculation for ${totalCollections} collections:`);
+        console.log(`  - Orphans: ${orphanedCollections} → Base: ${orphanBasePenalty} + Scaled: ${orphanScaledPenalty.toFixed(2)} = ${totalOrphanPenalty.toFixed(2)}`);
+        console.log(`  - Duplicates: ${duplicateCollections} → Base: ${duplicateBasePenalty} + Scaled: ${duplicateScaledPenalty.toFixed(2)} = ${totalDuplicatePenalty.toFixed(2)}`);
+        console.log(`  - Total penalty: ${totalPenalty.toFixed(2)} → Health Score: ${healthScore}%`);
 
         return {
             healthScore,

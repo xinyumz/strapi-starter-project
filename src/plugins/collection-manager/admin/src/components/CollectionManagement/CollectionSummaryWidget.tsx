@@ -12,7 +12,6 @@ import {
     Loader
 } from '@strapi/design-system';
 import { WarningCircle, Database, CheckCircle, ChartCircle } from '@strapi/icons';
-import styled from 'styled-components';
 import { useCombinedHealth } from '../../hooks/useCollectionManagement';
 import CollectionQuickActions from './CollectionQuickActions';
 import {
@@ -23,6 +22,7 @@ import {
     MetricText
 } from '../shared/StyledComponents';
 
+const isDebugMode = () => window.location.search.includes('debug');
 
 const CollectionSummaryWidget: React.FC = () => {
     const { healthStats, loading, error, refetch, forceRefresh } = useCombinedHealth();
@@ -116,15 +116,10 @@ const CollectionSummaryWidget: React.FC = () => {
         }
     };
 
-    // Debug logging for troubleshooting
-    console.log('[CollectionSummaryWidget] Debug stats:', {
-        rawStats: healthStats,
-        safeStats,
-        totalIssues,
-        multiArticlePercentage,
-        singleArticlePercentage,
-        collectionsWithContent
-    });
+    // Log when there are issues or in debug mode
+    if (totalIssues > 0 || isDebugMode()) {
+        console.log(`[CollectionManager] ${totalIssues > 0 ? 'Issues detected' : 'Debug mode'}: ${totalIssues} issues (${safeStats.orphanedCollections} orphaned, ${safeStats.duplicateCollections} duplicated), Health: ${safeStats.healthScore}%`);
+    }
 
     return (
         <Box
@@ -177,7 +172,7 @@ const CollectionSummaryWidget: React.FC = () => {
                         </Box>
                         <Box>
                             <Typography variant="pi" textColor="neutral600">
-                                Combined health metric
+                                {totalIssues === 0 ? 'All good' : `${totalIssues} issue${totalIssues > 1 ? 's' : ''} found`}
                             </Typography>
                         </Box>
                     </StatsCard>

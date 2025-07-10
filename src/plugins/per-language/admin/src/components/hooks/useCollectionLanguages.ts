@@ -142,7 +142,7 @@ export const useCollectionLanguages = ({
     }, [collectionId]);
 
     /**
-     * NEW: Get auto-retrieval data for a specific language
+     * Get auto-retrieval data for a specific language
      */
     const getAutoRetrievalData = useCallback(async (languageCode: string): Promise<AutoRetrievalData | null> => {
         if (!collectionId) {

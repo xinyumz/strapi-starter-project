@@ -3,6 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getFetchClient } from '@strapi/admin/strapi-admin';
 
+const isDebugMode = () => window.location.search.includes('debug');
+const debugLog = (message: string, ...args: any[]) => {
+    if (isDebugMode()) console.log(message, ...args);
+};
+
+
 export interface OrphanStatus {
     isOrphaned: boolean;
     isEmpty: boolean;
@@ -100,7 +106,7 @@ export interface DuplicateDetectionResult {
     recommendations: string[];
 }
 
-// useCombinedHealth hook with response parsing and comprehensive debugging
+// useCombinedHealth hook with response parsing and debug log
 export const useCombinedHealth = () => {
     const [healthStats, setHealthStats] = useState<CombinedHealthStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -118,40 +124,35 @@ export const useCombinedHealth = () => {
                 ? '/collection-manager/health/overview/force'
                 : '/collection-manager/health/overview';
 
-            console.log(`[useCombinedHealth] Fetching combined health${bypassCache ? ' (bypassing cache)' : ''}`);
-            console.log(`[useCombinedHealth] URL: ${url}`);
+            debugLog('[useCombinedHealth] Fetching combined health', bypassCache ? '(bypassing cache)' : '');
+            debugLog('[useCombinedHealth] URL:', url);
 
             const response = await get(url);
 
-            // DEBUGGING: Log the complete response
-            console.log('[useCombinedHealth] Raw response:', response);
-            console.log('[useCombinedHealth] Response structure:', {
-                hasData: !!response.data,
-                dataKeys: response.data ? Object.keys(response.data) : 'no data',
-                dataDataKeys: response.data?.data ? Object.keys(response.data.data) : 'no data.data'
-            });
+            // Log the response in debug mode
+            debugLog('[useCombinedHealth] Response received:', { hasData: !!response.data, url });
 
             // Handle response structure correctly based on actual backend response
             let healthData;
 
             // The backend returns: { success: true, data: { healthOverview: { overallHealth: {...} } } }
             if (response.data?.data?.healthOverview?.overallHealth) {
-                console.log('[useCombinedHealth] Found healthOverview.overallHealth structure');
+                debugLog('[useCombinedHealth] Found healthOverview.overallHealth structure');
                 healthData = response.data.data.healthOverview.overallHealth;
             }
             // Fallback: if the structure is { data: { healthOverview: {...} } } where healthOverview IS the health data
             else if (response.data?.data?.healthOverview) {
-                console.log('[useCombinedHealth] Found direct healthOverview structure');
+                debugLog('[useCombinedHealth] Found data.healthOverview structure');
                 healthData = response.data.data.healthOverview;
             }
             // Fallback: if the structure is { data: { overallHealth: {...} } }
             else if (response.data?.data?.overallHealth) {
-                console.log('[useCombinedHealth] Found direct overallHealth structure');
+                debugLog('[useCombinedHealth] Found data.overallHealth structure');
                 healthData = response.data.data.overallHealth;
             }
             // Last fallback: try data directly
             else if (response.data?.data) {
-                console.log('[useCombinedHealth] Using response.data.data directly');
+                debugLog('[useCombinedHealth] Using response.data directly');
                 healthData = response.data.data;
             } else {
                 console.error('[useCombinedHealth] Invalid response structure - no matching patterns found');
@@ -159,7 +160,7 @@ export const useCombinedHealth = () => {
                 throw new Error('Invalid response structure: no health data found');
             }
 
-            console.log('[useCombinedHealth] Extracted health data:', healthData);
+            debugLog('[useCombinedHealth] Extracted health data:', healthData);
 
             // Validate the health data has required fields
             if (!healthData || typeof healthData !== 'object') {
@@ -191,15 +192,17 @@ export const useCombinedHealth = () => {
                 }
             };
 
-            console.log('[useCombinedHealth] Validated health stats:', {
-                healthScore: validatedHealthData.healthScore,
-                totalCollections: validatedHealthData.totalCollections,
-                orphans: validatedHealthData.orphanedCollections,
-                duplicates: validatedHealthData.duplicateCollections,
-                method: bypassCache ? 'force' : 'cached'
-            });
-
             setHealthStats(validatedHealthData);
+
+            if (validatedHealthData.orphanedCollections > 0 || validatedHealthData.duplicateCollections > 0) {
+                console.log(`[CollectionManager] Health check: ${validatedHealthData.orphanedCollections} orphaned, ${validatedHealthData.duplicateCollections} duplicated collections (${validatedHealthData.healthScore}% health)`);
+            } else {
+                debugLog('[useCombinedHealth] Health check: all good', {
+                    healthScore: validatedHealthData.healthScore,
+                    totalCollections: validatedHealthData.totalCollections,
+                    method: bypassCache ? 'force' : 'cached'
+                });
+            }
 
         } catch (err) {
             console.error('[useCombinedHealth] Error fetching combined health:', err);
@@ -221,12 +224,12 @@ export const useCombinedHealth = () => {
     // Enhanced force refresh with combined cache clearing
     const forceRefresh = useCallback(async () => {
         try {
-            console.log('[useCombinedHealth] Force refresh: clearing all caches');
+            debugLog('[useCombinedHealth] Force refresh: clearing all caches');
             const { del } = getFetchClient();
 
             // Clear all health-related caches
             await del('/collection-manager/health/cache');
-            console.log('[useCombinedHealth] All caches cleared, fetching fresh data');
+            debugLog('[useCombinedHealth] All caches cleared, fetching fresh data');
 
             // Then fetch fresh data
             await fetchCombinedHealth(true);
@@ -269,12 +272,12 @@ export const useOrphanStats = () => {
                 ? '/collection-manager/orphans/stats/force'
                 : '/collection-manager/orphans/stats';
 
-            console.log(`[useOrphanStats] Fetching stats${bypassCache ? ' (bypassing cache)' : ''}`);
-            console.log(`[useOrphanStats] URL: ${url}`);
+            debugLog(`[useOrphanStats] Fetching stats${bypassCache ? ' (bypassing cache)' : ''}`);
+            debugLog(`[useOrphanStats] URL: ${url}`);
 
             const response = await get(url);
 
-            console.log('[useOrphanStats] Raw response:', response);
+            debugLog('[useOrphanStats] Raw response:', response);
 
             // Handle response structure
             let statsData;
@@ -299,12 +302,16 @@ export const useOrphanStats = () => {
                 cacheStats: statsData.cacheStats || { size: 0, hitRate: 'Unknown' }
             };
 
-            console.log('[useOrphanStats] Stats updated:', {
-                total: validatedStats.totalCollections,
-                orphaned: validatedStats.orphanedCollections,
-                healthy: validatedStats.healthyCollections,
-                method: bypassCache ? 'force' : 'cached'
-            });
+            // Only log when there are orphans or in debug mode
+            if (validatedStats.orphanedCollections > 0) {
+                console.log(`[CollectionManager] Orphan stats: ${validatedStats.orphanedCollections} orphaned collections found`);
+            } else {
+                debugLog('[useOrphanStats] Stats updated - no orphans found', {
+                    total: validatedStats.totalCollections,
+                    healthy: validatedStats.healthyCollections,
+                    method: bypassCache ? 'force' : 'cached'
+                });
+            }
 
             setStats(validatedStats);
 
@@ -319,12 +326,12 @@ export const useOrphanStats = () => {
     // Enhanced force refresh that clears cache first, then fetches fresh data
     const forceRefresh = useCallback(async () => {
         try {
-            console.log('[useOrphanStats] Force refresh: clearing cache first');
+            debugLog('[useOrphanStats] Force refresh: clearing cache first');
             const { del } = getFetchClient();
 
             // Clear the cache first
             await del('/collection-manager/orphans/cache');
-            console.log('[useOrphanStats] Cache cleared, now fetching fresh data');
+            debugLog('[useOrphanStats] Cache cleared, now fetching fresh data');
 
             // Then fetch fresh data
             await fetchStats(true);
@@ -341,7 +348,7 @@ export const useOrphanStats = () => {
         try {
             const { del } = getFetchClient();
             await del('/collection-manager/orphans/cache');
-            console.log('[useOrphanStats] Cache cleared successfully');
+            debugLog('[useOrphanStats] Cache cleared successfully');
         } catch (err) {
             console.error('[useOrphanStats] Error clearing cache:', err);
             throw err;
@@ -392,12 +399,12 @@ export const useDuplicateDetection = () => {
                 ? '/collection-manager/duplicates/detect/force'
                 : '/collection-manager/duplicates/detect';
 
-            console.log(`[useDuplicateDetection] Detecting duplicates${bypassCache ? ' (bypassing cache)' : ''}`);
-            console.log(`[useDuplicateDetection] URL: ${url}`);
+            debugLog('[useDuplicateDetection] Detecting duplicates', bypassCache ? '(bypassing cache)' : '');
+            debugLog('[useDuplicateDetection] URL:', url);
 
             const response = await get(url);
 
-            console.log('[useDuplicateDetection] Raw response:', response);
+            debugLog('[useDuplicateDetection] Raw response received');
 
             // Handle response structure
             let duplicatesData;
@@ -406,8 +413,14 @@ export const useDuplicateDetection = () => {
             } else {
                 throw new Error('Invalid response structure');
             }
+            // Calculate duplicate count from the actual data structure
+            const duplicateCount = duplicatesData?.totalDuplicateCollections || 0;
 
-            console.log('[useDuplicateDetection] Duplicates detected:', duplicatesData.duplicateGroups?.length || 0);
+            if (duplicateCount > 0) {
+                console.log(`[CollectionManager] Found ${duplicateCount} duplicate collection${duplicateCount > 1 ? 's' : ''}`);
+            } else {
+                debugLog('[useDuplicateDetection] No duplicates detected');
+            }
             setDuplicates(duplicatesData);
 
         } catch (err) {
@@ -420,7 +433,7 @@ export const useDuplicateDetection = () => {
 
     // Remove redundant cache clearing since "Refresh Scan" handles it
     const forceDetect = useCallback(async () => {
-        console.log('[useDuplicateDetection] Force detect: fetching fresh duplicates directly');
+        debugLog('[useDuplicateDetection] Force detect: fetching fresh duplicates directly');
 
         // Just detect with cache bypass - no need to clear cache separately
         // The backend force endpoint handles cache bypass automatically
@@ -454,18 +467,28 @@ export const useOrphanDetection = () => {
                 ? '/collection-manager/orphans/detect/force'
                 : '/collection-manager/orphans/detect';
 
-            console.log(`[useOrphanDetection] Detecting orphans${bypassCache ? ' (bypassing cache)' : ''}`);
-            console.log(`[useOrphanDetection] URL: ${url}`);
+            debugLog('[useOrphanDetection] Detecting orphans', bypassCache ? '(bypassing cache)' : '');
+            debugLog('[useOrphanDetection] URL:', url);
 
             const response = await get(url);
-            console.log('[useOrphanDetection] Raw response:', response);
+            debugLog('[useOrphanDetection] Raw response received');
 
             let orphansData = [];
             if (response.data?.data?.orphanedCollections && Array.isArray(response.data.data.orphanedCollections)) {
                 orphansData = response.data.data.orphanedCollections;
+            } else if (response.data?.data && Array.isArray(response.data.data)) {
+                // Fallback: if data is directly an array of orphans
+                orphansData = response.data.data;
             }
 
-            console.log('[useOrphanDetection] Orphans detected:', orphansData.length);
+            const orphanCount = Array.isArray(orphansData) ? orphansData.length : 0;
+
+            if (orphanCount > 0) {
+                console.log(`[CollectionManager] Found ${orphanCount} orphaned collection${orphanCount > 1 ? 's' : ''}`);
+            } else {
+                debugLog('[useOrphanDetection] No orphans detected');
+            }
+
             setOrphans(orphansData);
 
         } catch (err) {
@@ -478,7 +501,7 @@ export const useOrphanDetection = () => {
 
     // Remove redundant cache clearing
     const forceDetect = useCallback(async () => {
-        console.log('[useOrphanDetection] Force detect: fetching fresh orphans directly');
+        debugLog('[useOrphanDetection] Force detect: fetching fresh orphans directly');
 
         // Just detect with cache bypass - the backend handles cache bypass
         await detectOrphans(true);
@@ -509,7 +532,7 @@ export const useOrphanCleanup = () => {
 
             const { post, del } = getFetchClient();
 
-            console.log(`[useOrphanCleanup] Cleaning up orphan ${collectionId}`, options);
+            debugLog(`[useOrphanCleanup] Cleaning up orphan ${collectionId}`, options);
 
             // Perform the cleanup
             const response = await post(`/collection-manager/orphans/cleanup/${collectionId}`, options);
@@ -517,7 +540,7 @@ export const useOrphanCleanup = () => {
             // Clear cache for this specific collection after cleanup
             try {
                 await del(`/collection-manager/orphans/cache/${collectionId}`);
-                console.log(`[useOrphanCleanup] Cache cleared for collection ${collectionId} after cleanup`);
+                debugLog(`[useOrphanCleanup] Cache cleared for collection ${collectionId} after cleanup`);
             } catch (cacheError) {
                 console.warn('[useOrphanCleanup] Failed to clear cache after cleanup:', cacheError);
                 // Don't fail the entire operation if cache clearing fails

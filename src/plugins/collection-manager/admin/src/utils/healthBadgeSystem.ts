@@ -93,31 +93,26 @@ async function fetchHealthData(bypassCache: boolean = false): Promise<any> {
 
     } catch (error) {
         console.error('[HealthBadge] Error fetching health data:', error);
-        return { healthScore: 100 };
+        return { healthScore: 100, orphanCount: 0, duplicateCount: 0 };
     }
 }
 
 /**
- * Get health badge styling based on health score
+ * Get health badge styling based on issue count
  */
-function getHealthBadgeStyles(healthScore: number): {
+function getHealthBadgeStyles(issueCount: number): {
     color: string;
     backgroundColor: string;
     borderColor: string;
 } {
-    if (healthScore >= 90) {
+    if (issueCount === 0) {
         return {
             color: '#28a745',
             backgroundColor: '#d4edda',
             borderColor: '#c3e6cb'
         };
-    } else if (healthScore >= 70) {
-        return {
-            color: '#856404',
-            backgroundColor: '#fff3cd',
-            borderColor: '#ffeaa7'
-        };
     } else {
+        // Any issues = warning/danger styling
         return {
             color: '#721c24',
             backgroundColor: '#f8d7da',
@@ -137,12 +132,17 @@ async function addHealthBadge(): Promise<void> {
         const healthData = await fetchHealthData();
         const healthScore = healthData.healthScore || 100;
 
+        // Calculate total issues from health data
+        const orphanCount = healthData.orphanCount || healthData.orphanedCollections || 0;
+        const duplicateCount = healthData.duplicateCount || healthData.duplicateCollections || 0;
+        const totalIssues = orphanCount + duplicateCount;
+
+        // Get styling based on issue count
+        const styles = getHealthBadgeStyles(totalIssues);
+
         const badge = document.createElement('div');
         badge.id = 'floating-health-badge';
         badge.className = 'floating-health-badge';
-
-        // Get styling based on health score
-        const styles = getHealthBadgeStyles(healthScore);
 
         badge.style.cssText = `
             position: fixed;
@@ -165,11 +165,11 @@ async function addHealthBadge(): Promise<void> {
             white-space: nowrap;
         `;
 
-        // Badge content - always show the health score
-        if (healthScore >= 100) {
-            badge.innerHTML = `✅ ${Math.round(healthScore)}% Healthy`;
+        // Dynamic badge content based on issues
+        if (totalIssues === 0) {
+            badge.innerHTML = `✅ All Good`;
         } else {
-            badge.innerHTML = `${Math.round(healthScore)}% System Health`;
+            badge.innerHTML = `⚠️ ${totalIssues} Issue${totalIssues > 1 ? 's' : ''} Found`;
         }
 
         // Click handler - refresh functionality
@@ -187,40 +187,46 @@ async function addHealthBadge(): Promise<void> {
             badge.style.cursor = 'wait';
 
             try {
-                // Clear cache first
-                const authToken = localStorage.getItem('jwtToken') ||
-                    localStorage.getItem('strapi-jwt-token') ||
-                    sessionStorage.getItem('jwtToken');
-
-                if (authToken) {
+                // Clear cache first - now with simplified approach since route is auth: false
+                try {
                     await fetch('/collection-manager/health/cache', {
                         method: 'DELETE',
                         headers: {
-                            'Authorization': `Bearer ${authToken}`,
                             'Content-Type': 'application/json',
                         }
                     });
                     debugLog('Cache cleared successfully');
+                } catch (cacheError) {
+                    // Don't fail the entire refresh if cache clear fails
+                    debugLog('Cache clear failed:', cacheError);
                 }
 
                 // Get fresh data
                 const freshData = await fetchHealthData(true);
 
-                // Simplified logging - only log meaningful changes
-                if (Math.round(freshData.healthScore) !== Math.round(healthScore)) {
-                    console.log(`[HealthBadge] Health updated: ${Math.round(healthScore)}% → ${Math.round(freshData.healthScore)}%`);
+                // Calculate fresh issue counts
+                const freshOrphanCount = freshData.orphanCount || freshData.orphanedCollections || 0;
+                const freshDuplicateCount = freshData.duplicateCount || freshData.duplicateCollections || 0;
+                const freshTotalIssues = freshOrphanCount + freshDuplicateCount;
+                const freshHealthScore = freshData.healthScore || 100;
+
+                // Only log meaningful changes
+                if (freshTotalIssues !== totalIssues) {
+                    console.log(`[HealthBadge] Issues updated: ${totalIssues} → ${freshTotalIssues}`);
+                } else if (Math.round(freshHealthScore) !== Math.round(healthScore)) {
+                    console.log(`[HealthBadge] Health updated: ${Math.round(healthScore)}% → ${Math.round(freshHealthScore)}%`);
                 }
 
                 // Add animation delay
                 await new Promise(resolve => setTimeout(resolve, 300));
 
-                // Update badge
-                const newStyles = getHealthBadgeStyles(freshData.healthScore);
+                // Update badge with fresh data
+                const newStyles = getHealthBadgeStyles(freshTotalIssues);
 
-                if (freshData.healthScore >= 100) {
-                    badge.innerHTML = `✅ ${Math.round(freshData.healthScore)}% Healthy`;
+                if (freshTotalIssues === 0) {
+                    badge.innerHTML = `✅ All Good`;
                 } else {
-                    badge.innerHTML = `${Math.round(freshData.healthScore)}% System Health`;
+                    badge.innerHTML = `⚠️ ${freshTotalIssues} Issue${freshTotalIssues > 1 ? 's' : ''} Found`;
                 }
 
                 badge.style.background = newStyles.backgroundColor;
@@ -229,8 +235,8 @@ async function addHealthBadge(): Promise<void> {
                 badge.style.opacity = '0.95';
                 badge.style.cursor = 'pointer';
 
-                // Handle navigation option
-                if (freshData.healthScore < 100) {
+                // Handle navigation option - show details button if there are issues
+                if (freshTotalIssues > 0) {
                     showNavigationOption();
                 } else {
                     hideNavigationOption();
@@ -263,15 +269,24 @@ async function addHealthBadge(): Promise<void> {
             }
         };
 
-        // Add tooltip
-        badge.title = `System health: ${Math.round(healthScore)}%\nClick to refresh data`;
+        // Add detailed tooltip
+        if (totalIssues > 0) {
+            const details = [];
+            if (orphanCount > 0) details.push(`${orphanCount} orphaned`);
+            if (duplicateCount > 0) details.push(`${duplicateCount} duplicated`);
+
+            badge.title = `Issues: ${details.join(', ')} collections\nHealth Score: ${Math.round(healthScore)}%\nClick to refresh`;
+        } else {
+            badge.title = `All collections healthy\nHealth Score: ${Math.round(healthScore)}%\nClick to refresh`;
+        }
 
         document.body.appendChild(badge);
         healthBadgeState.hasHealthBadge = true;
 
-        debugLog('Health badge added successfully with score:', healthScore);
+        debugLog('Health badge added successfully with issue count:', totalIssues);
 
-        if (healthScore < 100) {
+        // Show navigation option if there are issues
+        if (totalIssues > 0) {
             setTimeout(() => showNavigationOption(), 300);
         }
 
@@ -281,7 +296,7 @@ async function addHealthBadge(): Promise<void> {
 }
 
 /**
- * Show navigation option when health < 100%
+ * Show navigation option when there are issues
  */
 function showNavigationOption() {
     // Remove existing navigation button if any

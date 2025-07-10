@@ -163,7 +163,7 @@ export default [
         config: {
             policies: [],
             middlewares: [],
-            auth: { scope: ['admin'] },
+            auth: false,
             description: 'Clear all health-related caches',
             tags: ['health-management', 'cache-management']
         },
