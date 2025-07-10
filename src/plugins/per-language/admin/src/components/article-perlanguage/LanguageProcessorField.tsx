@@ -14,8 +14,14 @@ import {
 } from '@strapi/design-system';
 import { ProcessedDataDisplay } from './ProcessedDataDisplay';
 import { SUPPORTED_LANGUAGES } from '../shared';
+import { useAlertMessages } from '../hooks';
+import { AlertMessages } from '../shared/AlertMessages';
+
+import { Check, Briefcase, WarningCircle } from '@strapi/icons';
 
 import styled from 'styled-components';
+
+import { authenticatedFetch } from '../../utils/auth';
 
 const TallTextareaWrapper = styled.div`
   margin-bottom: 1.2rem; 
@@ -23,70 +29,6 @@ const TallTextareaWrapper = styled.div`
     height: 250px !important;
   }
 `;
-
-// ====================================
-// AUTHENTICATION UTILITIES
-// ====================================
-
-/**
- * Authentication token retrieval for Strapi v5
- */
-function getAuthToken(): string | null {
-    const tokenKeys = ['jwtToken', 'strapi-jwt-token', 'strapiToken'];
-
-    // Check localStorage and sessionStorage quietly
-    for (const key of tokenKeys) {
-        let token = localStorage.getItem(key) || sessionStorage.getItem(key);
-        if (token && token.trim().length > 10) {
-            return token;
-        }
-    }
-    return null;
-}
-
-
-/**
- * Create authenticated headers for API requests
- */
-function createAuthHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    };
-
-    const token = getAuthToken();
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
-}
-
-/**
- * Fetch wrapper with automatic retry and error handling
- */
-async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
-    const headers = createAuthHeaders();
-
-    const enhancedOptions: RequestInit = {
-        ...options,
-        headers: { ...headers, ...options.headers }
-    };
-
-    try {
-        const response = await fetch(url, enhancedOptions);
-
-        // Only log important events, not routine success
-        if (!response.ok && response.status !== 404) {
-            console.log(`[API] ${response.status} response for ${url}`);
-        }
-
-        return response;
-    } catch (error) {
-        console.error(`[API] Network error for ${url}:`, error);
-        throw error;
-    }
-}
 
 interface LanguageProcessorFieldProps {
     name: string;
@@ -98,6 +40,9 @@ interface LanguageProcessorFieldProps {
     documentId?: string | number;
     attribute?: any;
 }
+
+// Save status type for better type safety
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps) => {
     // Extract only the props we need, filter out problematic ones
@@ -116,16 +61,25 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
     const [isTranslating, setIsTranslating] = useState(false);
     const [isCreatingRecord, setIsCreatingRecord] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
+    // Use the proper alert messages hook
+    const { error, success, setError, setSuccess } = useAlertMessages();
 
-    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+    // Manual save states
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+    const [originalContent, setOriginalContent] = useState<string>('');
+
+    // Remove the debounce timer since we're going manual
     const lastSyncedContent = useRef<string>('');
 
     const selectedLanguageInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
     const hasContent = Boolean(value && value.trim().length > 0);
     const hasSelectedLanguage = Boolean(targetLanguage);
     const modifiedData = document || allProps || {};
+
+    // States for language card specific alerts
+    const [languageCardError, setLanguageCardError] = useState<string | null>(null);
+    const [languageCardSuccess, setLanguageCardSuccess] = useState<string | null>(null);
 
     // document ID extraction for Strapi v5
     const articleId = (() => {
@@ -162,62 +116,75 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
         return null;
     })();
 
-    // Clear messages after 5 seconds
+    // Reset save status after successful save
     useEffect(() => {
-        if (error || success) {
+        if (saveStatus === 'saved') {
             const timer = setTimeout(() => {
-                setError(null);
-                setSuccess(null);
+                setSaveStatus('idle');
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [saveStatus]);
+
+    // Auto-clear for bottom alerts
+    useEffect(() => {
+        if (languageCardError || languageCardSuccess) {
+            const timer = setTimeout(() => {
+                setLanguageCardError(null);
+                setLanguageCardSuccess(null);
             }, 5000);
             return () => clearTimeout(timer);
         }
-    }, [error, success]);
+    }, [languageCardError, languageCardSuccess]);
 
-    const syncContentToDatabase = useCallback(async (content: string, languageCode: string) => {
-        if (!articleId || !languageCode) {
-            console.log('[LanguageProcessor] Missing articleId or languageCode, skipping sync');
-            return;
-        }
-
-        if (content === lastSyncedContent.current) {
-            console.log('[LanguageProcessor] Content unchanged, skipping sync');
+    // Manual save function
+    const handleManualSave = useCallback(async () => {
+        if (!articleId || !targetLanguage || !hasUnsavedChanges) {
+            console.log('[LanguageProcessor] Manual save skipped - missing requirements or no changes');
             return;
         }
 
         try {
-            console.log('[LanguageProcessor] Syncing to database:', {
+            setSaveStatus('saving');
+            setError(null);
+
+            console.log('[LanguageProcessor] Manual save initiated:', {
                 articleId,
-                language: languageCode,
-                contentLength: content.length,
-                preview: content.substring(0, 50) + '...'
+                language: targetLanguage,
+                contentLength: value.length,
+                preview: value.substring(0, 50) + '...'
             });
 
             const response = await authenticatedFetch(`/per-language/article/${articleId}/content`, {
                 method: 'PUT',
                 body: JSON.stringify({
-                    language: languageCode,
-                    content: content,
+                    language: targetLanguage,
+                    content: value,
                 }),
             });
 
             if (!response.ok) {
-                throw new Error(`Sync failed: ${response.status}`);
+                throw new Error(`Save failed: ${response.status}`);
             }
 
             const result = await response.json();
-            console.log('[LanguageProcessor] ✅ Content synced successfully:', result);
+            console.log('[LanguageProcessor] ✅ Manual save successful:', result);
 
-            lastSyncedContent.current = content;
+            // Update state on successful save
+            lastSyncedContent.current = value;
+            setOriginalContent(value);
+            setHasUnsavedChanges(false);
+            setSaveStatus('saved');
 
-            const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === languageCode);
-            setSuccess(`${selectedLangInfo?.name || languageCode} content saved automatically`);
+            const selectedLangInfo = SUPPORTED_LANGUAGES.find(lang => lang.code === targetLanguage);
+            setSuccess(`${selectedLangInfo?.name || targetLanguage} content saved successfully`);
 
         } catch (error: any) {
-            console.error('[LanguageProcessor] Sync error:', error);
-            setError(`Failed to sync content: ${error.message}`);
-            throw error;
+            console.error('[LanguageProcessor] Manual save error:', error);
+            setSaveStatus('error');
+            setError(`Failed to save content: ${error.message}`);
         }
-    }, [articleId]);
+    }, [articleId, targetLanguage, value, hasUnsavedChanges]);
 
     const createLanguageRecord = useCallback(async (languageCode: string) => {
         if (!articleId) {
@@ -267,6 +234,10 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
         console.log('[LanguageProcessor] Language selected:', selectedLanguage);
         setTargetLanguage(selectedLanguage);
 
+        // Reset save states when switching languages
+        setHasUnsavedChanges(false);
+        setSaveStatus('idle');
+
         if (!articleId || !selectedLanguage) {
             return;
         }
@@ -288,6 +259,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
 
                 onChange({ target: { name, value: existingContent } });
                 lastSyncedContent.current = existingContent;
+                setOriginalContent(existingContent);
 
                 if (existingContent.trim()) {
                     setSuccess(`Loaded existing ${selectedLangInfo?.name || selectedLanguage} content`);
@@ -296,37 +268,44 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                 console.log('[LanguageProcessor] No existing content, creating new record');
                 onChange({ target: { name, value: '' } });
                 lastSyncedContent.current = '';
+                setOriginalContent('');
                 await createLanguageRecord(selectedLanguage);
             }
         } catch (error: any) {
             console.error('[LanguageProcessor] Error loading language content:', error);
             onChange({ target: { name, value: '' } });
             lastSyncedContent.current = '';
+            setOriginalContent('');
             await createLanguageRecord(selectedLanguage);
         }
 
         setRefreshKey(prev => prev + 1);
     }, [articleId, name, onChange, createLanguageRecord]);
 
+    // Handle manual edit with change detection
     const handleManualEdit = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
-        console.log('[LanguageProcessor] Manual edit:', {
-            language: targetLanguage,
-            length: newValue.length
-        });
+        const cursorPosition = e.target.selectionStart;
 
         onChange({ target: { name, value: newValue } });
 
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
+        // Detect if content has changed from original
+        const hasChanges = newValue !== originalContent;
+        setHasUnsavedChanges(hasChanges);
+
+        // Reset save status when user starts typing again
+        if (saveStatus === 'saved' || saveStatus === 'error') {
+            setSaveStatus('idle');
         }
 
-        if (articleId && targetLanguage) {
-            debounceTimer.current = setTimeout(() => {
-                syncContentToDatabase(newValue, targetLanguage);
-            }, 1000);
-        }
-    }, [name, onChange, articleId, targetLanguage, syncContentToDatabase]);
+        // Restore cursor position after state update
+        requestAnimationFrame(() => {
+            const textarea = e.target;
+            if (textarea && typeof cursorPosition === 'number') {
+                textarea.setSelectionRange(cursorPosition, cursorPosition);
+            }
+        });
+    }, [name, onChange, originalContent, saveStatus]);
 
     // Handle translation for Base field
     const handleTranslate = useCallback(async () => {
@@ -404,9 +383,11 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                 targetLanguage
             });
 
-            // Update the UI and sync to database
+            // Update the UI - this will automatically trigger change detection
             onChange({ target: { name, value: translatedText } });
-            await syncContentToDatabase(translatedText, targetLanguage);
+            setOriginalContent(translatedText); // Set as new baseline since it's fresh from translation
+            setHasUnsavedChanges(false); // Translation is auto-saved by backend
+            setSaveStatus('saved'); // Show that translation was saved
 
             setSuccess(`Translation to ${selectedLangInfo?.name || targetLanguage} completed and saved`);
             setRefreshKey(prev => prev + 1);
@@ -419,7 +400,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
         } finally {
             setIsTranslating(false);
         }
-    }, [document, targetLanguage, articleId, name, onChange, syncContentToDatabase]);
+    }, [document, targetLanguage, articleId, name, onChange]);
 
     const handleProcess = useCallback(async () => {
         if (!articleId) {
@@ -432,13 +413,10 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
             return;
         }
 
-        if (value && value !== lastSyncedContent.current) {
-            try {
-                await syncContentToDatabase(value, targetLanguage);
-            } catch (error) {
-                setError('Failed to sync content. Please try again.');
-                return;
-            }
+        // Check if there are unsaved changes before processing
+        if (hasUnsavedChanges) {
+            setError('Please save your changes before processing.');
+            return;
         }
 
         if (selectedLanguageInfo?.hasProcessor) {
@@ -447,18 +425,10 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
         } else {
             setError(`${selectedLanguageInfo?.name} processor is under development.`);
         }
-    }, [articleId, targetLanguage, hasContent, value, selectedLanguageInfo, syncContentToDatabase]);
+    }, [articleId, targetLanguage, hasContent, selectedLanguageInfo, hasUnsavedChanges]);
 
     const handleRefresh = useCallback(() => {
         setRefreshKey(prev => prev + 1);
-    }, []);
-
-    useEffect(() => {
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
     }, []);
 
     return (
@@ -473,18 +443,13 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                     </Alert>
                 )}
 
-                {/* Error/Success Messages */}
-                {error && (
-                    <Alert variant="danger" title="Error" onClose={() => setError(null)} marginTop={2} marginBottom={3}>
-                        {error}
-                    </Alert>
-                )}
-
-                {success && (
-                    <Alert variant="success" title="Success" onClose={() => setSuccess(null)} marginTop={2} marginBottom={3}>
-                        {success}
-                    </Alert>
-                )}
+                {/* Success/error messages */}
+                <AlertMessages
+                    error={error}
+                    success={success}
+                    onErrorClose={() => setError(null)}
+                    onSuccessClose={() => setSuccess(null)}
+                />
 
                 {/* Translation Section */}
                 <Box width="100%">
@@ -514,7 +479,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                             <Box padding={3} background="neutral100" hasRadius marginTop={3}>
                                 <Typography variant="pi" color="neutral600">
                                     Please select a target language to begin translation and processing.
-                                    {articleId ? ' A language record will be created automatically.' : ' Save the article first to enable auto-sync.'}
+                                    {articleId ? ' A language record will be created automatically.' : ' Save the article first to enable manual save.'}
                                 </Typography>
                             </Box>
                         )}
@@ -533,7 +498,7 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                                     <Button
                                         variant="secondary"
                                         onClick={handleProcess}
-                                        disabled={!hasContent || isCreatingRecord}
+                                        disabled={!hasContent || isCreatingRecord || hasUnsavedChanges}
                                     >
                                         {selectedLanguageInfo?.hasProcessor ? 'Process Content' : 'Processor (Coming Soon)'}
                                     </Button>
@@ -550,11 +515,57 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                                             disabled={isCreatingRecord}
                                         />
                                     </TallTextareaWrapper>
-                                    <Box>
+
+                                    {/* Manual Save Controls */}
+                                    {hasUnsavedChanges && (
+                                        <Flex gap={2} marginTop={2} justifyContent="flex-end" alignItems="center">
+                                            <Flex gap={1} alignItems="center">
+                                                <WarningCircle />
+                                                <Typography variant="pi" color="warning600">
+                                                    You have unsaved changes
+                                                </Typography>
+                                            </Flex>
+                                            <Button
+                                                variant="success"
+                                                onClick={handleManualSave}
+                                                loading={saveStatus === 'saving'}
+                                                startIcon={saveStatus === 'saved' ? <Check /> : <Briefcase />}
+                                                size="S"
+                                            >
+                                                {saveStatus === 'saving' ? 'Saving...' :
+                                                    saveStatus === 'saved' ? 'Saved!' :
+                                                        'Save Changes'}
+                                            </Button>
+                                        </Flex>
+                                    )}
+
+                                    {/* Save Status Indicator */}
+                                    {saveStatus === 'saved' && !hasUnsavedChanges && (
+                                        <Flex gap={2} marginTop={2} justifyContent="flex-end" alignItems="center">
+                                            <Flex gap={1} alignItems="center">
+                                                <Check />
+                                                <Typography variant="pi" color="success600">
+                                                    All changes saved
+                                                </Typography>
+                                            </Flex>
+                                        </Flex>
+                                    )}
+
+                                    {saveStatus === 'error' && (
+                                        <Flex gap={2} marginTop={2} justifyContent="flex-end" alignItems="center">
+                                            <Flex gap={1} alignItems="center">
+                                                <WarningCircle />
+                                                <Typography variant="pi" color="danger600">
+                                                    Save failed - please try again
+                                                </Typography>
+                                            </Flex>
+                                        </Flex>
+                                    )}
+                                    <Box marginTop={2}>
                                         <Typography variant="pi" textColor="neutral600">
                                             {articleId
-                                                ? `Translated content for ${selectedLanguageInfo?.name}. Changes auto-sync to database.`
-                                                : `Translated content for ${selectedLanguageInfo?.name}. Save article to enable auto-sync.`
+                                                ? `Translated content for ${selectedLanguageInfo?.name}. Use the save button above to save changes.`
+                                                : `Translated content for ${selectedLanguageInfo?.name}. Save article first to enable manual save.`
                                             }
                                         </Typography>
                                     </Box>
@@ -591,6 +602,8 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                             key={refreshKey}
                             articleId={articleId}
                             onRefresh={handleRefresh}
+                            onSuccess={setLanguageCardSuccess}
+                            onError={setLanguageCardError}
                         />
                     ) : (
                         <Box padding={4} background="neutral100" hasRadius>
@@ -600,6 +613,14 @@ const LanguageProcessorField: React.FC<LanguageProcessorFieldProps> = (allProps)
                         </Box>
                     )}
                 </Box>
+            </Box>
+            <Box marginTop={4}>
+                <AlertMessages
+                    error={languageCardError}
+                    success={languageCardSuccess}
+                    onErrorClose={() => setLanguageCardError(null)}
+                    onSuccessClose={() => setLanguageCardSuccess(null)}
+                />
             </Box>
         </Box>
     );

@@ -107,7 +107,8 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
         getCurrentValue,
         hasChanges,
         clearPendingChanges,
-        pendingChanges
+        pendingChanges,
+        discardPendingChanges
     } = useLanguageState();
 
     useEffect(() => {
@@ -153,13 +154,6 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
 
     return (
         <Flex direction="column" gap={6} width="100%">
-            {/* Alert Messages */}
-            <AlertMessages
-                error={error}
-                success={success}
-                onErrorClose={() => setError(null)}
-                onSuccessClose={() => setSuccess(null)}
-            />
 
             {/* Language Creation Section */}
             <CollectionLanguageCreator
@@ -203,11 +197,20 @@ const CollectionPerlanguageField: React.FC<CollectionPerlanguageFieldProps> = ({
                                 }
                                 onSave={() => handleSaveChanges(language.id)}
                                 onDelete={() => handleDeleteLanguage(language)}
+                                onDiscard={() => discardPendingChanges(language.id)}
                             />
                         ))}
                     </Flex>
                 </Box>
             )}
+
+            {/* Alert Messages */}
+            <AlertMessages
+                error={error}
+                success={success}
+                onErrorClose={() => setError(null)}
+                onSuccessClose={() => setSuccess(null)}
+            />
         </Flex>
     );
 };

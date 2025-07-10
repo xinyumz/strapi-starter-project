@@ -1,6 +1,6 @@
 // src/plugins/per-language/admin/src/components/collection-perlanguage/CollectionLanguageCard.tsx
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Textarea,
     Typography,
@@ -15,6 +15,7 @@ import {
     SingleSelectOption,
     Button
 } from '@strapi/design-system';
+import { Check, WarningCircle } from '@strapi/icons';
 import { SUPPORTED_LANGUAGES } from '../shared';
 import {
     getDisplaySkillOptions,
@@ -30,6 +31,7 @@ interface CollectionLanguageCardProps {
     onFieldChange: (field: string, value: any) => void;
     onSave: () => void;
     onDelete: () => void;
+    onDiscard?: () => void; // NEW: Add discard function
 }
 
 /**
@@ -39,7 +41,7 @@ interface CollectionLanguageCardProps {
  * - Language header with title and status badges
  * - Description textarea
  * - Published/Access Tier/Skill Level controls
- * - Save and delete functionality
+ * - Save and discard functionality with smart change detection
  * - Responsive layout that adapts to screen size
  */
 export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
@@ -49,8 +51,45 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
     getCurrentValue,
     onFieldChange,
     onSave,
-    onDelete
+    onDelete,
+    onDiscard
 }) => {
+    // NEW: Track original values to detect when changes are reverted
+    const [originalValues, setOriginalValues] = useState({
+        description: language.description,
+        published: language.published,
+        access_tier: language.access_tier,
+        display_skill: language.display_skill
+    });
+
+    // Update original values when language data changes (from external save/refresh)
+    useEffect(() => {
+        setOriginalValues({
+            description: language.description,
+            published: language.published,
+            access_tier: language.access_tier,
+            display_skill: language.display_skill
+        });
+    }, [language.description, language.published, language.access_tier, language.display_skill]);
+
+    // NEW: Calculate if there are ACTUAL changes from original values
+    const hasActualChanges = () => {
+        const currentDescription = getCurrentValue(language, 'description') || '';
+        const currentPublished = getCurrentValue(language, 'published') || false;
+        const currentAccessTier = getCurrentValue(language, 'access_tier') || '';
+        const currentDisplaySkill = getCurrentValue(language, 'display_skill') || '';
+
+        return (
+            currentDescription !== (originalValues.description || '') ||
+            currentPublished !== originalValues.published ||
+            currentAccessTier !== (originalValues.access_tier || '') ||
+            currentDisplaySkill !== (originalValues.display_skill || '')
+        );
+    };
+
+    // NEW: Show save/discard buttons only when there are actual changes
+    const showSaveControls = hasChanges && hasActualChanges();
+
     // Helper functions
     const getLanguageInfo = (languageCode: string) => {
         return SUPPORTED_LANGUAGES.find(lang => lang.code === languageCode) || {
@@ -119,11 +158,9 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
                                 {getCurrentValue(language, 'published') ? 'PUBLISHED' : 'DRAFT'}
                             </Badge>
 
-                            {hasChanges && (
-                                <Badge
-                                    backgroundColor="warning100"
-                                    textColor="warning600"
-                                >
+                            {/* IMPROVED: Only show unsaved changes when there are actual differences */}
+                            {showSaveControls && (
+                                <Badge backgroundColor="warning200" textColor="warning700">
                                     Unsaved Changes
                                 </Badge>
                             )}
@@ -133,6 +170,7 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
                             variant="danger-light"
                             onClick={onDelete}
                             size="S"
+                            disabled={showSaveControls} // NEW: Disable delete when there are unsaved changes
                         >
                             Delete
                         </Button>
@@ -216,17 +254,38 @@ export const CollectionLanguageCard: React.FC<CollectionLanguageCardProps> = ({
                             </Flex>
                         </Flex>
 
-                        {/* Save Button */}
-                        {hasChanges && (
-                            <Flex justifyContent="flex-end" paddingTop={2}>
-                                <Button
-                                    onClick={onSave}
-                                    disabled={isSaving}
-                                    loading={isSaving}
-                                    size="S"
-                                >
-                                    Save Changes
-                                </Button>
+                        {/* Save/Discard Controls - only show when there are actual changes */}
+                        {showSaveControls && (
+                            <Flex gap={3} paddingTop={2} padding={3} width="100%" background="neutral100" hasRadius justifyContent="space-between" alignItems="center">
+                                <Flex gap={1} alignItems="center">
+                                    <WarningCircle />
+                                    <Typography variant="pi" color="neutral700">
+                                        You have unsaved changes
+                                    </Typography>
+                                </Flex>
+                                <Flex gap={2} alignItems="center">
+                                    <Button
+                                        onClick={onSave}
+                                        disabled={isSaving}
+                                        loading={isSaving}
+                                        size="S"
+                                        variant="success"
+                                        startIcon={<Check />}
+                                    >
+                                        {isSaving ? 'Saving...' : 'Save Changes'}
+                                    </Button>
+                                    {/* NEW: Discard button */}
+                                    {onDiscard && (
+                                        <Button
+                                            onClick={onDiscard}
+                                            disabled={isSaving}
+                                            size="S"
+                                            variant="tertiary"
+                                        >
+                                            Discard
+                                        </Button>
+                                    )}
+                                </Flex>
                             </Flex>
                         )}
                     </Flex>

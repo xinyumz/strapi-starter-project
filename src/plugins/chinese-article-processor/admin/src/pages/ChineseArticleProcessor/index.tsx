@@ -65,6 +65,17 @@ const ChineseArticleProcessor = () => {
     const [successMessage, setSuccessMessage] = useState('Operation completed successfully');
     const [isInitialized, setIsInitialized] = useState(false);
 
+    // Auto-clear alert messages after 5 seconds
+    useEffect(() => {
+        if (error || success) {
+            const timer = setTimeout(() => {
+                setError(null);
+                setSuccess(false);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [error, success]);
+
     // Main loading state
     const {
         isLoading,

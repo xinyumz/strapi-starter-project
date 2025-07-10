@@ -38,7 +38,6 @@ export const AccessTierSelect: React.FC<AccessTierSelectProps> = ({
                 onChange={handleChange}
                 disabled={disabled}
                 size={size}
-                placeholder="Select Access Tier"
                 error={error}
             >
                 {ACCESS_TIERS.map(tier => (

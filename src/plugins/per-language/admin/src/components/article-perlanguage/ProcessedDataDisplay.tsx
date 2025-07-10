@@ -26,11 +26,15 @@ import {
 interface ProcessedDataDisplayProps {
     articleId: string;
     onRefresh?: () => void;
+    onSuccess?: (message: string) => void;
+    onError?: (message: string) => void;
 }
 
 export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     articleId,
-    onRefresh
+    onRefresh,
+    onSuccess,
+    onError
 }) => {
     const [languageData, setLanguageData] = useState<LanguageData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -206,13 +210,22 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                         : lang
                 );
             });
+
+            // Success message
+            const language = languageData.find(lang => lang.id === languageId);
+            if (language && onSuccess) {
+                const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === language.language);
+                onSuccess(`${langInfo?.name || language.language} publish status updated`);
+            }
+
         } catch (err: any) {
             console.error('Error updating publish status:', err);
-            setError(err.message || 'Failed to update publish status');
+            onError?.(err.message || 'Failed to update publish status');
+            throw err;
         } finally {
             setIsUpdating(prev => ({ ...prev, [`publish_${languageId}`]: false }));
         }
-    }, [fetchClient.put]);
+    }, [fetchClient.put, languageData, onSuccess, onError]);
 
     const handleAccessTierChange = useCallback(async (languageId: number, newTier: string) => {
         if (newTier === '') return;
@@ -232,13 +245,22 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                         : lang
                 );
             });
+
+            // Success message
+            const language = languageData.find(lang => lang.id === languageId);
+            if (language && onSuccess) {
+                const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === language.language);
+                onSuccess(`${langInfo?.name || language.language} access tier updated to ${newTier}`);
+            }
+
         } catch (err: any) {
             console.error('Error updating access tier:', err);
-            setError(err.message || 'Failed to update access tier');
+            onError?.(err.message || 'Failed to update access tier');
+            throw err;
         } finally {
             setIsUpdating(prev => ({ ...prev, [`tier_${languageId}`]: false }));
         }
-    }, [fetchClient.put]);
+    }, [fetchClient.put, languageData, onSuccess, onError]);
 
     const handleOpenProcessor = useCallback(async (language: string) => {
         const processor = SUPPORTED_LANGUAGES.find(l => l.code === language);
@@ -279,36 +301,45 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
             // Update the bulk state immediately for UI feedback
             setBulkPublishState(shouldPublish);
 
+            // Count how many languages will actually be updated
+            const languagesToUpdate = languageData.filter(lang => lang.published !== shouldPublish);
+            const updateCount = languagesToUpdate.length;
+
+            // If no languages need updating, show a different message
+            if (updateCount === 0) {
+                onSuccess?.(shouldPublish
+                    ? 'All languages are already published'
+                    : 'All languages are already drafts'
+                );
+                return;
+            }
+
             // Update all languages to the desired state
-            const updatePromises = languageData.map(async (lang) => {
-                // Only update if the current state is different from desired state
-                if (lang.published !== shouldPublish) {
-                    try {
-                        setIsUpdating(prev => ({ ...prev, [`bulk_publish_${lang.id}`]: true }));
+            const updatePromises = languagesToUpdate.map(async (lang) => {
+                try {
+                    setIsUpdating(prev => ({ ...prev, [`bulk_publish_${lang.id}`]: true }));
 
-                        // Use fetchClient.put directly without extra data
-                        const response = await fetch(`/per-language/content/${lang.id}/publish`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
-                            },
-                            body: JSON.stringify({
-                                published: shouldPublish
-                            }),
-                        });
+                    const response = await fetch(`/per-language/content/${lang.id}/publish`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`,
+                        },
+                        body: JSON.stringify({
+                            published: shouldPublish
+                        }),
+                    });
 
-                        if (!response.ok) {
-                            throw new Error(`Failed to update ${lang.language}: ${response.status}`);
-                        }
-
-                        console.log(`[ProcessedDataDisplay] ✅ ${lang.language} set to ${shouldPublish ? 'published' : 'draft'}`);
-                    } catch (error) {
-                        console.error(`[ProcessedDataDisplay] Error updating ${lang.language} publish state:`, error);
-                        throw error;
-                    } finally {
-                        setIsUpdating(prev => ({ ...prev, [`bulk_publish_${lang.id}`]: false }));
+                    if (!response.ok) {
+                        throw new Error(`Failed to update ${lang.language}: ${response.status}`);
                     }
+
+                    console.log(`[ProcessedDataDisplay] ✅ ${lang.language} set to ${shouldPublish ? 'published' : 'draft'}`);
+                } catch (error) {
+                    console.error(`[ProcessedDataDisplay] Error updating ${lang.language} publish state:`, error);
+                    throw error;
+                } finally {
+                    setIsUpdating(prev => ({ ...prev, [`bulk_publish_${lang.id}`]: false }));
                 }
             });
 
@@ -324,13 +355,20 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 }));
             });
 
-            console.log(`[ProcessedDataDisplay] ✅ Bulk publish completed: all languages set to ${shouldPublish ? 'published' : 'draft'}`);
+            // NEW: Show success message
+            const statusText = shouldPublish ? 'published' : 'set to draft';
+            const languageText = updateCount === 1 ? 'language' : 'languages';
+            onSuccess?.(`Successfully ${statusText} ${updateCount} ${languageText}`);
+
+            console.log(`[ProcessedDataDisplay] ✅ Bulk publish completed: ${updateCount} languages ${statusText}`);
 
         } catch (error) {
             console.error('[ProcessedDataDisplay] Error in bulk publish:', error);
-            setError(`Bulk publish failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            const errorMessage = `Bulk publish failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            onError?.(errorMessage);
+            throw error;
         }
-    }, [languageData]);
+    }, [languageData, onSuccess, onError]);
 
     // Update bulk publish state based on current language data
     useEffect(() => {
@@ -345,14 +383,32 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
     const handleBulkAccessTier = useCallback(async (tier: string) => {
         try {
             if (!Array.isArray(languageData)) return;
+
             const targetLanguages = languageData.filter(lang => lang.access_tier !== tier);
+            const updateCount = targetLanguages.length;
+
+            // If no languages need updating, show a different message
+            if (updateCount === 0) {
+                onSuccess?.(`All languages already have access tier: ${tier}`);
+                return;
+            }
+
             for (const lang of targetLanguages) {
                 await handleAccessTierChange(lang.id, tier);
             }
+
+            // NEW: Show success message
+            const languageText = updateCount === 1 ? 'language' : 'languages';
+            onSuccess?.(`Successfully updated ${updateCount} ${languageText} to ${tier} access tier`);
+
+            console.log(`[ProcessedDataDisplay] ✅ Bulk access tier updated: ${updateCount} languages set to ${tier}`);
         } catch (error) {
-            console.error('Error in bulk access tier update:', error);
+            console.error('[ProcessedDataDisplay] Error in bulk access tier update:', error);
+            const errorMessage = `Bulk access tier update failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            onError?.(errorMessage);
+            throw error;
         }
-    }, [languageData, handleAccessTierChange]);
+    }, [languageData, handleAccessTierChange, onSuccess, onError]);
 
     // All other handlers with useCallback...
     const toggleCardExpansion = useCallback((languageId: number) => {
@@ -456,6 +512,7 @@ export const ProcessedDataDisplay: React.FC<ProcessedDataDisplayProps> = ({
                 onBulkPublish={handleBulkPublish}
                 onBulkAccessTier={handleBulkAccessTier}
                 bulkPublishState={bulkPublishState}
+                languageCount={languageData?.length || 0}
             />
             <Flex direction="column" gap={4}>
                 {languageData

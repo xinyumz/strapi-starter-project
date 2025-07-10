@@ -30,6 +30,7 @@ interface UseLanguageStateReturn {
     hasChanges: (languageId: number) => boolean;
     clearPendingChanges: (languageId?: number) => void;
     applyPendingChanges: (languageId: number, languageData: CollectionLanguageData[]) => CollectionLanguageData[];
+    discardPendingChanges: (languageId: number) => void; // NEW: Add discard function
 }
 
 /**
@@ -119,12 +120,24 @@ export const useLanguageState = (): UseLanguageStateReturn => {
         });
     }, [pendingChanges]);
 
+    /**
+     * Discard pending changes for a specific language
+    */
+    const discardPendingChanges = useCallback((languageId: number) => {
+        setPendingChanges(prev => {
+            const newPending = { ...prev };
+            delete newPending[languageId];
+            return newPending;
+        });
+    }, []);
+
     return {
         pendingChanges,
         updatePendingChange,
         getCurrentValue,
         hasChanges,
         clearPendingChanges,
-        applyPendingChanges
+        applyPendingChanges,
+        discardPendingChanges
     };
 };
