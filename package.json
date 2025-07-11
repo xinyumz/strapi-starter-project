@@ -1,8 +1,8 @@
 {
-  "name": "strapi-starter-project",
+  "name": "lingaist-cms",
   "private": true,
   "version": "0.1.0",
-  "description": "A Strapi application",
+  "description": "Lingaist multilingual content management system - Enterprise CMS built on Strapi v5",
   "scripts": {
     "develop": "strapi develop",
     "start": "strapi start",
@@ -10,6 +10,16 @@
     "strapi": "strapi",
     "deploy": "strapi deploy"
   },
+  "keywords": [
+    "cms",
+    "multilingual",
+    "strapi",
+    "translation",
+    "language-processing",
+    "hsk",
+    "chinese",
+    "enterprise"
+  ],
   "dependencies": {
     "@_sh/strapi-plugin-ckeditor": "^6.0.2",
     "@emotion/is-prop-valid": "^1.3.1",
@@ -26,8 +36,10 @@
     "styled-components": "^6.1.19"
   },
   "author": {
-    "name": "A Strapi developer"
+    "name": "Lingaist Team",
+    "url": "https://lingaist.com"
   },
+  "homepage": "https://lingaist.com",
   "strapi": {
     "uuid": "a67bcaa7-ef15-472a-a165-cd4295764705"
   },

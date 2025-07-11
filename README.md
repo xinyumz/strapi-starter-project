@@ -1,8 +1,10 @@
-# 🌍 **Enterprise Multilingual CMS**
+# 🌍 **Lingaist CMS**
 
-**Professional multilingual content management system built on Strapi v5.17.0**
+**Enterprise multilingual content management system powering Lingaist**
 
-A sophisticated, language-agnostic content management platform featuring intelligent language processing, real-time health monitoring, and professional manual save UX. Designed for enterprise-scale multilingual content operations with extensible processor architecture.
+A sophisticated, language-agnostic content management platform featuring intelligent language processing, real-time health monitoring, and professional manual save UX. Built on Strapi v5.17.0 for enterprise-scale multilingual content operations with extensible processor architecture.
+
+*The content management system behind [Lingaist.com](https://lingaist.com) and [Pandaist.com](https://pandaist.com)*
 
 ## ✨ **Key Features**
 
@@ -35,8 +37,8 @@ A sophisticated, language-agnostic content management platform featuring intelli
 ### **Installation**
 ```bash
 # Clone and install
-git clone <repository-url>
-cd strapi-starter-project
+git clone https://github.com/lingaist/lingaist-cms.git
+cd lingaist-cms
 
 # Install dependencies (choose one)
 npm install
@@ -45,7 +47,7 @@ yarn install
 
 # Set up environment
 cp .env.example .env
-# Edit .env with database and Google Cloud credentials
+# Edit .env with your database and Google Cloud credentials
 
 # Start development server
 npm run develop
