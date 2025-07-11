@@ -2,7 +2,7 @@
 
 **Enterprise-grade data integrity with automatic cleanup for multilingual content**
 
-The Multilingual CMS implements a sophisticated cascading delete system that automatically maintains data integrity when articles and collections are deleted. This system handles both individual and bulk deletions while preserving referential integrity across all related multilingual and language processing data.
+Lingaist CMS implements a sophisticated cascading delete system that automatically maintains data integrity when articles and collections are deleted. This system handles both individual and bulk deletions while preserving referential integrity across all related multilingual and language processing data.
 
 ## 🎯 **System Overview**
 

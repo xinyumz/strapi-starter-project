@@ -37,7 +37,7 @@ A sophisticated, language-agnostic content management platform featuring intelli
 ### **Installation**
 ```bash
 # Clone and install
-git clone https://github.com/lingaist/lingaist-cms.git
+git clone https://github.com/xinyumz/lingaist-cms.git
 cd lingaist-cms
 
 # Install dependencies (choose one)

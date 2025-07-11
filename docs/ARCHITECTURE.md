@@ -1,4 +1,4 @@
-# 🏗️ **Multilingual CMS Architecture Overview**
+# 🏗️ **Lingaist CMS Architecture Overview**
 
 **Enterprise-grade multilingual content management system built on Strapi v5.17.0**
 
@@ -73,6 +73,8 @@ This document provides a comprehensive overview of the system architecture, plug
   - Translation quality management
   - Multi-target language support
   - Fallback and error recovery
+  
+  *Note: Built with modular architecture supporting alternative providers (OpenAI, Azure, AWS, DeepL) for future flexibility.*
 
 #### **🏷️ Category Manager (Taxonomy)**
 - **Role:** Hierarchical content categorization

@@ -1,8 +1,8 @@
 # 🚀 **Developer Getting Started Guide**
 
-**Quick start guide for developers working with the Multilingual CMS**
+**Quick start guide for developers working with Lingaist CMS**
 
-This guide helps developers understand the system, set up their development environment, and start contributing to the multilingual CMS platform.
+This guide helps developers understand the system, set up their development environment, and start contributing to Lingaist CMS platform.
 
 ## 📋 **Prerequisites**
 
@@ -36,8 +36,8 @@ This guide helps developers understand the system, set up their development envi
 ### **1. Clone and Install**
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd strapi-starter-project
+git clone https://github.com/xinyumz/lingaist-cms.git
+cd lingaist-cms
 
 # Install dependencies (yarn recommended)
 yarn install
@@ -59,11 +59,11 @@ NODE_ENV=development
 HOST=0.0.0.0
 PORT=1337
 
-# Database Configuration
+# Database Configuration (replace as needed)
 DATABASE_CLIENT=mysql
 DATABASE_HOST=127.0.0.1
 DATABASE_PORT=3306
-DATABASE_NAME=multilingual_cms
+DATABASE_NAME=lingaist_cms
 DATABASE_USERNAME=my_db_user
 DATABASE_PASSWORD=my_db_password
 
@@ -83,12 +83,12 @@ DUPLICATE_CACHE_TTL=600000
 
 ### **3. Database Setup**
 ```sql
--- Create database
-CREATE DATABASE multilingual_cms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Create database (replace database name as needed)
+CREATE DATABASE lingaist_cms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Create user and grant permissions
 CREATE USER 'cms_user'@'localhost' IDENTIFIED BY 'secure_password';
-GRANT ALL PRIVILEGES ON multilingual_cms.* TO 'cms_user'@'localhost';
+GRANT ALL PRIVILEGES ON lingaist_cms.* TO 'cms_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -106,7 +106,7 @@ npm run develop
 ## 🏗️ **Project Structure**
 
 ```
-strapi-starter-project/
+lingaist-cms/
 ├── src/
 │   ├── api/                    # Core content types
 │   │   ├── article/
@@ -368,7 +368,7 @@ npm run develop
 #### **Database Connection Issues**
 ```bash
 # Test database connection
-mysql -h 127.0.0.1 -u cms_user -p multilingual_cms
+mysql -h 127.0.0.1 -u cms_user -p lingaist_cms
 
 # Check Strapi database config
 cat config/database.ts

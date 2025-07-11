@@ -1,8 +1,8 @@
 # 🚀 **First Time Setup Guide**
 
-**Complete setup instructions for the Enterprise Multilingual CMS**
+**Complete setup instructions for Lingaist CMS**
 
-This guide walks through setting up the multilingual CMS from scratch, ensuring all components work correctly on first run.
+This guide walks through setting up Lingaist CMS from scratch, ensuring all components work correctly on first run.
 
 ## 📋 **Prerequisites Checklist**
 
@@ -19,14 +19,14 @@ This guide walks through setting up the multilingual CMS from scratch, ensuring 
 -- Connect to MySQL as root user
 mysql -u root -p
 
--- Create database with proper charset
-CREATE DATABASE multilingual_cms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Create database with proper charset (replace database name as needed)
+CREATE DATABASE lingaist_cms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Create dedicated user for the CMS
 CREATE USER 'cms_user'@'localhost' IDENTIFIED BY 'secure_password_here';
 
 -- Grant all privileges on the CMS database
-GRANT ALL PRIVILEGES ON multilingual_cms.* TO 'cms_user'@'localhost';
+GRANT ALL PRIVILEGES ON lingaist_cms.* TO 'cms_user'@'localhost';
 
 -- Flush privileges to apply changes
 FLUSH PRIVILEGES;
@@ -37,10 +37,10 @@ EXIT;
 
 ### **2. Test Database Connection**
 ```bash
-# Test connection with new user
-mysql -u cms_user -p multilingual_cms
+# Test connection with new user (replace database name as needed)
+mysql -u cms_user -p lingaist_cms
 
-# If successful, one should see:
+# If successful, you should see:
 # mysql> 
 
 # Exit the test connection
@@ -67,13 +67,16 @@ mv ~/Downloads/my-project-key.json ./google-cloud-key.json
 echo "google-cloud-key.json" >> .gitignore
 ```
 
+**💡 Note:** Lingaist CMS currently uses Google Cloud Translation as the translation provider due to its enterprise reliability and 100+ language support. However, other providers can also be used, like OpenAI GPT, Azure Translator, AWS Translate, DeepL API. The system can be easily reconfigured to use alternative providers if needed.
+
+
 ## ⚙️ **Project Setup**
 
 ### **1. Clone and Install**
 ```bash
 # Clone the repository
-git clone <my-repository-url>
-cd strapi-starter-project
+git clone https://github.com/xinyumz/lingaist-cms.git
+cd lingaist-cms
 
 # Install dependencies (yarn recommended)
 yarn install
@@ -92,11 +95,11 @@ nano .env  # or use preferred editor
 
 **Required .env settings:**
 ```env
-# Database
+# Database (customize names as needed)
 DATABASE_CLIENT=mysql2
 DATABASE_HOST=127.0.0.1
 DATABASE_PORT=3306
-DATABASE_NAME=multilingual_cms
+DATABASE_NAME=lingaist_cms
 DATABASE_USERNAME=cms_user
 DATABASE_PASSWORD=secure_password_here
 
@@ -159,8 +162,8 @@ On first start, Strapi will automatically:
 
 ### **Database Verification**
 ```sql
--- Connect to database
-mysql -u cms_user -p multilingual_cms
+-- Connect to database (replace database name as needed)
+mysql -u cms_user -p lingaist_cms
 
 -- Check core tables exist
 SHOW TABLES LIKE '%articles%';

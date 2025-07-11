@@ -4,6 +4,8 @@
 
 The Translator plugin provides seamless integration with Google Cloud Translation API, enabling automatic translation of content to multiple target languages with fallback mechanisms, translation quality management, and professional error handling.
 
+**🔄 Flexible Architecture Note:** While this plugin currently uses Google Cloud Translation as the default provider, the system is designed with a modular architecture that supports multiple translation providers (OpenAI GPT, Azure Translator, AWS Translate, DeepL API) and can be easily reconfigured without code changes.
+
 ## 🎯 **Core Features**
 
 ### **Google Cloud Translation Integration**
@@ -87,7 +89,7 @@ const response = await fetch('/translator/batch-translate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-        text: "Welcome to our multilingual CMS platform.",
+        text: "Welcome to Lingaist CMS platform.",
         targetLanguages: ['zh', 'es', 'fr', 'de', 'ja'],
         options: {
             preserveFormatting: true,
