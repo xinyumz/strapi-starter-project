@@ -22,6 +22,7 @@ A sophisticated, language-agnostic content management platform featuring intelli
 - **6 specialized plugins** working in harmony
 - **Language-agnostic design** with no hard-coded assumptions
 - **Production-ready** error handling and monitoring
+- **Cascading delete system** maintains data integrity across multilingual content
 - **Future-proof** extensible for any language processing needs
 
 ## 🚀 **Quick Start**
@@ -82,6 +83,26 @@ npm run build && npm run develop
 4. **Process Languages** - Apply language-specific processing (HSK, etc.)
 5. **Monitor Health** - Check collection health via floating badges
 
+## ⚡ **Quick Reference**
+
+### **Key URLs**
+- **Admin Panel:** http://localhost:1337/admin
+- **API Base:** http://localhost:1337/api
+- **Plugin APIs:** http://localhost:1337/[plugin-name]
+
+### **Key Commands**
+```bash
+yarn develop        # Development with hot reload
+yarn build         # Build admin panel
+yarn start          # Production server
+```
+
+### **Key Plugins**
+- **Per-Language:** `/per-language` - Central multilingual hub
+- **Collection Manager:** `/collection-manager` - Health monitoring
+- **Chinese Processor:** `/chinese-article-processor` - HSK analysis
+
+
 ## 🏗️ **System Architecture**
 
 ```
@@ -102,13 +123,17 @@ npm run build && npm run develop
 
 ## 📚 **Documentation**
 
+### **For Setup & Installation**
+- **[First Time Setup Guide](docs/SETUP.md)** - Complete setup instructions for new installations
+- **[Getting Started Guide](docs/DEVELOPER_GUIDE.md#quick-start)** - Development environment setup
+
 ### **For Users & Stakeholders**
-- **[Getting Started Guide](docs/DEVELOPER_GUIDE.md#quick-start)** - Set up development environment
 - **[User Workflows](docs/DEVELOPER_GUIDE.md#testing-guidelines)** - Common content management tasks
 
 ### **For Developers**
 - **[System Architecture](docs/ARCHITECTURE.md)** - Complete technical overview
 - **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Development setup and workflows
+- **[Cascading Delete System](docs/CASCADING_DELETE.md)** - Data integrity and cleanup
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation *(coming soon)*
 
 ### **For Plugin Development**

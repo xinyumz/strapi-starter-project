@@ -93,10 +93,10 @@ DELETE /collection-manager/health/cache
 
 ### **Orphan Detection**
 ```http
-GET    /collection-manager/orphan/detect
-GET    /collection-manager/orphan/stats
-POST   /collection-manager/orphan/cleanup
-DELETE /collection-manager/orphan/cache
+GET    /collection-manager/orphans/detect
+GET    /collection-manager/orphans/stats
+POST   /collection-manager/orphans/cleanup
+DELETE /collection-manager/orphans/cache
 ```
 
 ### **Duplicate Detection**

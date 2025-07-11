@@ -18,6 +18,19 @@ This guide helps developers understand the system, set up their development envi
 - **Postman** or **Insomnia** for API testing
 - **React Developer Tools** browser extension
 
+## 📦 **Key Dependencies**
+
+### **Core Dependencies**
+- **@strapi/strapi:** v5.17.0 - Core CMS framework
+- **mysql2:** v3.14.1 - Database driver
+- **@google-cloud/translate:** v8.5.0 - Translation API
+
+### **Plugin Dependencies**
+- **react:** v18.0.0 - Frontend framework
+- **styled-components:** v6.1.19 - UI styling
+- **sharp:** v0.33.5 - Image processing
+
+
 ## ⚙️ **Environment Setup**
 
 ### **1. Clone and Install**
@@ -112,6 +125,50 @@ strapi-starter-project/
 ├── database/                   # Database files
 └── public/                     # Static assets
 ```
+
+## 🔧 **System Configuration**
+
+### **Core Configuration Files**
+
+The system uses standard Strapi v5 configuration files located in `/config/`:
+
+#### **Database Configuration** (`config/database.ts`)
+- **Multi-database support:** MySQL, PostgreSQL, SQLite
+- **Connection pooling:** Configurable via environment variables
+- **SSL support:** For production deployments
+- **Environment-driven:** All settings configurable via `.env`
+
+#### **Plugin Configuration** (`config/plugins.ts`)
+```typescript
+export default {
+    'per-language': { enabled: true, resolve: './src/plugins/per-language' },
+    'chinese-article-processor': { enabled: true, resolve: './src/plugins/chinese-article-processor' },
+    'collection-manager': { enabled: true, resolve: './src/plugins/collection-manager' },
+    'translator': { enabled: true, resolve: './src/plugins/translator' },
+    'category-manager': { enabled: true, resolve: './src/plugins/category-manager' },
+    'revalidate': { enabled: true, resolve: './src/plugins/revalidate' }
+};
+```
+
+#### **Security Configuration** (`config/middlewares.ts`)
+- **CSP settings** configured for media uploads and external integrations
+- **CORS enabled** for API access
+- **Image/media sources** allowlisted for CDN usage
+
+#### **API Configuration** (`config/api.ts`)
+- **REST API limits:** 25 default, 100 maximum
+- **Response counting** enabled for pagination
+- **Optimized for performance** with reasonable limits
+
+### **Admin Panel Configuration** (`src/admin/app.js`)
+- **Basic customization** ready for branding
+- **CSS styling** support via `app.css`
+- **Bootstrap configuration** for plugin initialization
+
+### **Environment Variables**
+All configuration is environment-driven via `.env` file - see [Setup Guide](docs/SETUP.md) for complete configuration details.
+
+**For detailed configuration:** Each plugin has specific configuration options documented in their respective README files.
 
 ## 🧩 **Plugin Development**
 
@@ -319,6 +376,60 @@ npm run strapi console
 # Check health monitoring
 > strapi.plugin('collection-manager').service('collectionHealth').getCombinedHealthOverview()
 ```
+
+## 🗑️ **Cascading Delete System**
+
+### **Automatic Data Cleanup**
+The system automatically maintains data integrity when content is deleted through comprehensive cascading delete functionality implemented in `src/index.ts`.
+
+#### **What Gets Cleaned Up**
+```bash
+# Article deletion triggers cleanup of:
+- article_perlanguages (multilingual content)
+- article_sentences (Chinese processor data)
+- sentence_grammar_rules (grammar analysis)
+- sentence_translations (sentence translations)
+
+# Collection deletion triggers cleanup of:
+- collection_perlanguages (multilingual descriptions)
+```
+
+#### **Testing Cascading Deletes**
+```bash
+# Test article cascading delete
+# 1. Create article with Chinese content
+# 2. Translate to multiple languages (creates article_perlanguages entries)
+# 3. Process with Chinese processor (creates sentences, grammar rules)
+# 4. Delete article via admin interface
+# 5. Verify all related data cleaned up:
+
+# Check for orphaned data (should return 0 rows)
+mysql> SELECT COUNT(*) FROM article_perlanguages WHERE article_id = 123;
+mysql> SELECT COUNT(*) FROM article_sentences WHERE article_id = 123;
+mysql> SELECT COUNT(*) FROM sentence_grammar_rules WHERE sentence_id IN 
+       (SELECT id FROM article_sentences WHERE article_id = 123);
+```
+
+#### **Cleanup Monitoring**
+```bash
+# Enable detailed cleanup logging
+DEBUG=true
+
+# Watch cleanup operations in real-time
+tail -f logs/strapi.log | grep "Cleanup"
+
+# Example output:
+# [Article Cleanup] Processing cascading delete for articles: [123]
+# [Article Cleanup] ✅ Deleted 3 article per-language records for article 123
+# [Article Cleanup] ✅ Deleted 12 grammar rules, 15 translations, 5 sentences
+```
+
+#### **Performance Considerations**
+- **Bulk Deletions:** Use admin bulk select for efficiency
+- **Large Datasets:** Monitor cleanup timing for articles with extensive language processing
+- **Database Load:** Cascading deletes use optimized SQL queries for minimal impact
+- **Transaction Safety:** All cleanup operations are atomic and safe to retry
+
 
 ## 📚 **API Testing**
 

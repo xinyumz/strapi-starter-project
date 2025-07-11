@@ -113,4 +113,28 @@ dist
 build
 .strapi-updater.json
 .strapi-cloud.json
-strapi-translator-436122-a6db8e957deb.json
+
+############################
+# Google Cloud Credentials (CRITICAL SECURITY)
+############################
+
+# Google Cloud service account keys (contains sensitive credentials)
+*.json
+!package*.json
+!tsconfig*.json
+!**/schema.json
+!**/*.config.json
+
+# Specific patterns for Google Cloud keys
+*-service-account*.json
+*-credentials*.json
+google-cloud-*.json
+gcloud-*.json
+service-account.json
+credentials.json
+
+# Alternative credentials files
+.gcloud/
+.google/
+gcp-key.*
+gc-key.*

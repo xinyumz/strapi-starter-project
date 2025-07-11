@@ -92,7 +92,7 @@ GET    /per-language/article/:articleId/languages
 GET    /per-language/article/:articleId/language/:language
 ```
 
-### **Translation & Processing**
+### **Translation & Processing Workflows**
 ```http
 POST   /per-language/translate
 POST   /per-language/process  
@@ -111,6 +111,49 @@ GET    /per-language/article/:articleId/language/:language/refresh
 GET    /per-language/registry/status
 GET    /per-language/registry/check/:language
 ```
+
+### **Advanced Article Operations**
+```http
+GET    /per-language/article/:id/content
+PUT    /per-language/article/:id/content
+POST   /per-language/update-processed-data
+```
+
+### **Collection Operations**
+```http
+GET    /per-language/collection/:id/content
+PUT    /per-language/collection/:id/content
+GET    /per-language/collection/:id/languages
+```
+
+**Note:** Additional endpoints are available for advanced operations. See the complete API reference documentation for the full endpoint list.
+
+## 🗑️ **Data Integrity & Cascading Deletes**
+
+### **Automatic Cleanup Integration**
+The Per-Language plugin data is automatically cleaned up when articles or collections are deleted through the system's cascading delete functionality (implemented in `src/index.ts`).
+
+#### **Protected Data Tables**
+When content is deleted, the system automatically cleans up:
+- `article_perlanguages` - All multilingual content and processed data
+- `collection_perlanguages` - All multilingual collection descriptions
+
+#### **Deletion Safety**
+- **Atomic Operations** - All cleanup happens in database transactions
+- **Failure Protection** - Cleanup failures prevent main deletion from proceeding
+- **Comprehensive Logging** - Detailed logs track all cleanup operations
+- **Performance Optimized** - Efficient SQL queries minimize deletion overhead
+
+#### **Plugin Data Preservation**
+The cascading delete system ensures:
+- No orphaned multilingual content remains after deletions
+- Translation workflow integrity is maintained
+- Access tier and publish controls are properly cleaned up
+- Processed language data is completely removed
+
+### **Developer Notes**
+If extending the Per-Language plugin with additional data tables, ensure foreign key relationships are properly handled in the cascading delete system located in `src/index.ts`.
+
 
 ## 🔧 **Language Processor Interface**
 

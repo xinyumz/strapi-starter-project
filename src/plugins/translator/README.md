@@ -59,23 +59,7 @@ The Translator plugin provides seamless integration with Google Cloud Translatio
 ### **Translation Operations**
 ```http
 POST   /translator/translate
-POST   /translator/batch-translate
 GET    /translator/languages
-GET    /translator/detect-language
-```
-
-### **Quality Management**
-```http
-GET    /translator/translation-quality/:id
-POST   /translator/validate-translation
-PUT    /translator/update-translation/:id
-```
-
-### **Configuration**
-```http
-GET    /translator/config
-PUT    /translator/config
-GET    /translator/usage-stats
 ```
 
 ## 💡 **Usage Examples**
