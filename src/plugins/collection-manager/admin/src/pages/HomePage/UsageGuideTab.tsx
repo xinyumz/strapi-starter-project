@@ -99,7 +99,7 @@ const UsageGuideTab: React.FC = () => {
                             {
                                 step: '4',
                                 title: 'Open Collection',
-                                description: 'Click "📂 Open Collection" in the notification to view your new collection',
+                                description: 'Click "📂 Open Collection" in the notification to view the new collection',
                                 color: 'success600' as const
                             }
                         ].map((item, index) => (
@@ -226,7 +226,7 @@ const UsageGuideTab: React.FC = () => {
 
                             <Box>
                                 <Typography variant="pi" textColor="warning700" style={{ lineHeight: '1.5' }}>
-                                    They clutter your CMS and confuse editors. Regular cleanup maintains organization.
+                                    They clutter the CMS and confuse editors. Regular cleanup maintains organization.
                                 </Typography>
                             </Box>
                         </InfoCard>

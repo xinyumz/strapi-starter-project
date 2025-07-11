@@ -59,33 +59,81 @@ The Chinese Article Processor is a specialized language processor that integrate
 ### **Article Sentences**
 ```sql
 article_sentences (
-    id              INTEGER PRIMARY KEY,
-    article_id      INTEGER NOT NULL,
-    per_language_id INTEGER NOT NULL,
-    language        VARCHAR(10) NOT NULL,
-    sentence_text   TEXT NOT NULL,
-    sentence_order  INTEGER NOT NULL
+    -- Plugin-defined fields (business logic)
+    id              INTEGER PRIMARY KEY AUTO_INCREMENT,
+    article_id      INTEGER,                        -- References articles.id
+    per_language_id INTEGER,                        -- References article_perlanguages.id
+    language        VARCHAR(10),                    -- Language code
+    sentence_text   LONGTEXT,                       -- Individual sentence text
+    sentence_order  INTEGER,                        -- Order within article
+    
+    -- Strapi auto-generated fields (added automatically)
+    created_at      DATETIME(6),
+    updated_at      DATETIME(6),
+    published_at    DATETIME(6),
+    created_by_id   INTEGER UNSIGNED,
+    updated_by_id   INTEGER UNSIGNED,
+    document_id     VARCHAR(255),                   -- Strapi v5 document identifier
+    locale          VARCHAR(255)                    -- i18n locale
 );
 ```
 
 ### **Grammar Rules**
 ```sql
 sentence_grammar_rules (
-    id          INTEGER PRIMARY KEY,
-    sentence_id INTEGER NOT NULL,
-    rule        TEXT NOT NULL
+    -- Plugin-defined fields (business logic)
+    id          INTEGER PRIMARY KEY AUTO_INCREMENT,
+    sentence_id INTEGER,                            -- References article_sentences.id
+    rule        VARCHAR(255),                       -- Grammar rule text
+    
+    -- Strapi auto-generated fields (added automatically)
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),                     -- Strapi v5 document identifier
+    locale        VARCHAR(255)                      -- i18n locale
 );
 ```
 
-### **Translations**
+### **Sentence Translations**
 ```sql
 sentence_translations (
-    id                  INTEGER PRIMARY KEY,
-    sentence_id         INTEGER NOT NULL,
-    translation_language VARCHAR(10) NOT NULL,
-    translation_text    TEXT NOT NULL
+    -- Plugin-defined fields (business logic)
+    id                   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    sentence_id          INTEGER,                   -- References article_sentences.id
+    translation_language VARCHAR(255),             -- Target language code
+    translation_text     LONGTEXT,                 -- Translated sentence
+    
+    -- Strapi auto-generated fields (added automatically)
+    created_at           DATETIME(6),
+    updated_at           DATETIME(6),
+    published_at         DATETIME(6),
+    created_by_id        INTEGER UNSIGNED,
+    updated_by_id        INTEGER UNSIGNED,
+    document_id          VARCHAR(255),             -- Strapi v5 document identifier
+    locale               VARCHAR(255)              -- i18n locale
 );
 ```
+
+### **Schema Notes**
+
+#### **Plugin-Defined vs Auto-Generated Fields**
+- **Plugin-defined fields** - These are the business logic fields defined in the plugin schema for Chinese language processing
+- **Strapi auto-generated fields** - Added automatically by Strapi for system functionality
+
+#### **Fresh Installation**
+During fresh setup, Strapi will create these tables with:
+1. All plugin-defined fields exactly as specified in the plugin schema
+2. Standard Strapi system fields added automatically
+3. Proper foreign key relationships between sentences, grammar rules, and translations
+
+#### **Data Relationships**
+- `article_sentences` references both `articles.id` and `article_perlanguages.id`
+- `sentence_grammar_rules` and `sentence_translations` reference `article_sentences.id`
+- All Chinese processor data is automatically cleaned up when articles are deleted via the cascading delete system
+
 
 ## 🚀 **API Endpoints**
 
@@ -403,6 +451,3 @@ export default ({ strapi }: any) => {
 3. **Storage** - Results saved to article_perlanguages.processed_data
 4. **Retrieval** - Frontend displays processed results with professional UX
 
----
-
-**The Chinese Article Processor provides comprehensive Chinese language analysis while seamlessly integrating with the Per-Language plugin architecture for professional multilingual content management.**

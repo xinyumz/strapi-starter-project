@@ -125,7 +125,7 @@ const response = await fetch('/translator/translate', {
 ```env
 # Google Cloud Translation API (required)
 GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
-GOOGLE_CLOUD_PROJECT_ID=your-project-id
+GOOGLE_CLOUD_PROJECT_ID=my-project-id
 
 # Translation settings (optional)
 TRANSLATOR_DEFAULT_MODEL=base
@@ -196,7 +196,7 @@ interface BatchTranslationResult {
 // Translation Workflow Integration
 export default ({ strapi }: any) => ({
     async translateArticle(articleId: number, targetLanguage: string): Promise<string> {
-        // Use Document Service API (matches your pattern)
+        // Use Document Service API (matches pattern)
         const article = await strapi.documents('api::article.article').findOne({
             documentId: articleId  // Use documentId instead of id
         });
@@ -332,7 +332,3 @@ console.log('Average quality score:', stats.averageConfidence);
 - **High Volume Support** - Handle thousands of articles efficiently
 - **Professional Integration** - Seamless workflow with existing CMS
 - **Enterprise Ready** - Production-grade reliability and monitoring
-
----
-
-**The Translator plugin transforms your multilingual CMS into a truly global platform, enabling automatic, high-quality translations that scale with your content growth while maintaining professional standards and cost efficiency.**

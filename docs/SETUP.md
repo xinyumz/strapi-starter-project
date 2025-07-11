@@ -2,11 +2,9 @@
 
 **Complete setup instructions for the Enterprise Multilingual CMS**
 
-This guide walks you through setting up the multilingual CMS from scratch, ensuring all components work correctly on first run.
+This guide walks through setting up the multilingual CMS from scratch, ensuring all components work correctly on first run.
 
 ## 📋 **Prerequisites Checklist**
-
-Before starting, ensure you have:
 
 - [ ] **Node.js 18.x or 20.x** (LTS versions)
 - [ ] **MySQL 8.0+** or **MariaDB 10.6+** installed and running
@@ -42,7 +40,7 @@ EXIT;
 # Test connection with new user
 mysql -u cms_user -p multilingual_cms
 
-# If successful, you should see:
+# If successful, one should see:
 # mysql> 
 
 # Exit the test connection
@@ -61,9 +59,9 @@ EXIT;
 
 ### **2. Configure Service Account**
 ```bash
-# Place the JSON key file in your project root
+# Place the JSON key file in the project root
 # Rename it to something descriptive (keep in .gitignore)
-mv ~/Downloads/your-project-key.json ./google-cloud-key.json
+mv ~/Downloads/my-project-key.json ./google-cloud-key.json
 
 # Ensure it's ignored by git
 echo "google-cloud-key.json" >> .gitignore
@@ -74,7 +72,7 @@ echo "google-cloud-key.json" >> .gitignore
 ### **1. Clone and Install**
 ```bash
 # Clone the repository
-git clone <your-repository-url>
+git clone <my-repository-url>
 cd strapi-starter-project
 
 # Install dependencies (yarn recommended)
@@ -88,8 +86,8 @@ npm install
 # Copy environment template
 cp .env.example .env
 
-# Edit the .env file with your settings
-nano .env  # or use your preferred editor
+# Edit the .env file with the settings
+nano .env  # or use preferred editor
 ```
 
 **Required .env settings:**
@@ -106,11 +104,11 @@ DATABASE_PASSWORD=secure_password_here
 GOOGLE_APPLICATION_CREDENTIALS=./google-cloud-key.json
 
 # Security (generate new values for production)
-APP_KEYS="your-app-key-1,your-app-key-2"
-API_TOKEN_SALT=your-api-token-salt
-ADMIN_JWT_SECRET=your-admin-jwt-secret
-TRANSFER_TOKEN_SALT=your-transfer-token-salt
-JWT_SECRET=your-jwt-secret
+APP_KEYS="my-app-key-1,my-app-key-2"
+API_TOKEN_SALT=my-api-token-salt
+ADMIN_JWT_SECRET=my-admin-jwt-secret
+TRANSFER_TOKEN_SALT=my-transfer-token-salt
+JWT_SECRET=my-jwt-secret
 ```
 
 ### **3. Generate Secure Keys (Production)**
@@ -150,10 +148,10 @@ On first start, Strapi will automatically:
 
 ### **3. Admin Account Setup**
 1. Open browser to `http://localhost:1337/admin`
-2. Create your admin account:
-   - **First Name:** Your first name
-   - **Last Name:** Your last name  
-   - **Email:** your-email@domain.com
+2. Create admin account:
+   - **First Name:** first name
+   - **Last Name:** last name  
+   - **Email:** my-email@domain.com
    - **Password:** Secure password (8+ characters)
 3. Complete registration
 
@@ -161,7 +159,7 @@ On first start, Strapi will automatically:
 
 ### **Database Verification**
 ```sql
--- Connect to your database
+-- Connect to database
 mysql -u cms_user -p multilingual_cms
 
 -- Check core tables exist
@@ -207,7 +205,7 @@ curl -X POST http://localhost:1337/translator/translate \
 
 ### **2. Test Translation Workflow**
 1. Go to **Per-Language** plugin section
-2. Translate your test article to Chinese
+2. Translate a test article to Chinese
 3. Verify multilingual content is created
 4. Check database: `SELECT * FROM article_perlanguages;`
 
@@ -218,7 +216,7 @@ curl -X POST http://localhost:1337/translator/translate \
 
 ### **4. Test Collection Health**
 1. Create a test collection
-2. Add your test article to the collection
+2. Add a test article to the collection
 3. Navigate to **Collections** list page
 4. Verify health badge appears
 
@@ -275,7 +273,7 @@ After successful setup:
    - Configure SSL/HTTPS
    - Set up proper backup strategies
 
-3. **Customize for Your Needs:**
+3. **Customize for Needs:**
    - Add custom content types
    - Create additional language processors
    - Configure category taxonomies
@@ -283,14 +281,10 @@ After successful setup:
 
 ## 🆘 **Getting Help**
 
-If you encounter issues:
+If encounter issues:
 
 1. **Check Logs:** Look for errors in console output
 2. **Database Verification:** Ensure all tables created correctly
 3. **Environment Check:** Verify all required environment variables set
 4. **Documentation:** Review the comprehensive guides in `/docs`
 5. **Community Support:** Check Strapi community forums for general Strapi issues
-
----
-
-**Congratulations! Your Enterprise Multilingual CMS is now ready for content creation and multilingual workflows.** 🎉

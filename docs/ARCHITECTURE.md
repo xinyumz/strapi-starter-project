@@ -90,52 +90,295 @@ This document provides a comprehensive overview of the system architecture, plug
 
 ## 🏛️ **Database Architecture**
 
+### **Understanding Database Schema Creation**
+
+When Strapi creates database tables, it combines:
+1. **The defined fields** (business logic from content type schemas)
+2. **Strapi auto-generated fields** (system management)
+
+### **Field Naming Convention**
+- **Schema Definition:** PascalCase (`Title`, `LanguageProcessor`)
+- **Database Storage:** snake_case (`title`, `language_processor`)
+- **API/Frontend:** PascalCase (`Title`, `LanguageProcessor`)
+
 ### **Core Content Types**
+
+#### **Articles Table**
 ```sql
--- Core content structure
 articles (
-    id, documentId, Title, Base, Date, Cover, 
-    Category, LanguageProcessor, collections
-)
+    -- Core content fields (from the schema)
+    id                 INTEGER PRIMARY KEY AUTO_INCREMENT,
+    title              VARCHAR(255),               -- "Title" in schema
+    date               DATE,                        -- "Date" in schema
+    category           INTEGER,                     -- "Category" custom field → integer
+    base               LONGTEXT,                    -- "Base" richtext field
+    language_processor LONGTEXT,                    -- "LanguageProcessor" custom field → JSON
+    
+    -- Strapi v5 auto-generated fields
+    created_at         DATETIME(6),
+    updated_at         DATETIME(6),
+    published_at       DATETIME(6),
+    created_by_id      INTEGER UNSIGNED,
+    updated_by_id      INTEGER UNSIGNED,
+    locale             VARCHAR(255),                -- i18n locale
+    document_id        VARCHAR(255)                 -- Strapi v5 document ID
+);
+```
 
-blog (
-    id, documentId, Title, Body, Date, Cover, 
-    seo
-)
-
+#### **Collections Table**
+```sql
 collections (
-    id, documentId, Title, Date, Cover, 
-    Category, PerLanguage, articles
-)
+    -- Core content fields (from the schema)
+    id            INTEGER PRIMARY KEY AUTO_INCREMENT,
+    title         VARCHAR(255),                     -- "Title" in schema
+    date          DATE,                              -- "Date" in schema
+    category      INTEGER,                           -- "Category" custom field → integer
+    per_language  LONGTEXT,                          -- "PerLanguage" custom field → JSON
+    
+    -- Strapi v5 auto-generated fields
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    locale        VARCHAR(255),                      -- i18n locale
+    document_id   VARCHAR(255)                       -- Strapi v5 document ID
+);
 ```
 
-### **Multilingual Data Layer**
+#### **Blogs Table**
 ```sql
--- Per-language content storage
+blogs (
+    -- Core content fields (from the schema)
+    id            INTEGER PRIMARY KEY AUTO_INCREMENT,
+    title         VARCHAR(255),                     -- "Title" in schema
+    date          DATE,                              -- "Date" in schema
+    body          LONGTEXT,                          -- "Body" CKEditor field
+    
+    -- Strapi v5 auto-generated fields
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),                      -- Strapi v5 document ID
+    locale        VARCHAR(255)                       -- i18n locale
+);
+```
+
+### **Multilingual Data Layer (Plugin Tables)**
+
+#### **Article Per-Language Content**
+```sql
 article_perlanguages (
-    id, article_id, language, per_language_text,
-    processed_data, difficulty_data, display_skill,
-    published, access_tier, created_at, updated_at
-)
-
-collection_perlanguages (
-    id, collection_id, language, description, 
-    access_tier, display_skill, published,
-    created_at, updated_at
-)
+    -- Plugin-defined fields (business logic)
+    id                 INTEGER PRIMARY KEY AUTO_INCREMENT,
+    article_id         INTEGER,                      -- References articles.id
+    language           VARCHAR(255),                 -- Language code (zh, en, es)
+    per_language_text  LONGTEXT,                    -- Translated content
+    processed_data     JSON,                        -- Language processor results
+    difficulty_data    JSON,                        -- HSK/difficulty analysis
+    display_skill      VARCHAR(50),                 -- Skill level display
+    published          TINYINT(1),                  -- Published status per language
+    access_tier        VARCHAR(20),                 -- Access control level
+    
+    -- Strapi auto-generated fields
+    created_at         DATETIME(6),
+    updated_at         DATETIME(6),
+    published_at       DATETIME(6),
+    created_by_id      INTEGER UNSIGNED,
+    updated_by_id      INTEGER UNSIGNED,
+    document_id        VARCHAR(255),
+    locale             VARCHAR(255)
+);
 ```
 
-### **Language Processing Tables**
+#### **Collection Per-Language Content**
 ```sql
--- Chinese-specific analysis data
-article_sentences (
-    id, article_id, per_language_id, language,
-    sentence_text, sentence_order
-)
-
-sentence_grammar_rules (id, sentence_id, rule)
-sentence_translations (id, sentence_id, translation_language, translation_text)
+collection_perlanguages (
+    -- Plugin-defined fields (business logic)
+    id            INTEGER PRIMARY KEY AUTO_INCREMENT,
+    collection_id INTEGER,                          -- References collections.id
+    language      VARCHAR(255),                     -- Language code
+    description   LONGTEXT,                         -- Translated description
+    display_skill VARCHAR(50),                      -- Skill level display
+    published     TINYINT(1),                       -- Published status per language
+    access_tier   VARCHAR(20),                      -- Access control level
+    
+    -- Strapi auto-generated fields
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),
+    locale        VARCHAR(255)
+);
 ```
+
+### **Language Processing Tables (Chinese Processor Plugin)**
+
+#### **Article Sentences**
+```sql
+article_sentences (
+    -- Plugin-defined fields (business logic)
+    id              INTEGER PRIMARY KEY AUTO_INCREMENT,
+    article_id      INTEGER,                        -- References articles.id
+    per_language_id INTEGER,                        -- References article_perlanguages.id
+    language        VARCHAR(10),                    -- Language code
+    sentence_text   LONGTEXT,                       -- Individual sentence text
+    sentence_order  INTEGER,                        -- Order within article
+    
+    -- Strapi auto-generated fields
+    created_at      DATETIME(6),
+    updated_at      DATETIME(6),
+    published_at    DATETIME(6),
+    created_by_id   INTEGER UNSIGNED,
+    updated_by_id   INTEGER UNSIGNED,
+    document_id     VARCHAR(255),
+    locale          VARCHAR(255)
+);
+```
+
+#### **Grammar Rules**
+```sql
+sentence_grammar_rules (
+    -- Plugin-defined fields (business logic)
+    id          INTEGER PRIMARY KEY AUTO_INCREMENT,
+    sentence_id INTEGER,                            -- References article_sentences.id
+    rule        VARCHAR(255),                       -- Grammar rule text
+    
+    -- Strapi auto-generated fields
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),
+    locale        VARCHAR(255)
+);
+```
+
+#### **Sentence Translations**
+```sql
+sentence_translations (
+    -- Plugin-defined fields (business logic)
+    id                   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    sentence_id          INTEGER,                   -- References article_sentences.id
+    translation_language VARCHAR(255),             -- Target language code
+    translation_text     LONGTEXT,                 -- Translated sentence
+    
+    -- Strapi auto-generated fields
+    created_at           DATETIME(6),
+    updated_at           DATETIME(6),
+    published_at         DATETIME(6),
+    created_by_id        INTEGER UNSIGNED,
+    updated_by_id        INTEGER UNSIGNED,
+    document_id          VARCHAR(255),
+    locale               VARCHAR(255)
+);
+```
+
+### **Category Manager Tables**
+
+#### **Taxons (Category Types)**
+```sql
+category_manager_taxons (
+    -- Plugin-defined fields (business logic)
+    id   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255),                             -- Taxon name (e.g., "Content Type")
+    url  VARCHAR(255),                             -- URL slug
+    
+    -- Strapi auto-generated fields
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),
+    locale        VARCHAR(255)
+);
+```
+
+#### **Categories**
+```sql
+category_manager_categories (
+    -- Plugin-defined fields (business logic)
+    id    INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name  VARCHAR(255),                            -- Category name
+    url   VARCHAR(255),                            -- URL slug
+    order INTEGER,                                 -- Sort order
+    
+    -- Strapi auto-generated fields
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),
+    locale        VARCHAR(255)
+);
+```
+
+### **Relationship Tables (Auto-Generated)**
+
+#### **Article-Collection Relationships**
+```sql
+articles_collections_lnk (
+    id             INTEGER PRIMARY KEY AUTO_INCREMENT,
+    article_id     INTEGER UNSIGNED,               -- References articles.id
+    collection_id  INTEGER UNSIGNED,               -- References collections.id
+    collection_ord DOUBLE UNSIGNED,                -- Sort order in collection
+    article_ord    DOUBLE UNSIGNED                 -- Sort order of collection in article
+);
+```
+
+#### **Category-Taxon Relationships**
+```sql
+category_manager_categories_taxon_lnk (
+    id           INTEGER PRIMARY KEY AUTO_INCREMENT,
+    category_id  INTEGER UNSIGNED,                 -- References category_manager_categories.id
+    taxon_id     INTEGER UNSIGNED,                 -- References category_manager_taxons.id
+    category_ord DOUBLE UNSIGNED                   -- Sort order
+);
+```
+
+### **Custom Field Storage**
+
+Custom fields in schemas are stored as JSON/text rather than creating additional tables:
+- `Category` field → Stores category selection as integer reference
+- `LanguageProcessor` field → Stores processor configuration as JSON in longtext
+- `PerLanguage` field → Stores multilingual metadata as JSON in longtext
+
+### **Media Field Implementation**
+
+Media fields (like `Cover`) create references to Strapi's upload system:
+- Core media tables: `files`, `files_related_mph` (managed by Strapi)
+- Content references files via Strapi's internal relation system
+- No direct foreign key columns in  main tables
+
+### **Key Schema Notes**
+
+#### **Strapi v5 Standard Fields**
+All content types automatically include:
+- `id` - Primary key
+- `document_id` - Unique document identifier (Strapi v5 feature)
+- `created_at`, `updated_at`, `published_at` - Timestamp tracking
+- `created_by_id`, `updated_by_id` - User audit trail
+- `locale` - i18n locale (added when i18n plugin is globally enabled)
+
+#### **Why Extra Fields Exist**
+- **locale field** → Added because main content types use i18n, enabling it globally
+- **published_at field** → Added by Strapi v5 document lifecycle system
+- **User tracking fields** → Standard Strapi audit functionality
+- **document_id field** → Strapi v5 document management system
+
+#### **Fresh Installation Behavior**
+During fresh setup, Strapi will:
+1. Create all tables with defined business logic fields
+2. Automatically add standard Strapi system fields
+3. Set up proper foreign key relationships
+4. Enable the cascading delete system for data integrity
 
 ## 🗑️ **Cascading Delete Architecture**
 
@@ -418,7 +661,3 @@ DUPLICATE_CACHE_TTL=600000
 - **PostgreSQL** migration for advanced query capabilities
 - **Docker** containerization for simplified deployment
 - **Kubernetes** orchestration for enterprise scaling
-
----
-
-**This architecture provides a solid foundation for enterprise-grade multilingual content management while maintaining flexibility for future expansion and technological evolution.**

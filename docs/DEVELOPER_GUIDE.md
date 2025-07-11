@@ -64,8 +64,8 @@ DATABASE_CLIENT=mysql
 DATABASE_HOST=127.0.0.1
 DATABASE_PORT=3306
 DATABASE_NAME=multilingual_cms
-DATABASE_USERNAME=your_db_user
-DATABASE_PASSWORD=your_db_password
+DATABASE_USERNAME=my_db_user
+DATABASE_PASSWORD=my_db_password
 
 # Google Cloud Translation (required for translation features)
 GOOGLE_APPLICATION_CREDENTIALS=./strapi-translator-436122-a6db8e957deb.json
@@ -125,6 +125,28 @@ strapi-starter-project/
 ├── database/                   # Database files
 └── public/                     # Static assets
 ```
+
+## 📝 **Database Field Naming Convention**
+
+### **Schema vs Database Field Names**
+When working with the system, understand the field naming conversion:
+
+- **In Content Type Schemas:** PascalCase (`Title`, `LanguageProcessor`, `PerLanguage`)
+- **In Database Tables:** snake_case (`title`, `language_processor`, `per_language`)
+- **In API Responses:** PascalCase (`Title`, `LanguageProcessor`, `PerLanguage`)
+
+### **Plugin-Defined vs Auto-Generated Fields**
+Plugin schemas define only business logic fields. Strapi automatically adds system fields:
+
+**Defined Fields (Business Logic):**
+- `article_id`, `language`, `per_language_text`, `processed_data`
+
+**Strapi Auto-Generated Fields (System Management):**
+- `id`, `created_at`, `updated_at`, `published_at`
+- `created_by_id`, `updated_by_id`, `document_id`, `locale`
+
+This is normal Strapi v5 behavior and ensures proper system functionality.
+
 
 ## 🔧 **System Configuration**
 
@@ -231,7 +253,7 @@ export default ({ strapi }: any) => ({
     },
 
   async saveProcessedData(articleId: number, language: string, data: any, displaySkill?: string): Promise<void> {
-    // Use processor's own service (matches your actual implementation)
+    // Use processor's own service (matches the actual implementation)
     const processService = strapi.plugin('japanese-processor').service('processService');
     await processService.saveProcessedData(articleId, language, data, displaySkill);
 }
@@ -675,7 +697,7 @@ curl -X GET http://localhost:1337/collection-manager/health/overview
 1. **Understand the architecture** - Read plugin READMEs and architecture docs
 2. **Set up development environment** - Follow this guide completely
 3. **Test existing functionality** - Ensure everything works before changes
-4. **Plan your changes** - Discuss major modifications with team
+4. **Plan changes** - Discuss major modifications with team
 
 ### **Development Process**
 1. **Create feature branch** from main
@@ -718,7 +740,3 @@ curl -X GET http://localhost:1337/collection-manager/health/overview
 - **Code Examples** - Existing processor implementations
 - **Development Team** - For architecture and design questions
 - **Community** - Strapi Discord/Forum for general Strapi questions
-
----
-
-**This development environment provides everything needed to understand, modify, and extend the multilingual CMS platform. The modular architecture makes it easy to add new features while maintaining the professional standards established in the existing codebase. Using yarn as the preferred package manager ensures consistent dependency management and optimal development experience.**

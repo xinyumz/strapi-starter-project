@@ -1,1 +1,1 @@
-- **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation *(planned for v1.0 release)*
+- **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation *(for the future)*

@@ -221,7 +221,7 @@ const FeaturesTab: React.FC = () => {
                             </Box>
                             <Box>
                                 <Typography variant="omega" textColor="secondary700" style={{ lineHeight: '1.5' }}>
-                                    Use the quick button to create a collection from your primary article, then manually add
+                                    Use the quick button to create a collection from the primary article, then manually add
                                     additional articles to it. This workflow is still much faster than creating everything from scratch!
                                 </Typography>
                             </Box>
@@ -364,7 +364,7 @@ const FeaturesTab: React.FC = () => {
                                         </Typography>
                                     </Box>
                                     <Typography variant="pi" textColor="primary600" style={{ lineHeight: '1.5' }}>
-                                        Sub-100ms health checks with intelligent caching ensure your content organization
+                                        Sub-100ms health checks with intelligent caching ensure the content organization
                                         is always optimized without performance impact.
                                     </Typography>
                                 </Box>

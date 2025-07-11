@@ -2,7 +2,7 @@
 
 **Enterprise-grade multilingual content management for Strapi v5**
 
-The Per-Language plugin serves as the central hub for managing multilingual content in your Strapi application. It provides a language-agnostic architecture that can work with any language processor while maintaining professional manual save UX and comprehensive error handling.
+The Per-Language plugin serves as the central hub for managing multilingual content in the Strapi application. It provides a language-agnostic architecture that can work with any language processor while maintaining professional manual save UX and comprehensive error handling.
 
 ## 🎯 **Core Features**
 
@@ -54,34 +54,67 @@ The Per-Language plugin serves as the central hub for managing multilingual cont
 ### **Article Per-Language Content**
 ```sql
 article_perlanguages (
+    -- Plugin-defined fields (business logic)
     id                 INTEGER PRIMARY KEY,
-    article_id         INTEGER NOT NULL,
-    language           VARCHAR(10) NOT NULL,
-    per_language_text  TEXT NOT NULL,
-    processed_data     JSON,
-    difficulty_data    JSON,
-    display_skill      VARCHAR(50),
-    published          BOOLEAN DEFAULT FALSE,
-    access_tier        VARCHAR(20),
-    created_at         TIMESTAMP,
-    updated_at         TIMESTAMP
+    article_id         INTEGER NOT NULL,            -- References articles.id
+    language           VARCHAR(255) NOT NULL,       -- Language code (zh, en, es, etc.)
+    per_language_text  LONGTEXT NOT NULL,          -- Translated content
+    processed_data     JSON,                       -- Language processor results
+    difficulty_data    JSON,                       -- HSK/difficulty analysis
+    display_skill      VARCHAR(50),                -- Skill level display
+    published          BOOLEAN DEFAULT FALSE,      -- Published status per language
+    access_tier        VARCHAR(20),                -- Access control level
+    
+    -- Strapi auto-generated fields (added automatically)
+    created_at         DATETIME(6),
+    updated_at         DATETIME(6),
+    published_at       DATETIME(6),
+    created_by_id      INTEGER UNSIGNED,
+    updated_by_id      INTEGER UNSIGNED,
+    document_id        VARCHAR(255),               -- Strapi v5 document identifier
+    locale             VARCHAR(255)                -- i18n locale
 );
 ```
 
 ### **Collection Per-Language Content**
 ```sql
 collection_perlanguages (
-    id                 INTEGER PRIMARY KEY,
-    collection_id      INTEGER NOT NULL,
-    language           VARCHAR(10) NOT NULL,
-    description        TEXT,
-    access_tier        VARCHAR(20),
-    display_skill      VARCHAR(50),
-    published          BOOLEAN DEFAULT FALSE,
-    created_at         TIMESTAMP,
-    updated_at         TIMESTAMP
+    -- Plugin-defined fields (business logic)
+    id            INTEGER PRIMARY KEY,
+    collection_id INTEGER NOT NULL,                -- References collections.id
+    language      VARCHAR(255) NOT NULL,           -- Language code
+    description   LONGTEXT,                        -- Translated description
+    access_tier   VARCHAR(20),                     -- Access control level
+    display_skill VARCHAR(50),                     -- Skill level display
+    published     BOOLEAN DEFAULT FALSE,           -- Published status per language
+    
+    -- Strapi auto-generated fields (added automatically)
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),                    -- Strapi v5 document identifier
+    locale        VARCHAR(255)                     -- i18n locale
 );
 ```
+
+### **Schema Notes**
+
+#### **Plugin-Defined vs Auto-Generated Fields**
+- **Plugin-defined fields** - These are the business logic fields defined in the plugin schema
+- **Strapi auto-generated fields** - Added automatically by Strapi for system functionality
+
+#### **Fresh Installation**
+During fresh setup, Strapi will create these tables with:
+1. All plugin-defined fields exactly as specified
+2. Standard Strapi system fields added automatically
+3. Proper foreign key relationships to main content tables
+
+#### **Field Usage**
+- Use **plugin-defined fields** for business logic and API operations
+- **Auto-generated fields** provide system functionality (timestamps, user tracking, document management)
+- All fields are accessible via Strapi APIs, but focus on business logic fields for core functionality
 
 ## 🚀 **API Endpoints**
 
@@ -180,7 +213,7 @@ export default ({ strapi }: any) => ({
     displayName: 'Spanish DELE Processor',
 
     async processContent(content: string, options: any = {}): Promise<any> {
-        // Your Spanish processing logic here
+        // The Spanish processing logic here
         return processedData;
     },
 
@@ -198,7 +231,7 @@ export default ({ strapi }: any) => ({
 ```typescript
 // src/plugins/spanish-processor/server/bootstrap.ts
 export default ({ strapi }: any) => {
-    // Attempt registration with per-language registry (matches your retry pattern)
+    // Attempt registration with per-language registry (matches the retry pattern)
     const attemptRegistration = () => {
         const registry = strapi.plugin('per-language')?.service('languageProcessorRegistry');
         const adapter = strapi.plugin('spanish-processor').service('processorAdapter');
@@ -276,7 +309,7 @@ DEBUG_PLUGINS=true
 The plugin automatically detects supported languages based on registered processors:
 
 - **Chinese (zh, zh-CN, zh-TW)** - via Chinese Article Processor
-- **Additional languages** - via custom processors you create
+- **Additional languages** - via custom processors created
 
 ## 🎨 **Frontend Integration**
 
@@ -323,21 +356,6 @@ DEBUG=true
 DEBUG_PLUGINS=true
 ```
 
-## 🚀 **Future Expansion**
-
-### **Adding New Language Processors**
-1. Create processor plugin following the interface
-2. Implement processing logic for your language
-3. Register with the per-language registry
-4. Test with translate + process workflow
-
-### **Supported Future Languages**
-- **Japanese** (JLPT difficulty analysis)
-- **Korean** (TOPIK difficulty analysis)  
-- **Spanish** (DELE difficulty analysis)
-- **French** (DELF/DALF difficulty analysis)
-- **German** (Goethe Institute levels)
-
 ## 📝 **Development Notes**
 
 ### **Manual Save Philosophy**
@@ -361,7 +379,3 @@ When extending this plugin:
 3. Implement proper error handling with user-friendly messages
 4. Test manual save UX workflows thoroughly
 5. Update documentation for new features
-
----
-
-**The Per-Language plugin is the foundation of your multilingual CMS, providing the architecture and workflows needed for professional multilingual content management.**

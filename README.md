@@ -45,7 +45,7 @@ yarn install
 
 # Set up environment
 cp .env.example .env
-# Edit .env with your database and Google Cloud credentials
+# Edit .env with database and Google Cloud credentials
 
 # Start development server
 npm run develop
@@ -78,7 +78,7 @@ npm run build && npm run develop
 
 ### **First Steps**
 1. **Create Admin Account** - Visit http://localhost:1337/admin
-2. **Create Article** - Add base content in your source language
+2. **Create Article** - Add base content in the source language
 3. **Translate Content** - Use translation workflows for target languages  
 4. **Process Languages** - Apply language-specific processing (HSK, etc.)
 5. **Monitor Health** - Check collection health via floating badges

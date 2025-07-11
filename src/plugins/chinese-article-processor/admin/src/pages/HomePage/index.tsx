@@ -141,26 +141,26 @@ const HomePage = () => {
 
           {/* Features Card */}
           <Grid.Item col={6}>
-            <Card style={{ height: '100%', width: "100%" }} background="secondary100">
+            <Card style={{ height: '100%', width: "100%" }} background="neutral100">
               <CardHeader style={{ padding: '1.5rem' }}>
-                <Typography variant="delta" fontWeight="semiBold" textColor="secondary700">
+                <Typography variant="delta" fontWeight="semiBold" textColor="neutral700">
                   ✨ Features
                 </Typography>
               </CardHeader>
               <CardBody style={{ padding: '1.5rem' }}>
                 <Box style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {[
-                    '✅ HSK level analysis and vocabulary difficulty',
-                    '✅ AI-powered grammar rule generation',
-                    '✅ Sentence-by-sentence breakdown',
-                    '✅ Multi-language translation support',
-                    '✅ Stable sentence ID management',
-                    '✅ Integrated with per-language content system'
+                    '• HSK level analysis and vocabulary difficulty',
+                    '• AI-powered grammar rule generation',
+                    '• Sentence-by-sentence breakdown',
+                    '• Multi-language translation support',
+                    '• Stable sentence ID management',
+                    '• Integrated with per-language content system'
                   ].map((feature, index) => (
                     <Box key={index}>
                       <Typography
                         variant="omega"
-                        textColor="secondary700"
+                        textColor="neutral700"
                         style={{ lineHeight: '1.6' }}
                       >
                         {feature}
@@ -174,9 +174,9 @@ const HomePage = () => {
         </Grid.Root>
 
         {/* Technical Integration Card */}
-        <Card background="success100" style={{ marginBottom: '2rem' }}>
+        <Card background="secondary100" style={{ marginBottom: '2rem' }}>
           <CardHeader style={{ padding: '1.5rem' }}>
-            <Typography variant="delta" fontWeight="semiBold" textColor="success700">
+            <Typography variant="delta" fontWeight="semiBold" textColor="secondary700">
               🔧 Technical Integration
             </Typography>
           </CardHeader>
@@ -190,13 +190,13 @@ const HomePage = () => {
               ].map((item, index) => (
                 <IntegrationItem key={index}>
                   <Box marginRight={2}>
-                    <Badge size="S" backgroundColor="success200" textColor="success700">
+                    <Badge size="S" backgroundColor="secondary200" textColor="secondary700">
                       {item.status}
                     </Badge>
                   </Box>
                   <Typography
                     variant="omega"
-                    textColor="success700"
+                    textColor="secondary700"
                     style={{ lineHeight: '1.6' }}
                   >
                     {item.label}

@@ -2,7 +2,7 @@
 
 **Enterprise-grade collection health monitoring and management for Strapi v5**
 
-The Collection Manager plugin provides sophisticated health monitoring, orphan detection, duplicate analysis, and automated maintenance tools for your Strapi collections. Features real-time floating health badges, hybrid scoring algorithms, and comprehensive analytics.
+The Collection Manager plugin provides sophisticated health monitoring, orphan detection, duplicate analysis, and automated maintenance tools for Strapi collections. Features real-time floating health badges, hybrid scoring algorithms, and comprehensive analytics.
 
 ## 🎯 **Core Features**
 
@@ -455,7 +455,3 @@ initializeHealthBadgeSystem();
 - Cache size limits to prevent memory issues
 - Automatic cleanup of stale data
 - Circuit breaker patterns for external dependencies
-
----
-
-**The Collection Manager plugin transforms collection maintenance from a manual, error-prone process into an automated, intelligent system that scales with your content growth while maintaining professional admin experience.**

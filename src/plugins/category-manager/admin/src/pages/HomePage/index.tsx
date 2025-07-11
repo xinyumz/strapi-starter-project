@@ -41,7 +41,7 @@ const HomePage = () => {
     {
       icon: Plus,
       title: "Active Categories",
-      description: "Manage your content taxonomy",
+      description: "Manage the content taxonomy",
       bgColor: "primary100",
       iconColor: "primary600",
     },
@@ -90,7 +90,7 @@ const HomePage = () => {
     {
       icon: More,
       title: "Custom Field Integration",
-      description: "Seamlessly integrate category selectors into your content types and custom fields.",
+      description: "Seamlessly integrate category selectors into the content types and custom fields.",
       badge: "Integration"
     }
   ];
@@ -136,7 +136,7 @@ const HomePage = () => {
       color: 'primary',
       title: 'Set up categories',
       description:
-        'Navigate to Content Types and add the Category Selector field to your content types',
+        'Navigate to Content Types and add the Category Selector field to the content types',
     },
     {
       number: 2,
@@ -155,7 +155,7 @@ const HomePage = () => {
       color: 'secondary',
       title: 'Start organizing',
       description:
-        'Use the category selectors in your content entries to organize and classify content',
+        'Use the category selectors in the content entries to organize and classify content',
     },
   ];
 

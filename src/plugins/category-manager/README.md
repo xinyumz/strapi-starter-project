@@ -56,51 +56,73 @@ The Category Manager plugin provides sophisticated multi-level category structur
 
 ## 📊 **Database Schema**
 
-### **Category Structure**
+### **Taxons (Category Types)**
 ```sql
-categories (
-    id              INTEGER PRIMARY KEY,
-    documentId      VARCHAR(36) UNIQUE,
-    name            VARCHAR(255) NOT NULL,
-    slug            VARCHAR(255) UNIQUE,
-    description     TEXT,
-    parent_id       INTEGER REFERENCES categories(id),
-    taxonomy        VARCHAR(100) DEFAULT 'default',
-    sort_order      INTEGER DEFAULT 0,
-    is_active       BOOLEAN DEFAULT TRUE,
-    metadata        JSON,
-    created_at      TIMESTAMP,
-    updated_at      TIMESTAMP
-);
-
-category_localizations (
-    id              INTEGER PRIMARY KEY,
-    category_id     INTEGER NOT NULL,
-    locale          VARCHAR(10) NOT NULL,
-    name            VARCHAR(255) NOT NULL,
-    description     TEXT,
-    created_at      TIMESTAMP,
-    updated_at      TIMESTAMP
+category_manager_taxons (
+    -- Plugin-defined fields (business logic)
+    id   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255),                             -- Taxon name (e.g., "Content Type")
+    url  VARCHAR(255),                             -- URL slug
+    
+    -- Strapi auto-generated fields (added automatically)
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),                    -- Strapi v5 document identifier
+    locale        VARCHAR(255)                     -- i18n locale
 );
 ```
 
-### **Content Associations**
+### **Categories**
 ```sql
-article_categories (
-    id              INTEGER PRIMARY KEY,
-    article_id      INTEGER NOT NULL,
-    category_id     INTEGER NOT NULL,
-    is_primary      BOOLEAN DEFAULT FALSE,
-    created_at      TIMESTAMP
-);
-
-collection_categories (
-    id              INTEGER PRIMARY KEY,
-    collection_id   INTEGER NOT NULL,
-    category_id     INTEGER NOT NULL,
-    created_at      TIMESTAMP
+category_manager_categories (
+    -- Plugin-defined fields (business logic)
+    id    INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name  VARCHAR(255),                            -- Category name
+    url   VARCHAR(255),                            -- URL slug
+    order INTEGER,                                 -- Sort order
+    
+    -- Strapi auto-generated fields (added automatically)
+    created_at    DATETIME(6),
+    updated_at    DATETIME(6),
+    published_at  DATETIME(6),
+    created_by_id INTEGER UNSIGNED,
+    updated_by_id INTEGER UNSIGNED,
+    document_id   VARCHAR(255),                    -- Strapi v5 document identifier
+    locale        VARCHAR(255)                     -- i18n locale
 );
 ```
+
+### **Category-Taxon Relationships (Auto-Generated)**
+```sql
+category_manager_categories_taxon_lnk (
+    id           INTEGER PRIMARY KEY AUTO_INCREMENT,
+    category_id  INTEGER UNSIGNED,                 -- References category_manager_categories.id
+    taxon_id     INTEGER UNSIGNED,                 -- References category_manager_taxons.id
+    category_ord DOUBLE UNSIGNED                   -- Sort order
+);
+```
+
+### **Schema Notes**
+
+#### **Plugin-Defined vs Auto-Generated Fields**
+- **Plugin-defined fields** - These are the business logic fields defined in the plugin schema for taxonomy management
+- **Strapi auto-generated fields** - Added automatically by Strapi for system functionality
+- **Relationship table** - The `categories_taxon_lnk` table is automatically created by Strapi for the taxon ↔ categories relation
+
+#### **Fresh Installation**
+During fresh setup, Strapi will create these tables with:
+1. All plugin-defined fields exactly as specified in the plugin schema
+2. Standard Strapi system fields added automatically
+3. Automatic relationship table for taxon-category associations
+
+#### **Hierarchical Structure**
+- **Taxons** serve as top-level category types (e.g., "Content Type", "Difficulty Level")
+- **Categories** belong to specific taxons and can be ordered within their taxon
+- The relationship table manages the many-to-one association between categories and taxons
+
 
 ## 🚀 **API Endpoints**
 
@@ -582,7 +604,3 @@ const articles = await fetch('/api/articles?filters[Category][id][$in][0]=2&filt
 3. **Consistent Terminology** - Use standardized translations across content
 4. **Fallback Logic** - Show default language if translation missing
 5. **Translation Workflow** - Integrate category translation with content translation
-
----
-
-**The Category Manager plugin provides the taxonomical foundation for your multilingual CMS, enabling sophisticated content organization that scales with your platform while maintaining intuitive user experience and professional administration capabilities.**

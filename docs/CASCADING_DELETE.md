@@ -216,8 +216,8 @@ async function cleanupArticleData(articleIds: number[]) {
     // ... existing cleanup logic ...
     
     // Custom plugin cleanup
-    if (strapi.plugin('your-custom-plugin')) {
-        await strapi.plugin('your-custom-plugin')
+    if (strapi.plugin('my-custom-plugin')) {
+        await strapi.plugin('my-custom-plugin')
             .service('cleanup')
             .cleanupArticleData(articleIds);
     }
@@ -287,7 +287,3 @@ The system works seamlessly with Collection Manager:
 - **Webhook Notifications** - Real-time notifications for significant cleanup events
 - **Recovery Tools** - Administrative tools for data recovery scenarios
 - **Performance Monitoring** - Integration with APM tools for cleanup operation monitoring
-
----
-
-**The Cascading Delete System ensures complete data integrity across your multilingual CMS while maintaining enterprise-grade performance and reliability. All plugin data is automatically cleaned up when content is deleted, preventing orphaned data and maintaining optimal database performance.**

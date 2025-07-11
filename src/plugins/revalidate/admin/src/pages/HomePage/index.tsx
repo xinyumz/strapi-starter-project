@@ -166,7 +166,7 @@ const HomePage = () => {
                                             >
                                                 <Field.Label>Page Path</Field.Label>
                                                 <Field.Input
-                                                    placeholder="/article/your-article-slug"
+                                                    placeholder="/article/the-article-slug"
                                                     value={path}
                                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPath(e.target.value)}
                                                     onKeyDown={(e: React.KeyboardEvent) => {
@@ -296,7 +296,7 @@ const HomePage = () => {
                                     <CardBody padding={4}>
                                         <Typography variant="omega" textColor="neutral600">
                                             This tool sends a request to the Strapi revalidate plugin API, which then
-                                            makes a server-side request to your Next.js revalidation endpoint. This
+                                            makes a server-side request to the Next.js revalidation endpoint. This
                                             eliminates CORS issues and provides proper error handling.
                                         </Typography>
                                     </CardBody>

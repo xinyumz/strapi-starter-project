@@ -1,13 +1,13 @@
 export default {
   /**
    * An asynchronous register function that runs before
-   * your application is initialized.
+   * the application is initialized.
    */
   register(/*{ strapi }*/) { },
 
   /**
    * An asynchronous bootstrap function that runs before
-   * your application gets started.
+   * the application gets started.
    */
   async bootstrap({ strapi }) {
     // Register cascading delete for articles (individual deletes)

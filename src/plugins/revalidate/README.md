@@ -2,7 +2,7 @@
 
 **Next.js Incremental Static Regeneration (ISR) integration for Strapi v5**
 
-The Revalidate plugin provides seamless integration with Next.js applications, enabling automatic cache invalidation and incremental static regeneration when content changes in your Strapi CMS. Features server-side cache management, clean frontend integration, and enterprise-grade reliability.
+The Revalidate plugin provides seamless integration with Next.js applications, enabling automatic cache invalidation and incremental static regeneration when content changes in the Strapi CMS. Features server-side cache management, clean frontend integration, and enterprise-grade reliability.
 
 ## 🎯 **Core Features**
 
@@ -85,8 +85,8 @@ DELETE /revalidate/cache
 ### **Environment Variables**
 ```env
 # Next.js Application Settings (required)
-NEXTJS_REVALIDATE_URL=https://your-nextjs-app.com
-NEXTJS_REVALIDATE_TOKEN=your-secret-revalidation-token
+NEXTJS_REVALIDATE_URL=https://my-nextjs-app.com
+NEXTJS_REVALIDATE_TOKEN=my-secret-revalidation-token
 
 # Revalidation Behavior (optional)
 REVALIDATE_ENABLED=true
@@ -242,7 +242,7 @@ const customRevalidationFunctions = {
 ```javascript
 // pages/api/revalidate.js or app/api/revalidate/route.js
 export default async function handler(req, res) {
-    // Verify the request is from your Strapi instance
+    // Verify the request is from a Strapi instance
     if (req.headers.authorization !== `Bearer ${process.env.REVALIDATE_SECRET_TOKEN}`) {
         return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -589,7 +589,3 @@ Enables comprehensive logging:
 - **Cloudflare Support** - Cloudflare Workers cache invalidation
 - **CDN Integration** - Multi-CDN cache purging capabilities
 - **Monitoring Tools** - DataDog, NewRelic integration for observability
-
----
-
-**The Revalidate plugin ensures your Next.js frontend stays perfectly synchronized with your Strapi CMS content changes, providing enterprise-grade cache management that scales with your application while maintaining optimal performance and reliability.**
