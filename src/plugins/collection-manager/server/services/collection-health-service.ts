@@ -104,11 +104,15 @@ export default ({ strapi }: any) => {
         const orphanPenalty = Math.round(totalOrphanPenalty);
         const duplicatePenalty = Math.round(totalDuplicatePenalty);
 
-        // Enhanced logging to show the hybrid calculation
-        console.log(`[HealthScore] Hybrid calculation for ${totalCollections} collections:`);
-        console.log(`  - Orphans: ${orphanedCollections} → Base: ${orphanBasePenalty} + Scaled: ${orphanScaledPenalty.toFixed(2)} = ${totalOrphanPenalty.toFixed(2)}`);
-        console.log(`  - Duplicates: ${duplicateCollections} → Base: ${duplicateBasePenalty} + Scaled: ${duplicateScaledPenalty.toFixed(2)} = ${totalDuplicatePenalty.toFixed(2)}`);
-        console.log(`  - Total penalty: ${totalPenalty.toFixed(2)} → Health Score: ${healthScore}%`);
+        // Only log when there are issues
+        if (orphanedCollections > 0 || duplicateCollections > 0) {
+            console.log(`[HealthScore] ${healthScore}% (${orphanedCollections} orphans, ${duplicateCollections} duplicates from ${totalCollections} collections)`);
+        }
+
+        // Keep debug details available via environment variable
+        if (process.env.DEBUG_HEALTH === 'true') {
+            console.log(`[HealthScore] Debug - Penalties: Orphan=${totalOrphanPenalty.toFixed(1)}, Duplicate=${totalDuplicatePenalty.toFixed(1)}, Total=${totalPenalty.toFixed(1)}`);
+        }
 
         return {
             healthScore,

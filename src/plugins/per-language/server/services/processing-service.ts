@@ -1,6 +1,5 @@
 // src/plugins/per-language/server/services/processing-service.ts
 
-
 import { errors } from '@strapi/utils';
 
 const { ApplicationError } = errors;
@@ -12,7 +11,7 @@ export default ({ strapi }: any) => ({
      */
     async processArticle(articleId: number, targetLanguage: string): Promise<{ success: boolean; message?: string }> {
         try {
-            console.log(`[ProcessingService] Processing article ${articleId} in ${targetLanguage}`);
+            console.log(`[PerLanguage] Processing article ${articleId} in ${targetLanguage}`);
 
             // 1. Get the language processor for the target language
             const languageService = strapi.plugin('per-language').service('languageService');
@@ -37,8 +36,35 @@ export default ({ strapi }: any) => ({
             }
 
             // 3. Process using the appropriate processor plugin
-            console.log(`[ProcessingService] Processing with ${processor.name} processor`);
+            console.log(`[PerLanguage] Using ${processor.name} processor`);
 
+            // Try registry interface first, fallback to direct plugin access for compatibility
+            try {
+                // Check if processor has registry interface methods
+                const registry = strapi.plugin('per-language').service('languageProcessorRegistry');
+                const registryProcessor = registry?.getProcessorForLanguage(targetLanguage);
+
+                if (registryProcessor && typeof registryProcessor.processContent === 'function') {
+                    // Use the modern registry interface
+                    const processedData = await registryProcessor.processContent(
+                        content.per_language_text,
+                        { targetLanguages: ['en'] } // Default target languages for sentence translation
+                    );
+
+                    // Save processed data through processor interface
+                    await registryProcessor.saveProcessedData(articleId, targetLanguage, processedData);
+
+                    console.log(`[PerLanguage] Processing completed using registry interface`);
+                    return {
+                        success: true,
+                        message: `Article processed with ${registryProcessor.displayName} processor`
+                    };
+                }
+            } catch (registryError) {
+                console.warn(`[PerLanguage] Registry interface failed, using direct plugin access:`, registryError);
+            }
+
+            // Fallback to direct plugin access (current working method)
             if (processor.pluginName === 'chinese-article-processor') {
                 // Use the complete processing workflow from chinese-article-processor
                 const processService = strapi.plugin('chinese-article-processor').service('processService');
@@ -49,6 +75,7 @@ export default ({ strapi }: any) => ({
                     ['en'] // Default target languages for translation
                 );
 
+                console.log(`[PerLanguage] Processing completed using direct plugin access`);
                 return {
                     success: true,
                     message: `Article processed with ${processor.name} processor`
@@ -61,7 +88,7 @@ export default ({ strapi }: any) => ({
             }
 
         } catch (error) {
-            console.error('Error processing article:', error);
+            console.error('[PerLanguage] Error processing article:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             throw new ApplicationError(`Failed to process article: ${errorMessage}`);
         }
@@ -72,6 +99,8 @@ export default ({ strapi }: any) => ({
      */
     async translateAndProcess(articleId: number, targetLanguage: string): Promise<{ success: boolean; message?: string }> {
         try {
+            console.log(`[PerLanguage] Starting translate and process workflow for article ${articleId}`);
+
             // 1. Translate the article
             const translationService = strapi.plugin('per-language').service('translationService');
             const translationResult = await translationService.translateArticle(articleId, targetLanguage);
@@ -83,15 +112,18 @@ export default ({ strapi }: any) => ({
             // 2. Process the article
             const processingResult = await this.processArticle(articleId, targetLanguage);
 
+            const success = processingResult.success;
+            console.log(`[PerLanguage] Translate and process workflow ${success ? 'completed' : 'failed'}`);
+
             return {
-                success: processingResult.success,
-                message: processingResult.success
+                success,
+                message: success
                     ? `Article translated and processed successfully`
                     : processingResult.message
             };
 
         } catch (error) {
-            console.error('Error in translate and process workflow:', error);
+            console.error('[PerLanguage] Error in translate and process workflow:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             throw new ApplicationError(`Translate and process workflow failed: ${errorMessage}`);
         }

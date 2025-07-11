@@ -11,7 +11,7 @@ export default ({ strapi }: any) => ({
 
             ctx.body = { data: languages };
         } catch (error) {
-            console.error('Error fetching languages:', error);
+            console.error('[PerLanguage] Error fetching languages:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             ctx.throw(500, `Failed to fetch languages: ${errorMessage}`);
         }
@@ -23,23 +23,19 @@ export default ({ strapi }: any) => ({
     async getArticleLanguages(ctx) {
         const { articleId } = ctx.params;
 
-        console.log('[PerLanguageController] getArticleLanguages called with:', { articleId });
-
         if (!articleId) {
             return ctx.badRequest('Article ID is required');
         }
 
         try {
-            // Proper documentId resolution
+            // Handle both documentId (Strapi v5) and numeric ID
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - Use correct query syntax
-                console.log('[PerLanguageController] Using documentId to find article:', articleId);
-
+                // DocumentId resolution for Strapi v5
                 const articles = await strapi.documents('api::article.article').findMany({
                     filters: {
-                        documentId: articleId  // Filter by documentId instead of using findFirst with documentId
+                        documentId: articleId
                     }
                 });
 
@@ -49,24 +45,20 @@ export default ({ strapi }: any) => ({
 
                 const article = articles[0];
                 resolvedArticleId = article.id;
-                console.log('[PerLanguageController] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
-                // This is a numeric ID (v4 compatibility)
+                // Numeric ID
                 resolvedArticleId = parseInt(articleId);
-                console.log('[PerLanguageController] Using numeric ID:', resolvedArticleId);
             }
 
             const articleService = strapi.plugin('per-language').service('articleService');
             const languages = await articleService.getAllLanguagesForArticle(resolvedArticleId);
-
-            console.log(`[PerLanguageController] Found ${languages?.length || 0} languages for article ${resolvedArticleId}`);
 
             ctx.body = {
                 data: languages || [],
                 message: 'Languages retrieved successfully'
             };
         } catch (error) {
-            console.error('[PerLanguageController] Error fetching article languages:', error);
+            console.error('[PerLanguage] Error fetching article languages:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             ctx.throw(500, `Failed to fetch article languages: ${errorMessage}`);
         }
@@ -92,7 +84,7 @@ export default ({ strapi }: any) => ({
 
             ctx.body = { data: content };
         } catch (error) {
-            console.error('Error fetching language content:', error);
+            console.error('[PerLanguage] Error fetching language content:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             ctx.throw(500, `Failed to fetch language content: ${errorMessage}`);
         }
@@ -114,7 +106,7 @@ export default ({ strapi }: any) => ({
 
             ctx.body = result;
         } catch (error) {
-            console.error('Error translating article:', error);
+            console.error('[PerLanguage] Error translating article:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             return ctx.throw(500, `Failed to translate article: ${errorMessage}`);
         }
@@ -140,7 +132,7 @@ export default ({ strapi }: any) => ({
 
             ctx.body = result;
         } catch (error) {
-            console.error('Error processing article:', error);
+            console.error('[PerLanguage] Error processing article:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             return ctx.throw(500, `Failed to process article: ${errorMessage}`);
         }
@@ -162,7 +154,7 @@ export default ({ strapi }: any) => ({
 
             ctx.body = result;
         } catch (error) {
-            console.error('Error in translate and process workflow:', error);
+            console.error('[PerLanguage] Error in translate and process workflow:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             ctx.throw(500, `Translate and process workflow failed: ${errorMessage}`);
         }
@@ -185,7 +177,7 @@ export default ({ strapi }: any) => ({
 
             ctx.body = { data: result };
         } catch (error) {
-            console.error('Error setting publish status:', error);
+            console.error('[PerLanguage] Error setting publish status:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             ctx.throw(500, `Failed to set publish status: ${errorMessage}`);
         }
@@ -207,13 +199,15 @@ export default ({ strapi }: any) => ({
 
             ctx.body = { success: true };
         } catch (error) {
-            console.error('Error deleting language content:', error);
+            console.error('[PerLanguage] Error deleting language content:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             ctx.throw(500, `Failed to delete language content: ${errorMessage}`);
         }
     },
 
-    // Language-specific refresh with proper ID resolution
+    /**
+     * Refresh language data for a specific article and language
+     */
     async refreshLanguageData(ctx) {
         const { articleId, language } = ctx.params;
 
@@ -222,15 +216,11 @@ export default ({ strapi }: any) => ({
         }
 
         try {
-            console.log(`[Refresh] Refreshing data for article ${articleId}, language ${language}`);
-
-            // Proper documentId resolution before calling service
+            // Handle both documentId (Strapi v5) and numeric ID
             let resolvedArticleId: number;
 
             if (typeof articleId === 'string' && isNaN(parseInt(articleId))) {
-                // This is a documentId (Strapi v5) - Use correct query syntax
-                console.log('[Refresh] Using documentId to find article:', articleId);
-
+                // DocumentId resolution for Strapi v5
                 const articles = await strapi.documents('api::article.article').findMany({
                     filters: {
                         documentId: articleId
@@ -243,14 +233,11 @@ export default ({ strapi }: any) => ({
 
                 const article = articles[0];
                 resolvedArticleId = article.id;
-                console.log('[Refresh] Resolved documentId to numeric ID:', resolvedArticleId);
             } else {
-                // This is a numeric ID (v4 compatibility)
+                // Numeric ID
                 resolvedArticleId = parseInt(articleId);
-                console.log('[Refresh] Using numeric ID:', resolvedArticleId);
             }
 
-            // Pass resolved numeric ID to service instead of potentially string documentId
             const articleService = strapi.plugin('per-language').service('articleService');
             const refreshedData = await articleService.getLanguageContent(resolvedArticleId, language);
 
@@ -258,13 +245,11 @@ export default ({ strapi }: any) => ({
                 return ctx.notFound(`No content found for article ${resolvedArticleId} in language ${language}`);
             }
 
-            console.log(`[Refresh] Successfully refreshed data for article ${resolvedArticleId}, language ${language}`);
             ctx.body = { data: refreshedData };
         } catch (error) {
-            console.error(`[Refresh] Error refreshing language data:`, error);
+            console.error(`[PerLanguage] Error refreshing language data:`, error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             ctx.throw(500, `Failed to refresh language data: ${errorMessage}`);
         }
     }
-
 });

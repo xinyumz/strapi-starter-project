@@ -1,6 +1,5 @@
 // src/plugins/chinese-article-processor/server/controllers/article-controller.ts
 
-
 import { errors } from '@strapi/utils';
 import { ExtendedContext } from '../services/types';
 
@@ -37,7 +36,7 @@ export default ({ strapi }: any) => ({
         }
     },
 
-    // LEGACY: Process article with direct content input (keep for backward compatibility)
+    // Alternative processing endpoint for direct content input
     // This method takes content directly in the request body
     async processArticleWithContent(ctx: ExtendedContext) {
         try {
@@ -68,9 +67,9 @@ export default ({ strapi }: any) => ({
                         'zh',
                         processedArticle
                     );
-                    console.log(`[Article Processing] Saved to article_perlanguages table for article ${articleId}`);
+                    console.log(`[ChineseProcessor] Processed data saved for article ${articleId}`);
                 } else {
-                    console.error(`[Article Processing] Process service not available`);
+                    console.error(`[ChineseProcessor] Process service not available`);
                     return ctx.badRequest('Processing service not available');
                 }
 
@@ -141,7 +140,7 @@ export default ({ strapi }: any) => ({
                 return ctx.badRequest('Processed data is required');
             }
 
-            console.log(`[Article Processing] Updating processed data for article ${id}`);
+            console.log(`[ChineseProcessor] Updating processed data for article ${id}`);
 
             // Use the process service to save to article_perlanguages table
             const processService = strapi.plugin('chinese-article-processor').service('processService');
@@ -157,7 +156,7 @@ export default ({ strapi }: any) => ({
                 displaySkill
             );
 
-            console.log(`[Article Processing] Successfully saved to article_perlanguages table`);
+            console.log(`[ChineseProcessor] Successfully saved processed data`);
 
             ctx.body = {
                 data: { success: true, message: 'Processed data updated successfully' }

@@ -1,6 +1,5 @@
 // src/plugins/chinese-article-processor/server/services/process-service.ts
 
-
 import { errors } from '@strapi/utils';
 
 const { ApplicationError } = errors;
@@ -11,8 +10,6 @@ export default ({ strapi }: any) => ({
      */
     async getArticleContent(articleId: number, language: string = 'zh'): Promise<string> {
         try {
-            console.log(`[ProcessService] Getting content for article ${articleId} in ${language}`);
-
             if (!strapi.plugin('per-language')?.service('articleService')) {
                 throw new ApplicationError('per-language articleService not available');
             }
@@ -22,7 +19,6 @@ export default ({ strapi }: any) => ({
                 .getLanguageContent(articleId, language);
 
             if (perLanguageContent && perLanguageContent.per_language_text) {
-                console.log(`[ProcessService] ✅ Using content from article_perlanguages table`);
                 return perLanguageContent.per_language_text;
             }
 
@@ -31,7 +27,7 @@ export default ({ strapi }: any) => ({
                 `Please ensure the content is translated and saved in the article_perlanguages table first.`
             );
         } catch (error) {
-            console.error('[ProcessService] Error getting article content:', error);
+            console.error('[ChineseProcessor] Error getting article content:', error);
             throw error;
         }
     },
@@ -41,8 +37,6 @@ export default ({ strapi }: any) => ({
      */
     async getProcessedData(articleId: number, language: string = 'zh'): Promise<any> {
         try {
-            console.log(`[ProcessService] Getting processed data for article ${articleId} in ${language}`);
-
             if (!strapi.plugin('per-language')?.service('articleService')) {
                 throw new ApplicationError('per-language articleService not available');
             }
@@ -52,14 +46,12 @@ export default ({ strapi }: any) => ({
                 .getLanguageContent(articleId, language);
 
             if (perLanguageContent && perLanguageContent.processed_data) {
-                console.log(`[ProcessService] ✅ Using processed data from article_perlanguages table`);
                 return perLanguageContent.processed_data;
             }
 
-            console.log(`[ProcessService] No processed data found in article_perlanguages table`);
             return null;
         } catch (error) {
-            console.error('[ProcessService] Error getting processed data:', error);
+            console.error('[ChineseProcessor] Error getting processed data:', error);
             throw error;
         }
     },
@@ -75,8 +67,6 @@ export default ({ strapi }: any) => ({
         displaySkill?: string
     ): Promise<void> {
         try {
-            console.log(`[ProcessService] Saving processed data for article ${articleId}`);
-
             if (!strapi.plugin('per-language')?.service('articleService')) {
                 throw new ApplicationError('per-language articleService not available');
             }
@@ -104,14 +94,14 @@ export default ({ strapi }: any) => ({
                     difficultyData,     // difficulty_data: Extracted difficulty  
                     displaySkill       // display_skill: UI display
                 );
-                console.log(`[ProcessService] ✅ Saved to article_perlanguages table`);
+                console.log(`[ChineseProcessor] Processed data saved for article ${articleId}`);
             } else {
                 // Fallback method
                 await articleService.updateProcessedData(existingContent.id, processedData, displaySkill);
-                console.log(`[ProcessService] ✅ Saved to article_perlanguages table (fallback method)`);
+                console.log(`[ChineseProcessor] Processed data saved (fallback method) for article ${articleId}`);
             }
         } catch (error) {
-            console.error('[ProcessService] Error saving processed data:', error);
+            console.error('[ChineseProcessor] Error saving processed data:', error);
             throw error;
         }
     },
@@ -125,11 +115,10 @@ export default ({ strapi }: any) => ({
         targetLanguages: string[] = ['en']
     ): Promise<any> {
         try {
-            console.log(`[ProcessService] Complete processing for article ${articleId}`);
+            console.log(`[ChineseProcessor] Processing article ${articleId} in ${language}`);
 
             // 1. Get content from article_perlanguages table
             const content = await this.getArticleContent(articleId, language);
-            console.log(`[ProcessService] Found content from article_perlanguages table`);
 
             // 2. Validate content before processing
             if (!content || content.trim().length === 0) {
@@ -149,11 +138,11 @@ export default ({ strapi }: any) => ({
             // 5. Save to sentence tables as well
             await articleService.saveProcessedArticle(articleId, processedArticle);
 
-            console.log(`[ProcessService] ✅ Complete processing finished for article ${articleId}`);
+            console.log(`[ChineseProcessor] Processing completed for article ${articleId}`);
             return processedArticle;
 
         } catch (error) {
-            console.error('[ProcessService] Error in complete processing:', error);
+            console.error('[ChineseProcessor] Error in complete processing:', error);
             throw error;
         }
     },
@@ -180,11 +169,11 @@ export default ({ strapi }: any) => ({
                 compatibility: {
                     canProcess: !!content && content.trim().length > 0,
                     dataSource: 'article_perlanguages',
-                    isModern: true // We know it's always modern now
+                    isModern: true
                 }
             };
         } catch (error) {
-            console.error('[ProcessService] Error getting data for Chinese processor:', error);
+            console.error('[ChineseProcessor] Error getting data for Chinese processor:', error);
             throw error;
         }
     },
